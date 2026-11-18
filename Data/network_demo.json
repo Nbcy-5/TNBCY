@@ -1,0 +1,32 @@
+{
+  "name": "Demo network - 2 switches",
+  "defaultLimitKmh": 100,
+  "start": { "edge": "e0", "offsetM": 140 },
+  "nodes": [
+    { "id": "N0", "x": 0,   "z": 0,    "type": "start" },
+    { "id": "N1", "x": 0,   "z": 1400, "type": "plain" },
+    { "id": "N2", "x": 0,   "z": 2600, "type": "plain" },
+    { "id": "N3", "x": 0,   "z": 3600, "type": "plain" },
+    { "id": "N4", "x": 0,   "z": 4600, "type": "end" },
+    { "id": "N5", "x": -50, "z": 4000, "type": "buffer" }
+  ],
+  "edges": [
+    { "id": "e0", "from": "N0", "to": "N1", "gradientPermil": 0,  "curveRadiusM": 0,   "speedLimitKmh": 100 },
+    { "id": "e1", "from": "N1", "to": "N2", "gradientPermil": 8,  "curveRadiusM": 0,   "speedLimitKmh": 80 },
+    { "id": "e2", "from": "N1", "to": "N2", "via": [[60,1600],[60,2400]], "gradientPermil": 0, "curveRadiusM": 400, "speedLimitKmh": 60 },
+    { "id": "e3", "from": "N2", "to": "N3", "gradientPermil": -10, "curveRadiusM": 0,  "speedLimitKmh": 100 },
+    { "id": "e4", "from": "N3", "to": "N4", "gradientPermil": 0,  "curveRadiusM": 0,   "speedLimitKmh": 50 },
+    { "id": "e5", "from": "N3", "to": "N5", "via": [[-50,3700]], "gradientPermil": 0, "curveRadiusM": -300, "speedLimitKmh": 25 }
+  ],
+  "signals": [
+    { "id": "S1", "edge": "e0", "offsetM": 1000 },
+    { "id": "S2", "edge": "e3", "offsetM": 800, "held": true, "holdSeconds": 40 },
+    { "id": "S3", "edge": "e4", "offsetM": 400 }
+  ],
+  "stations": [
+    { "name": "Alderbank",         "edge": "e0", "offsetM": 1150 },
+    { "name": "Cinder Falls P1",   "edge": "e1", "offsetM": 800 },
+    { "name": "Cinder Falls P2",   "edge": "e2", "offsetM": 600 },
+    { "name": "Seacliff",          "edge": "e4", "offsetM": 900 }
+  ]
+}

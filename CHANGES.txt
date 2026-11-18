@@ -1,0 +1,8 @@
+Update 02 (v3) - update01 (track graph + switches) merged into the TNBCY version
++ Track is now a network: nodes + edges, switches (SW1, SW2), a siding with a buffer stop. Data/network_demo.json
++ Switch button: sets the next switch ahead (locked when the train is on it or within 40 m).
++ Trains follow the path through switches; every car follows the curve.
++ Smooth curves through "via" points. Held signals, station stops, buffer-stop and end-of-line penalties.
++ Kept: multi-touch levers, 3D look (sky, shadows, trees), in-game updater, my physics (adhesion, Davis, air brake).
+Changed: the old single-line route and block signals are replaced by the network. Old files are overwritten with stubs.
+Note: your update.bat (from update01) is NOT needed - use the normal update.bat. It deletes Updater and TouchControls.

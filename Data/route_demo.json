@@ -1,0 +1,16 @@
+{"name":"Demo line","defaultLimitKmh":100,
+"segments":[
+{"lengthM":1200,"gradientPermil":0,"curveRadiusM":0,"speedLimitKmh":100},
+{"lengthM":600,"gradientPermil":8,"curveRadiusM":0,"speedLimitKmh":80},
+{"lengthM":600,"gradientPermil":0,"curveRadiusM":800,"speedLimitKmh":70},
+{"lengthM":800,"gradientPermil":-10,"curveRadiusM":0,"speedLimitKmh":50},
+{"lengthM":800,"gradientPermil":0,"curveRadiusM":-600,"speedLimitKmh":60},
+{"lengthM":1000,"gradientPermil":0,"curveRadiusM":0,"speedLimitKmh":100},
+{"lengthM":1500,"gradientPermil":5,"curveRadiusM":0,"speedLimitKmh":100},
+{"lengthM":500,"gradientPermil":0,"curveRadiusM":0,"speedLimitKmh":40}],
+"signals":[
+{"id":"S1","chainageM":900},{"id":"S2","chainageM":1900,"held":true,"holdSeconds":15},
+{"id":"S3","chainageM":2800},{"id":"S4","chainageM":4300},
+{"id":"S5","chainageM":5400,"held":true,"holdSeconds":15},{"id":"S6","chainageM":6300}],
+"stations":[
+{"name":"Alderbank","chainageM":130},{"name":"Cinder Falls","chainageM":3200},{"name":"Seacliff","chainageM":6950}]}

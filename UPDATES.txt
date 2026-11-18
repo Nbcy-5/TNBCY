@@ -1,0 +1,26 @@
+TNBCY in-game updater (C# only)
+
+HOW IT WORKS
+- On start the game downloads version.json from your web address (needs internet).
+- contentVersion higher than the phone's  -> downloads content.pck (routes, trains, numbers), applies it, restarts the scene.
+- apkVersion higher than the app's       -> shows "New version available" with a Download button that opens the APK link.
+  (C# code changes always ship as a new APK. Android does not allow swapping compiled code inside the app.)
+- If offline or the server is down the game just plays normally.
+
+ONE-TIME SETUP
+1. Make a free GitHub account and a public repository, e.g. tnbcy-updates.
+2. Upload ServerExample\version.json to the repo and edit the links inside (see below).
+3. Put the address of version.json in  Data\update_config.json :
+   {"versionUrl":"https://raw.githubusercontent.com/YOURNAME/tnbcy-updates/main/version.json"}
+4. Rebuild the APK once (update.bat). From then on updates can arrive in the game.
+
+PUBLISH CONTENT UPDATE (no new APK)
+1. Change files in Data\ (new route or train json). New files must be added in Project > Export > Content > Resources.
+2. Run make_content.bat -> Builds\content.pck
+3. Upload content.pck to your repo (Releases or the repo files).
+4. Edit version.json: raise contentVersion by 1 and set pckUrl to the file link. Upload version.json.
+
+PUBLISH APP UPDATE (code changes)
+1. In Scripts\Updater.cs raise ApkVersion, and in Project > Export > Android raise Version Code to the same number.
+2. Run update.bat -> Builds\TNBCY.apk, upload it.
+3. In version.json raise apkVersion to that number and set apkUrl to the APK link.
