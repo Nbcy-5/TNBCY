@@ -8,7 +8,7 @@ namespace TNBCY
     //  * New app version (C# code changes): shows a message and opens the APK download link.
     public partial class Updater : Node
     {
-        public const int ApkVersion = 3;   // keep equal to version/code in the Android export preset
+        public const int ApkVersion = 11;   // keep equal to version/code in the Android export preset
         const string CfgPath = "user://update.cfg", PackFile = "content.pck", PackPath = "user://content.pck";
 
         public class Remote { public int apkVersion; public int contentVersion; public string apkUrl = ""; public string pckUrl = ""; public string notes = ""; }

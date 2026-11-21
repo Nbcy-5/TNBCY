@@ -1,4 +1,4 @@
-{"name":"Demo diesel + 4 coaches","brakeApplyRate":0.25,"brakeReleaseRate":0.12,
+{"name":"WAP-7 electric loco + 12 coaches","brakeApplyRate":0.10,"brakeReleaseRate":0.035,
 "vehicles":[
-{"name":"Diesel loco","count":1,"massTonnes":80,"lengthM":20,"brakeForceKn":100,"powered":true,"maxPowerKw":1800,"maxTractiveEffortKn":250,"maxSpeedKmh":120,"colorRgb":14240811},
-{"name":"Coach","count":4,"massTonnes":40,"lengthM":22,"brakeForceKn":45,"maxSpeedKmh":120,"colorRgb":3112324}]}
+{"name":"WAP-7 electric loco","count":1,"massTonnes":123,"lengthM":20.6,"brakeForceKn":150,"powered":true,"maxPowerKw":6120,"maxTractiveEffortKn":258,"maxSpeedKmh":130,"colorRgb":2051740},
+{"name":"Coach","count":12,"massTonnes":45,"lengthM":23.5,"brakeForceKn":52,"maxSpeedKmh":130,"colorRgb":9121322}]}

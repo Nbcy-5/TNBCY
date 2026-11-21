@@ -38,6 +38,7 @@ namespace TNBCY
     public class EdgeSpec
     {
         public string id = "";
+        public string turnout = "";          // "L" for a loop line that leaves the main line on the left
         [JsonPropertyName("from")] public string fromNode = "";
         [JsonPropertyName("to")] public string toNode = "";
         public List<List<float>> via = new List<List<float>>();   // extra [x,z] points the track bends through
@@ -47,13 +48,19 @@ namespace TNBCY
     }
 
     public class NetSignalSpec { public string id = ""; public string edge = ""; public float offsetM; public bool held; public float holdSeconds = 20f; }
-    public class NetStationSpec { public string name = ""; public string edge = ""; public float offsetM; }
+    public class NetStationSpec { public string name = ""; public string edge = ""; public float offsetM; public bool stop = true; public string side = "R"; public float dwellS = 15f; }
     public class StartSpec { public string edge = ""; public float offsetM; }
+    public class AiSpec { public bool enabled = true; public string edge = ""; public float offsetM; public float departAfterS = 20f; }
 
     public class NetworkSpec
     {
         public string name = "";
         public float defaultLimitKmh = 100f;
+        public float timeScale = 1f;         // game seconds per real second (20 km in ~3 min needs about 5)
+        public float targetTimeS = 0f;       // real seconds for the time bonus (0 = no bonus)
+        public float routeLengthM = 0f;
+        public string clockStart = "09:00";
+        public AiSpec ai = new AiSpec();
         public StartSpec start = new StartSpec();
         public List<NodeSpec> nodes = new List<NodeSpec>();
         public List<EdgeSpec> edges = new List<EdgeSpec>();

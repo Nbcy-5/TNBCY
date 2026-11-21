@@ -1,0 +1,34 @@
+{
+ "trains": [
+  {
+   "name": "MEMU 12 coaches",
+   "file": "consist_memu12",
+   "desc": "fast, 258 m"
+  },
+  {
+   "name": "DEMU 8 coaches",
+   "file": "consist_demu8",
+   "desc": "short, 172 m"
+  },
+  {
+   "name": "Passenger 16 coaches",
+   "file": "consist_passenger16",
+   "desc": "WAP-4, 395 m"
+  },
+  {
+   "name": "Express 20 coaches",
+   "file": "consist_express20",
+   "desc": "heavy, 491 m"
+  },
+  {
+   "name": "Superfast 24 coaches",
+   "file": "consist_superfast24",
+   "desc": "longest, 585 m"
+  },
+  {
+   "name": "WAP-7 + 12 coaches",
+   "file": "consist_demo",
+   "desc": "original, 303 m"
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "name": "DEMU 8 coaches",
+ "brakeApplyRate": 0.14,
+ "brakeReleaseRate": 0.05,
+ "vehicles": [
+  {
+   "name": "DEMU power car",
+   "count": 1,
+   "massTonnes": 60,
+   "lengthM": 21.5,
+   "brakeForceKn": 70,
+   "davisA": 18,
+   "davisB": 0.35,
+   "davisC": 3,
+   "maxSpeedKmh": 100,
+   "colorRgb": 3108517,
+   "powered": true,
+   "maxPowerKw": 800,
+   "maxTractiveEffortKn": 110
+  },
+  {
+   "name": "DEMU trailer coach",
+   "count": 3,
+   "massTonnes": 40,
+   "lengthM": 21.5,
+   "brakeForceKn": 46,
+   "davisA": 18,
+   "davisB": 0.35,
+   "davisC": 1.5,
+   "maxSpeedKmh": 100,
+   "colorRgb": 4884157
+  },
+  {
+   "name": "DEMU power car",
+   "count": 1,
+   "massTonnes": 60,
+   "lengthM": 21.5,
+   "brakeForceKn": 70,
+   "davisA": 18,
+   "davisB": 0.35,
+   "davisC": 3,
+   "maxSpeedKmh": 100,
+   "colorRgb": 3108517,
+   "powered": true,
+   "maxPowerKw": 800,
+   "maxTractiveEffortKn": 110
+  },
+  {
+   "name": "DEMU trailer coach",
+   "count": 3,
+   "massTonnes": 40,
+   "lengthM": 21.5,
+   "brakeForceKn": 46,
+   "davisA": 18,
+   "davisB": 0.35,
+   "davisC": 1.5,
+   "maxSpeedKmh": 100,
+   "colorRgb": 4884157
+  }
+ ]
+}

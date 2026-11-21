@@ -19,13 +19,22 @@ namespace TNBCY
         public TNode From, To;
         public List<Vector3> Pts = new List<Vector3>();
         public List<float> Cum = new List<float>();
+        public List<Vector3> Tan = new List<Vector3>();
         public float Length, Gradient, CurveR, LimitKmh;   // Gradient in permil
+        public bool Turnout;                                 // loop line that diverges from / merges into a main line
+        public float SkipStart, SkipEnd;                     // metres where the loop's inner rail would cross the main line (frog)
 
         public void Finish()
         {
             Cum.Clear(); float c = 0f; Cum.Add(0f);
             for (int i = 1; i < Pts.Count; i++) { c += Pts[i].DistanceTo(Pts[i - 1]); Cum.Add(c); }
             Length = c;
+            Tan.Clear();                       // smooth tangent at every point, so heading changes continuously along curves
+            for (int i = 0; i < Pts.Count; i++)
+            {
+                Vector3 a = Pts[System.Math.Max(i - 1, 0)], b = Pts[System.Math.Min(i + 1, Pts.Count - 1)];
+                Vector3 t = b - a; t.Y = 0f; Tan.Add(t.LengthSquared() < 1e-6f ? Vector3.Forward : t.Normalized());
+            }
         }
         int Seg(float s)
         {
@@ -42,7 +51,8 @@ namespace TNBCY
         public Vector3 DirAt(float s)
         {
             s = Mathf.Clamp(s, 0f, Length); int i = Seg(s);
-            Vector3 d = Pts[i + 1] - Pts[i]; d.Y = 0f; return d.Normalized();
+            float l = Cum[i + 1] - Cum[i]; float u = l > 0.0001f ? (s - Cum[i]) / l : 0f;
+            Vector3 d = Tan[i].Lerp(Tan[i + 1], u); d.Y = 0f; return d.LengthSquared() < 1e-6f ? Tan[i] : d.Normalized();
         }
     }
 
@@ -50,8 +60,9 @@ namespace TNBCY
     {
         public string Id = ""; public TEdge Edge; public float Offset, HoldSeconds, Timer;
         public bool Held, Red, Started, Passed;
+        public int Aspect;                    // 0 green, 1 yellow, 2 red
     }
-    public class TStation { public string Name = ""; public TEdge Edge; public float Offset; public bool Done; }
+    public class TStation { public string Name = ""; public TEdge Edge; public float Offset, Dwell = 15f; public bool Done, Served, Stop = true; public string Side = "R"; }
 
     public class TrackGraph
     {
@@ -60,6 +71,31 @@ namespace TNBCY
         public List<TNode> Switches = new List<TNode>();
         public List<TSignal> Signals = new List<TSignal>();
         public List<TStation> Stations = new List<TStation>();
+        public Dictionary<TEdge, List<TSignal>> SigByEdge = new Dictionary<TEdge, List<TSignal>>();
+
+        // First signal after (edge, offset) along the route the switches are currently set for.
+        public TSignal NextSignal(TEdge e, float offset)
+        {
+            for (int hop = 0; hop < 10 && e != null; hop++)
+            {
+                List<TSignal> l;
+                if (SigByEdge.TryGetValue(e, out l))
+                    foreach (var s in l) if (s.Offset > offset + 0.5f) return s;
+                e = e.To.Outs.Count > 0 ? e.To.Outs[e.To.Sel] : null; offset = -1f;
+            }
+            return null;
+        }
+
+        // 3-aspect colour light signalling: RED = stop, YELLOW = next signal is red (be ready to stop), GREEN = clear.
+        public void UpdateAspects()
+        {
+            foreach (var s in Signals)
+            {
+                if (s.Red) { s.Aspect = 2; continue; }
+                var nx = NextSignal(s.Edge, s.Offset);
+                s.Aspect = (nx != null && nx.Red) ? 1 : 0;
+            }
+        }
 
         // Catmull-Rom smoothing so bends through "via" points are curves, not sharp corners.
         static List<Vector3> Smooth(List<Vector3> p)
@@ -69,7 +105,7 @@ namespace TNBCY
             for (int i = 0; i < p.Count - 1; i++)
             {
                 Vector3 p0 = p[System.Math.Max(i - 1, 0)], p1 = p[i], p2 = p[i + 1], p3 = p[System.Math.Min(i + 2, p.Count - 1)];
-                int n = System.Math.Max(2, (int)(p1.DistanceTo(p2) / 15f));
+                int n = System.Math.Max(2, (int)(p1.DistanceTo(p2) / 5f));
                 for (int k = 0; k < n; k++)
                 {
                     float t = k / (float)n, t2 = t * t, t3 = t2 * t;
@@ -87,12 +123,26 @@ namespace TNBCY
             foreach (var es in n.edges)
             {
                 if (!g.Nodes.ContainsKey(es.fromNode) || !g.Nodes.ContainsKey(es.toNode)) { GD.PrintErr("Edge " + es.id + " uses unknown node"); continue; }
-                var e = new TEdge { Id = es.id, From = g.Nodes[es.fromNode], To = g.Nodes[es.toNode], Gradient = es.gradientPermil, CurveR = es.curveRadiusM, LimitKmh = es.speedLimitKmh };
+                var e = new TEdge { Turnout = !string.IsNullOrEmpty(es.turnout), Id = es.id, From = g.Nodes[es.fromNode], To = g.Nodes[es.toNode], Gradient = es.gradientPermil, CurveR = es.curveRadiusM, LimitKmh = es.speedLimitKmh };
                 var pts = new List<Vector3> { e.From.Pos };
                 if (es.via != null) foreach (var v in es.via) pts.Add(new Vector3(v[0], 0f, v[1]));
                 pts.Add(e.To.Pos);
                 e.Pts = Smooth(pts); e.Finish();
                 e.From.Outs.Add(e); g.Edges[es.id] = e;
+            }
+            foreach (var e in g.Edges.Values)
+            {
+                if (!e.Turnout) continue;
+                if (e.From.Outs.Count > 1)                       // diverging end: find where it clears the main line by one gauge
+                {
+                    var m = e.From.Outs[0];
+                    for (float t = 2f; t < System.Math.Min(80f, System.Math.Min(e.Length, m.Length)); t += .5f)
+                        if (e.PosAt(t).DistanceTo(m.PosAt(t)) >= 1.75f) { e.SkipStart = t; break; }
+                }
+                foreach (var m in g.Edges.Values)                // merging end
+                    if (!m.Turnout && m.To == e.To && m != e)
+                        for (float t = 2f; t < System.Math.Min(80f, System.Math.Min(e.Length, m.Length)); t += .5f)
+                            if (e.PosAt(e.Length - t).DistanceTo(m.PosAt(m.Length - t)) >= 1.75f) { e.SkipEnd = t; break; }
             }
             int k = 1;
             foreach (var ns in n.nodes)
@@ -108,8 +158,16 @@ namespace TNBCY
             foreach (var s in n.stations)
             {
                 if (!g.Edges.ContainsKey(s.edge)) continue;
-                g.Stations.Add(new TStation { Name = s.name, Edge = g.Edges[s.edge], Offset = s.offsetM });
+                g.Stations.Add(new TStation { Name = s.name, Edge = g.Edges[s.edge], Offset = s.offsetM, Stop = s.stop, Side = s.side ?? "R", Dwell = s.dwellS });
             }
+            foreach (var sg in g.Signals)
+            {
+                List<TSignal> l;
+                if (!g.SigByEdge.TryGetValue(sg.Edge, out l)) { l = new List<TSignal>(); g.SigByEdge[sg.Edge] = l; }
+                l.Add(sg);
+            }
+            foreach (var l in g.SigByEdge.Values) l.Sort((a, b) => a.Offset.CompareTo(b.Offset));
+            g.UpdateAspects();
             return g;
         }
     }

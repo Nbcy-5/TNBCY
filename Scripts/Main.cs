@@ -4,17 +4,24 @@ using System.Text.Json;
 
 namespace TNBCY
 {
-    // The whole game screen: builds the world from the track graph, the train, and the touch HUD.
+    // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        Scenario sc; Camera3D cam; bool camReady;
-        readonly List<Node3D> cars = new List<Node3D>();
-        readonly Dictionary<TSignal, StandardMaterial3D> sigMats = new Dictionary<TSignal, StandardMaterial3D>();
+        public const string Version = "v11";
+        public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
+        public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
+        static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
+        static readonly string[] GfxNames = { "Auto", "Fast", "Balanced", "High", "Ultra" };
+
+        Control menuPanel; Label loadL, fpsL; Button gfxBtn; int gfxChoice;
+        Scenario sc; Camera3D cam; TrainVis playerVis, aiVis;
+        readonly Dictionary<TSignal, StandardMaterial3D[]> sigMats = new Dictionary<TSignal, StandardMaterial3D[]>();
         readonly Dictionary<TNode, Label3D> swTags = new Dictionary<TNode, Label3D>();
         readonly List<Vector3> trackPts = new List<Vector3>();
         AudioStreamPlayer horn;
-        Label speedL, nextL, scoreL, infoL, toastL, endL, updL;
-        TouchControls touch; Control endPanel, updPanel; float toastT; string apkUrl = "";
+        Label speedL, nextL, infoL, toastL, endL, updL, clockL, aiL;
+        TouchControls touch; Control endPanel, updPanel; float toastT, noteT, startT, frameAcc, fpsT; int frameN, stableUp, lastRev; string apkUrl = "";
+        bool electric; float pantK;
 
         static T LoadJson<T>(string path)
         {
@@ -30,143 +37,67 @@ namespace TNBCY
             var mi = new MeshInstance3D { Mesh = new BoxMesh { Size = size }, MaterialOverride = m };
             parent.AddChild(mi); mi.Transform = new Transform3D(rot, pos); return mi;
         }
-        MultiMesh MM(Mesh mesh, Material m, int n)
+        MultiMesh MM(Mesh mesh, Material m, int n, float visRange = 0f, bool colors = false)
         {
-            var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = mesh, InstanceCount = n };
-            AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = m }); return mm;
+            var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = colors, Mesh = mesh, InstanceCount = n };
+            var inst = new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = m };
+            AddChild(inst); if (visRange > 0f) Far(inst, visRange); return mm;
         }
-        MultiMesh MMBox(Material m, int n) => MM(new BoxMesh { Size = Vector3.One }, m, n);
+        MultiMesh MMBox(Material m, int n, float visRange = 0f) => MM(new BoxMesh { Size = Vector3.One }, m, n, visRange);
         Label3D Tag(string text, Vector3 pos, Color c)
         {
             var l = new Label3D { Text = text, FontSize = 64, PixelSize = 0.02f, OutlineSize = 12, Modulate = c, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true };
             AddChild(l); l.Position = pos; return l;
         }
-        void Toast(string m, bool good) { toastL.Text = m; toastL.Modulate = good ? new Color(.5f, 1f, .6f) : new Color(1f, .5f, .4f); toastT = 3f; }
+        void Toast(string m, bool good, float secs = 3f) { toastL.Text = m; toastL.Modulate = good ? new Color(.5f, 1f, .6f) : new Color(1f, .5f, .4f); toastT = secs; }
+        void Note(string m) { if (noteT <= 0f) { Toast(m, false); noteT = 2f; } }
+        static string AspectName(int a) => a == 2 ? " RED" : (a == 1 ? " YELLOW" : " GREEN");
 
         public override void _Ready()
         {
             Updater.LoadSavedPack();                       // content downloaded by the updater overrides built-in data
             DisplayServer.ScreenSetKeepOn(true);
-            GetViewport().Msaa3D = Viewport.Msaa.Msaa2X;
-            var net = LoadJson<NetworkSpec>("res://Data/network_demo.json");
-            var consist = LoadJson<ConsistSpec>("res://Data/consist_demo.json");
+            DisplayServer.ScreenSetOrientation(DisplayServer.ScreenOrientation.SensorLandscape);    // flip the phone either way
+            ProcTex.Prefetch();                            // textures are made on worker threads while the menu is open
+            GetViewport().Msaa3D = Viewport.Msaa.Disabled;
             BuildHud();
-            sc = new Scenario(net, consist) { OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); } };
-
-            var sky = new Sky { SkyMaterial = new ProceduralSkyMaterial {
-                SkyTopColor = new Color(.22f, .45f, .8f), SkyHorizonColor = new Color(.82f, .85f, .88f),
-                GroundHorizonColor = new Color(.7f, .75f, .72f), GroundBottomColor = new Color(.3f, .4f, .3f) } };
-            var env = new Godot.Environment
-            {
-                BackgroundMode = Godot.Environment.BGMode.Sky, Sky = sky,
-                AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new Color(.62f, .64f, .7f),
-                FogEnabled = true, FogLightColor = new Color(.78f, .84f, .9f), FogDensity = 0.0006f
-            };
-            AddChild(new WorldEnvironment { Environment = env });
-            AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-48, -35, 0), ShadowEnabled = true, DirectionalShadowMaxDistance = 140f });
-            cam = new Camera3D { Near = .3f, Far = 3000f, Fov = 65f }; AddChild(cam); cam.MakeCurrent();
-
-            BuildTrack(); BuildTrees(); BuildStations(); BuildSignals(); BuildSwitchTags(); BuildTrain(consist); BuildHorn();
             AddChild(new Updater { Message = m => Toast(m, true), ApkAvailable = OnApk });
-            Toast("Drive to Seacliff. Tap Switch to change the points ahead.", true);
+        }
+
+        async void StartGame(string consistFile)
+        {
+            try
+            {
+                menuPanel.Visible = false; loadL.Text = "Loading..."; loadL.Visible = true;
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                var net = LoadJson<NetworkSpec>("res://Data/network_demo.json");
+                var consist = LoadJson<ConsistSpec>("res://Data/" + consistFile + ".json");
+                ConsistSpec aiConsist = null;
+                try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); } catch { }
+                sc = new Scenario(net, consist, aiConsist) { OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); } };
+
+                BuildSky();
+                cam = new Camera3D { Near = .12f, Far = 3500f, Fov = 72f }; AddChild(cam); cam.MakeCurrent();
+                matGravel = TexMat(ProcTex.Gravel()); matConcrete = TexMat(ProcTex.Concrete());
+                matSteel = Solid(new Color(.55f, .55f, .6f), .75f, .4f); matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
+                BuildTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildSwitchTags();
+                playerVis = BuildTrain(sc.Train, null, null);
+                if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
+                BuildCab(); BuildHorn();
+
+                electric = false;
+                foreach (var c in sc.Train.Cars) { string nm = (c.Spec.name ?? "").ToLowerInvariant(); if (c.Spec.powered && !nm.Contains("demu") && !nm.Contains("diesel")) electric = true; }
+                touch.Diesel = !electric; touch.Notch = 0; touch.BrakeStep = 1; touch.Reverser = 0; touch.PantoUp = false; touch.Breaker = false; lastRev = 0; pantK = 0f;
+                ApplyQuality(gfxChoice == 0 ? 1 : gfxChoice - 1); startT = 0f;
+                loadL.Visible = false; touch.Enabled = true;
+                Toast(electric ? "Raise PANTO, close VCB, set reverser FWD, release the brake, then power up" : "Start ENGINE, set reverser FWD, release the brake, then power up", true, 7f);
+            }
+            catch (System.Exception ex) { GD.PrintErr(ex.ToString()); if (loadL != null) { loadL.Text = "Error: " + ex.Message; loadL.Visible = true; } }
         }
 
         void OnApk(string notes, string url) { apkUrl = url; updL.Text = "New version available\n" + notes; updPanel.Visible = true; touch.Enabled = false; }
 
-        // ---------------------------------------------------------------- world
-        void BuildTrack()
-        {
-            int total = 0; foreach (var e in sc.Graph.Edges.Values) total += Mathf.CeilToInt(e.Length / 5f);
-            var bal = MMBox(Mat(new Color(.38f, .36f, .34f)), total);
-            var slp = MMBox(Mat(new Color(.3f, .22f, .16f)), total * 2);
-            var rail = MMBox(Mat(new Color(.7f, .7f, .72f)), total * 2);
-            int idx = 0; var min = new Vector3(1e9f, 0, 1e9f); var max = new Vector3(-1e9f, 0, -1e9f);
-            foreach (var e in sc.Graph.Edges.Values)
-            {
-                int np = Mathf.CeilToInt(e.Length / 5f); float step = e.Length / np;
-                for (int k = 0; k < np; k++, idx++)
-                {
-                    float s = (k + .5f) * step; var p = e.PosAt(s); var q = Basis.LookingAt(e.DirAt(s), Vector3.Up);
-                    min = min.Min(p); max = max.Max(p); if (k % 2 == 0) trackPts.Add(p);
-                    bal.SetInstanceTransform(idx, Xf(q, p + q * new Vector3(0, .02f, 0), new Vector3(3.4f, .2f, step + .1f)));
-                    slp.SetInstanceTransform(idx * 2, Xf(q, p + q * new Vector3(0, .16f, -step * .25f), new Vector3(2.7f, .12f, .4f)));
-                    slp.SetInstanceTransform(idx * 2 + 1, Xf(q, p + q * new Vector3(0, .16f, step * .25f), new Vector3(2.7f, .12f, .4f)));
-                    rail.SetInstanceTransform(idx * 2, Xf(q, p + q * new Vector3(-.72f, .27f, 0), new Vector3(.1f, .16f, step + .1f)));
-                    rail.SetInstanceTransform(idx * 2 + 1, Xf(q, p + q * new Vector3(.72f, .27f, 0), new Vector3(.1f, .16f, step + .1f)));
-                }
-            }
-            var c = (min + max) * .5f;
-            Box(this, new Vector3(c.X, -.55f, c.Z), Basis.Identity, new Vector3(8000, 1, 8000), Mat(new Color(.28f, .5f, .25f)));
-            treeBounds = new Rect2(min.X - 300f, min.Z - 200f, max.X - min.X + 600f, max.Z - min.Z + 400f);
-        }
-        Rect2 treeBounds;
-
-        void BuildTrees()
-        {
-            const int n = 500; var rng = new RandomNumberGenerator { Seed = 7 };
-            var trunk = MM(new CylinderMesh { TopRadius = .25f, BottomRadius = .35f, Height = 2f, RadialSegments = 6, Rings = 1 }, Mat(new Color(.35f, .24f, .15f)), n);
-            var crown = MM(new CylinderMesh { TopRadius = 0f, BottomRadius = 1.8f, Height = 5f, RadialSegments = 7, Rings = 1 }, Mat(new Color(.16f, .4f, .2f)), n);
-            for (int i = 0; i < n; i++)
-            {
-                float x = rng.RandfRange(treeBounds.Position.X, treeBounds.End.X), z = rng.RandfRange(treeBounds.Position.Y, treeBounds.End.Y);
-                float s = rng.RandfRange(.8f, 1.7f);
-                foreach (var tp in trackPts) { float dx = tp.X - x, dz = tp.Z - z; if (dx * dx + dz * dz < 18f * 18f) { s = .001f; break; } }
-                var sc3 = Vector3.One * s;
-                trunk.SetInstanceTransform(i, new Transform3D(Basis.FromScale(sc3), new Vector3(x, 1f * s, z)));
-                crown.SetInstanceTransform(i, new Transform3D(Basis.FromScale(sc3), new Vector3(x, 4.5f * s, z)));
-            }
-        }
-
-        void BuildStations()
-        {
-            var plat = Mat(new Color(.75f, .72f, .65f)); var pole = Mat(new Color(.2f, .2f, .2f)); var roof = Mat(new Color(.42f, .18f, .16f));
-            foreach (var st in sc.Graph.Stations)
-            {
-                float s = Mathf.Max(0f, st.Offset - 10f); var p = st.Edge.PosAt(s); var d = st.Edge.DirAt(s); var q = Basis.LookingAt(d, Vector3.Up); var r = Right(d);
-                Box(this, p + r * 3.4f + Vector3.Up * .3f, q, new Vector3(3.2f, .9f, 110f), plat);
-                Box(this, p + r * 3.6f + Vector3.Up * 4.2f, q, new Vector3(3.8f, .25f, 70f), roof);
-                foreach (float z in new[] { -30f, 0f, 30f }) Box(this, p + r * 4.8f + d * z + Vector3.Up * 2.3f, q, new Vector3(.2f, 3.6f, .2f), pole);
-                Tag(st.Name, p + r * 3.4f + Vector3.Up * 7f, Colors.Yellow);
-            }
-        }
-
-        void BuildSignals()
-        {
-            var pole = Mat(new Color(.2f, .2f, .2f));
-            foreach (var s in sc.Graph.Signals)
-            {
-                var p = s.Edge.PosAt(s.Offset); var d = s.Edge.DirAt(s.Offset); var q = Basis.LookingAt(d, Vector3.Up); var bp = p + Right(d) * 3.2f;
-                Box(this, bp + Vector3.Up * 2.5f, q, new Vector3(.25f, 5f, .25f), pole);
-                var m = Mat(Colors.Green); m.EmissionEnabled = true; sigMats[s] = m;
-                Box(this, bp + Vector3.Up * 5.3f, q, new Vector3(.9f, .9f, .5f), m);
-                Tag(s.Id, bp + Vector3.Up * 7.2f, Colors.White);
-            }
-        }
-
-        void BuildSwitchTags()
-        {
-            foreach (var n in sc.Graph.Switches) swTags[n] = Tag("", n.Pos + new Vector3(0f, 6f, 0f), Colors.Yellow);
-            RefreshSwitchTags();
-        }
-        void RefreshSwitchTags()
-        {
-            foreach (var kv in swTags) kv.Value.Text = kv.Key.Name + ": " + (kv.Key.Sel == 0 ? "STRAIGHT" : "DIVERGE");
-        }
-
-        void BuildTrain(ConsistSpec consist)
-        {
-            foreach (var c in sc.Train.Cars)
-            {
-                var v = c.Spec; float L = c.Length;
-                var col = new Color(((v.colorRgb >> 16) & 255) / 255f, ((v.colorRgb >> 8) & 255) / 255f, (v.colorRgb & 255) / 255f);
-                var g = Box(this, Vector3.Zero, Basis.Identity, new Vector3(2.9f, 3.4f, L - .6f), Mat(col));
-                Box(g, new Vector3(0, .3f, 0), Basis.Identity, new Vector3(2.95f, .5f, (L - .6f) * .8f), Mat(new Color(.95f, .9f, .6f)));
-                Box(g, new Vector3(0, 1.75f, 0), Basis.Identity, new Vector3(2.7f, .25f, L - 1f), Mat(col.Darkened(.3f)));
-                Box(g, new Vector3(0, -1.55f, 0), Basis.Identity, new Vector3(2.5f, .7f, L - 2f), Mat(new Color(.12f, .12f, .14f)));
-                cars.Add(g);
-            }
-        }
-
+        // ------------------------------------------------------------------ HUD
         void BuildHorn()
         {
             int rate = 22050, n = rate * 7 / 10; var d = new byte[n * 2];
@@ -208,20 +139,29 @@ namespace TNBCY
             vb = new VBoxContainer(); p.AddChild(vb); return p;
         }
 
+
         void BuildHud()
         {
             var layer = new CanvasLayer(); AddChild(layer);
             var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; root.SetAnchorsPreset(Control.LayoutPreset.FullRect); layer.AddChild(root);
 
+            fadeRect = new ColorRect { Color = new Color(0, 0, 0, 0), MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false }; fadeRect.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(fadeRect);
             speedL = Lbl("0 km/h", 40, HorizontalAlignment.Center); Place(speedL, .5f, 0, .5f, 0, -300, 6, 300, 60); root.AddChild(speedL);
-            infoL = Lbl("", 22, HorizontalAlignment.Center); Place(infoL, .5f, 0, .5f, 0, -320, 62, 320, 110); root.AddChild(infoL);
-            nextL = Lbl("", 22); Place(nextL, 0, 0, 0, 0, 20, 8, 420, 110); root.AddChild(nextL);
-            scoreL = Lbl("Score 0", 34, HorizontalAlignment.Right); Place(scoreL, 1, 0, 1, 0, -300, 8, -20, 60); root.AddChild(scoreL);
-            toastL = Lbl("", 32, HorizontalAlignment.Center); Place(toastL, .5f, .3f, .5f, .3f, -520, 0, 520, 60); root.AddChild(toastL);
+            infoL = Lbl("", 22, HorizontalAlignment.Center); Place(infoL, .5f, 0, .5f, 0, -460, 62, 460, 110); root.AddChild(infoL);
+            nextL = Lbl("", 22); Place(nextL, 0, 0, 0, 0, 20, 8, 470, 110); root.AddChild(nextL);
+            clockL = Lbl("", 22, HorizontalAlignment.Right); Place(clockL, 1, 0, 1, 0, -420, 58, -20, 90); root.AddChild(clockL);
+            aiL = Lbl("", 22, HorizontalAlignment.Right); Place(aiL, 1, 0, 1, 0, -420, 88, -20, 120); root.AddChild(aiL);
+            fpsL = Lbl("", 18, HorizontalAlignment.Right); Place(fpsL, 1, 0, 1, 0, -420, 8, -20, 36); root.AddChild(fpsL);
+            toastL = Lbl("", 32, HorizontalAlignment.Center); Place(toastL, .5f, .3f, .5f, .3f, -620, 0, 620, 60); root.AddChild(toastL);
+            loadL = Lbl("", 40, HorizontalAlignment.Center); Place(loadL, 0, .5f, 1, .5f, 0, -30, 0, 30); loadL.Visible = false; root.AddChild(loadL);
 
             touch = new TouchControls(); touch.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(touch);
             touch.OnSwitch = () => sc.ToggleSwitch();
+            touch.OnPantoToggle = TogglePanto; touch.OnBreakerToggle = ToggleBreaker;
+            touch.OnPrevCoach = () => wantFocus = Mathf.Max(0, focusCar - 1);
+            touch.OnNextCoach = () => wantFocus = Mathf.Min(sc.Train.Cars.Count - 1, focusCar + 1);
 
+            BuildMenu(root);
             endPanel = Panel(out var vb1);
             endL = Lbl("", 34, HorizontalAlignment.Center); vb1.AddChild(endL);
             var again = Btn("Drive again", new Color(.94f, .63f, .19f)); vb1.AddChild(again);
@@ -237,70 +177,151 @@ namespace TNBCY
             root.AddChild(updPanel);
         }
 
+        void BuildMenu(Control root)
+        {
+            var bg = new ColorRect { Color = new Color(.06f, .10f, .14f, 1f) }; bg.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(bg); menuPanel = bg;
+            var cc = new CenterContainer(); cc.SetAnchorsPreset(Control.LayoutPreset.FullRect); bg.AddChild(cc);
+            var vb = new VBoxContainer(); vb.AddThemeConstantOverride("separation", 8); cc.AddChild(vb);
+            vb.AddChild(Lbl("TNBCY  " + Version, 46, HorizontalAlignment.Center));
+            vb.AddChild(Lbl("Secunderabad Jn to Ghatkesar (20 km) - choose your train", 24, HorizontalAlignment.Center));
+            TrainList list; try { list = LoadJson<TrainList>("res://Data/trains.json"); } catch { list = new TrainList(); }
+            if (list.trains.Count == 0) list.trains.Add(new TrainOption { name = "Demo train", file = "consist_demo", desc = "" });
+            foreach (var opt in list.trains)
+            {
+                var o = opt; var b = Btn(o.name + (o.desc.Length > 0 ? "   -   " + o.desc : ""), new Color(.24f, .36f, .44f));
+                b.CustomMinimumSize = new Vector2(760, 50); b.AddThemeFontSizeOverride("font_size", 24); vb.AddChild(b);
+                b.Pressed += () => StartGame(o.file);
+            }
+            gfxBtn = Btn("Graphics: Auto (adjusts itself to keep the game smooth)", new Color(.16f, .26f, .2f));
+            gfxBtn.CustomMinimumSize = new Vector2(760, 46); gfxBtn.AddThemeFontSizeOverride("font_size", 22); vb.AddChild(gfxBtn);
+            gfxBtn.Pressed += () => { gfxChoice = (gfxChoice + 1) % 5; gfxBtn.Text = "Graphics: " + GfxNames[gfxChoice] + (gfxChoice == 0 ? " (adjusts itself to keep the game smooth)" : ""); };
+            touch.Enabled = false;
+        }
+
         string NextText()
         {
             var T = sc.Train; var e = T.FrontSeg.Edge; float acc = -T.FrontOffset, best = 1e9f; string txt = "";
-            for (int hop = 0; hop < 4 && e != null; hop++)
+            for (int hop = 0; hop < 5 && e != null; hop++)
             {
-                foreach (var sg in sc.Graph.Signals)
-                {
-                    if (sg.Edge != e || sg.Passed) continue;
-                    float d = acc + sg.Offset;
-                    if (d >= 0f && d < best) { best = d; txt = "Signal " + sg.Id + (sg.Red ? " RED" : " clear"); }
-                }
+                if (sc.Graph.SigByEdge.TryGetValue(e, out var list))
+                    foreach (var sg in list)
+                    {
+                        if (sg.Passed) continue;
+                        float d = acc + sg.Offset;
+                        if (d >= 0f && d < best) { best = d; txt = "Signal " + sg.Id + AspectName(sg.Aspect); }
+                    }
                 foreach (var stn in sc.Graph.Stations)
                 {
-                    if (stn.Edge != e || stn.Done) continue;
+                    if (stn.Edge != e || stn.Done || !stn.Stop) continue;
                     float d = acc + stn.Offset;
                     if (d >= -40f && d < best) { best = Mathf.Max(d, 0f); txt = "Station " + stn.Name; }
                 }
                 var n = e.To; float dn = acc + e.Length;
-                if (n.IsSwitch && dn < best) { best = dn; txt = "Switch " + n.Name + " set " + (n.Sel == 0 ? "straight" : "diverging"); }
+                if (n.IsSwitch && dn < best) { best = dn; txt = "Switch " + n.Name + " set " + (n.Sel == 0 ? "main" : "loop"); }
                 acc += e.Length; e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
             }
             return best > 1e8f ? "Next: end of line" : "Next: " + txt + " in " + Mathf.RoundToInt(best) + " m";
         }
 
+        // -------------------------------------------------------------- cameras
+        // ------------------------------------------------------------ driver controls
+        void TogglePanto()
+        {
+            if (touch.Diesel) { touch.PantoUp = !touch.PantoUp; if (!touch.PantoUp) touch.Notch = 0; Toast(touch.PantoUp ? "Engine running" : "Engine stopped", touch.PantoUp); return; }
+            if (!touch.PantoUp) { touch.PantoUp = true; Toast("Pantograph raised", true); }
+            else { touch.PantoUp = false; touch.Breaker = false; touch.Notch = 0; Toast("Pantograph lowered - breaker opened", false); }
+        }
+
+        void ToggleBreaker()
+        {
+            if (!touch.PantoUp) { Toast("Raise the pantograph first", false); return; }
+            if (touch.Breaker) { touch.Breaker = false; touch.Notch = 0; Toast("Breaker (VCB) open", false); }
+            else if (touch.Notch > 0) Toast("Set power to 0 before closing the breaker", false);
+            else { touch.Breaker = true; Toast("Breaker (VCB) closed - 25 kV on", true); }
+        }
+
+        void ApplyControls(float dt)
+        {
+            var T = sc.Train; var P = T.Phys;
+            bool power = electric ? (touch.PantoUp && touch.Breaker) : touch.PantoUp;
+            if (touch.Reverser != lastRev)
+            {
+                if (touch.Reverser == -1) { touch.Reverser = lastRev; Note("Reverse running is not available yet"); }
+                else if (T.Speed > .5f || touch.Notch > 0) { touch.Reverser = lastRev; Note("Stop and set power to 0 to change direction"); }
+                else lastRev = touch.Reverser;
+            }
+            if (touch.Notch > 0)
+            {
+                string why = null;
+                if (!power) why = electric ? "No power: raise the pantograph and close the VCB" : "Start the engine first";
+                else if (touch.Reverser != 1) why = "Set the reverser to FWD";
+                else if (touch.BrakeStep >= 2) why = "Release the train brake before applying power";
+                if (why != null) { touch.Notch = 0; Note(why); }
+            }
+            if (touch.Emergency && touch.Notch > 0) touch.Notch = 0;
+            if (!touch.Emergency && P.Emergency && P.Speed > .1f) { touch.ForceEmergency(); Note("Stop before releasing the emergency brake"); }
+            P.Emergency = touch.Emergency;
+            P.BrakeHandle = Mathf.MoveToward(P.BrakeHandle, touch.BrakeValue, 1.8f * dt);
+            float tgt = (power && touch.Reverser == 1) ? touch.Throttle : 0f;
+            P.Throttle = Mathf.MoveToward(P.Throttle, tgt, (tgt > P.Throttle ? .4f : 1.2f) * dt);      // traction builds up and drops off gradually
+            pantK = Mathf.MoveToward(pantK, touch.PantoUp ? 1f : 0f, dt / 2f);
+        }
+
+        // keeps the frame rate smooth: lowers resolution, shadows and draw distance when the phone struggles
+        void AutoQuality()
+        {
+            float avg = frameAcc / Mathf.Max(1, frameN); fpsL.Text = Mathf.RoundToInt(1f / Mathf.Max(avg, .001f)) + " fps  " + QualityNames[quality];
+            if (sc != null && startT > 8f && gfxChoice == 0)
+            {
+                if (avg > .030f && quality > 0) { ApplyQuality(quality - 1); stableUp = 0; Toast("Graphics set to " + QualityNames[quality] + " to keep it smooth", true); }
+                else if (avg < .0165f && quality < 2) { if (++stableUp >= 4) { ApplyQuality(quality + 1); stableUp = 0; } }
+                else stableUp = 0;
+            }
+            frameAcc = 0f; frameN = 0; fpsT = 0f;
+        }
+
         // ----------------------------------------------------------- simulation
         public override void _Process(double delta)
         {
-            if (sc == null) return;
-            float dt = Mathf.Min((float)delta, .05f);
+            float rd = (float)delta; frameAcc += rd; frameN++; fpsT += rd; if (fpsT >= 2f) AutoQuality();
+            if (sc == null || cam == null) return;
+            float dt = Mathf.Min(rd, .05f); startT += dt; noteT -= dt;
             var T = sc.Train; var P = T.Phys;
-            P.Throttle = Mathf.MoveToward(P.Throttle, touch.Throttle, .9f * dt);      // smooth lever response
-            P.BrakeHandle = Mathf.MoveToward(P.BrakeHandle, touch.Brake, 1.8f * dt);
-            if (!touch.Emergency && P.Emergency && P.Speed > .1f) { touch.Emergency = true; Toast("Stop before releasing the emergency brake", false); }
-            P.Emergency = touch.Emergency;
+            ApplyControls(dt);
             sc.Update(dt); toastT -= dt; if (toastT <= 0f) toastL.Text = "";
-            bool cab = touch.Cab;
 
-            for (int i = 0; i < cars.Count; i++)
+            UpdateTrain(playerVis, activeMode == 0, pantK);
+            if (aiVis != null) UpdateTrain(aiVis, false, 1f);
+            var cols = new[] { Colors.Red, new Color(1f, .8f, .1f), new Color(.2f, 1f, .3f) };
+            foreach (var kv in sigMats)
             {
-                var c = T.Cars[i]; T.PointAt(T.Odo - c.Offset, out var pf, out var df); T.PointAt(T.Odo - c.Offset - c.Length, out var pr, out _);
-                var fwd = pf - pr; fwd.Y = 0f; fwd = fwd.LengthSquared() < .0001f ? df : fwd.Normalized();
-                cars[i].Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(fwd.X, fwd.Z)), (pf + pr) * .5f + Vector3.Up * 2f);
+                int active = kv.Key.Aspect == 2 ? 0 : (kv.Key.Aspect == 1 ? 1 : 2);
+                for (int i = 0; i < 3; i++)
+                {
+                    bool on = i == active;
+                    kv.Value[i].AlbedoColor = on ? cols[i] : cols[i].Darkened(.8f);
+                    kv.Value[i].EmissionEnabled = on; kv.Value[i].Emission = cols[i];
+                }
             }
-            cars[0].Visible = !cab;
-            foreach (var kv in sigMats) { var col = kv.Key.Red ? Colors.Red : new Color(.2f, 1f, .3f); kv.Value.AlbedoColor = col; kv.Value.Emission = col; }
-
-            T.PointAt(T.Odo, out var p, out var d);
-            if (cab) cam.LookAtFromPosition(p - d * 6f + Vector3.Up * 4.4f, p + d * 120f + Vector3.Up * 2f, Vector3.Up);
-            else
-            {
-                Vector3 want = p - d * 45f + Right(d) * 2.5f + Vector3.Up * 9f;
-                cam.GlobalPosition = camReady ? cam.GlobalPosition.Lerp(want, Mathf.Min(1f, dt * 6f)) : want; camReady = true;
-                cam.LookAt(p + d * 25f + Vector3.Up * 2f, Vector3.Up);
-            }
+            UpdateCamera(dt);
 
             float lim = sc.LimitKmh(T.FrontSeg.Edge), spd = T.Speed * 3.6f;
             speedL.Text = Mathf.RoundToInt(spd) + " km/h  (limit " + Mathf.RoundToInt(lim) + ")";
             speedL.AddThemeColorOverride("font_color", spd > lim + 3f ? new Color(1f, .4f, .35f) : Colors.White);
-            scoreL.Text = "Score " + Mathf.RoundToInt(sc.Score);
+            clockL.Text = sc.ClockText() + "   25 kV OHE";
             nextL.Text = NextText();
-            infoL.Text = "Brake " + Mathf.RoundToInt(P.BrakeLevel * 100f) + "%   Stopping distance " + Mathf.RoundToInt(P.BrakingDistance(0f)) + " m";
+            float km = T.Odo / 1000f, tot = sc.Net.routeLengthM / 1000f;
+            string rv = touch.Reverser == 1 ? "FWD" : (touch.Reverser == 0 ? "NEU" : "REV");
+            infoL.Text = rv + "  N" + touch.Notch + "  Brake " + Mathf.RoundToInt(P.BrakeLevel * 100f) + "%  Stop " + Mathf.RoundToInt(P.BrakingDistance(0f)) + " m  "
+                + km.ToString("0.0") + (tot > 0f ? " / " + tot.ToString("0.0") : "") + " km" + (touch.ShowCoachButtons ? "  Coach " + (focusCar + 1) + "/" + T.Cars.Count : "");
+            if (sc.AiTrain != null)
+            {
+                T.PointAt(T.Odo, out var pp, out _); sc.AiTrain.PointAt(sc.AiTrain.Odo, out var pa, out _);
+                aiL.Text = "Opposing train: " + sc.Ai.Status + "  " + (pp.DistanceTo(pa) / 1000f).ToString("0.0") + " km";
+            }
             var sw = sc.NextSwitch(out float sd);
-            touch.SwitchLabel = sw == null ? "No switch" : sw.Name + (sw.Sel == 0 ? " straight" : " diverge");
-            if (sc.Ended && !endPanel.Visible) { endL.Text = sc.EndMessage + "\nFinal score: " + Mathf.RoundToInt(sc.Score); endPanel.Visible = true; touch.Enabled = false; }
+            touch.SwitchLabel = sw == null ? "none ahead" : sw.Name + (sw.Sel == 0 ? " main" : " loop") + " " + Mathf.RoundToInt(sd) + "m";
+            if (sc.Ended && !endPanel.Visible) { endL.Text = sc.EndMessage; endPanel.Visible = true; touch.Enabled = false; }
         }
     }
 }

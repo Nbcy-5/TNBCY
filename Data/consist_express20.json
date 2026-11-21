@@ -1,0 +1,34 @@
+{
+ "name": "Express 20 coaches (WAP-7)",
+ "brakeApplyRate": 0.09,
+ "brakeReleaseRate": 0.032,
+ "vehicles": [
+  {
+   "name": "WAP-7 electric loco",
+   "count": 1,
+   "massTonnes": 123,
+   "lengthM": 20.6,
+   "brakeForceKn": 150,
+   "davisA": 25,
+   "davisB": 0.5,
+   "davisC": 6,
+   "maxSpeedKmh": 130,
+   "colorRgb": 2051740,
+   "powered": true,
+   "maxPowerKw": 6120,
+   "maxTractiveEffortKn": 258
+  },
+  {
+   "name": "Coach",
+   "count": 20,
+   "massTonnes": 50,
+   "lengthM": 23.5,
+   "brakeForceKn": 58,
+   "davisA": 25,
+   "davisB": 0.5,
+   "davisC": 4.0,
+   "maxSpeedKmh": 130,
+   "colorRgb": 9121322
+  }
+ ]
+}
