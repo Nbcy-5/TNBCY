@@ -41,12 +41,17 @@ jobs:
           mv templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono
           echo "GODOT=$PWD/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64/Godot_v${GODOT_VERSION}-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
 
-      - name: Debug keystore and Godot settings
+      - name: Restore signing key and Godot settings
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          keytool -genkeypair -v -keystore "$HOME/debug.keystore" -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then
+            echo "Missing secrets ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/tnbcy.keystore"
+          echo "KS_PATH=$RUNNER_TEMP/tnbcy.keystore" >> "$GITHUB_ENV"
           mkdir -p ~/.config/godot
           cat > ~/.config/godot/editor_settings-4.7.tres <<EOF
           [gd_resource type="EditorSettings" format=3]
@@ -54,9 +59,9 @@ jobs:
           [resource]
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/android_sdk_path = "$ANDROID_HOME"
-          export/android/debug_keystore = "$HOME/debug.keystore"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
+          export/android/debug_keystore = "$RUNNER_TEMP/tnbcy.keystore"
+          export/android/debug_keystore_user = "tnbcy"
+          export/android/debug_keystore_pass = "$KS_PASS"
           EOF
           cp ~/.config/godot/editor_settings-4.7.tres ~/.config/godot/editor_settings-4.tres
 
@@ -67,6 +72,13 @@ jobs:
           dotnet build TNBCY.csproj
 
       - name: Export APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ env.KS_PATH }}
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: tnbcy
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ env.KS_PATH }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: tnbcy
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           mkdir -p Builds
           "$GODOT" --headless --path . --export-debug "Android" Builds/TNBCY.apk
