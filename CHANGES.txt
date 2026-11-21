@@ -1,3 +1,24 @@
+[v13] Real-looking rail track (checked against your photos and IndianBroadGaugeTrack.cs)
+ + Rails use a real 60 kg flat-bottom section (head, web with fillets, foot) instead of three flat boxes: polished running surface, polished gauge face, rusty outer side and web, dark foot.
+   Rails in the points (wing, check and switch rails) use the same section.
+ + Concrete sleepers each have a slightly different shade; each rail seat has a black rubber pad and a spring clip on both sides of the rail foot (shown within 60 m).
+ + Ballast is filled up almost to the top of the sleepers (it was 11 cm below), so the sleepers sit in the stones like the photos.
+ + Loop lines in the yard have 13 m rails joined by fishplates with four bolts each (the main lines stay welded).
+ + Frog and fittings use a rust-steel colour to match the rails.
+ ! The standalone IndianBroadGaugeTrack.cs was not used as is: it places the rail centre at half the gauge (real gauge would be 1,604 mm), makes the rail 215 mm tall, leaves the rail pads floating,
+   and builds one node per part (about 10,000 nodes per 100 m), which is far too heavy for a 20 km route on a phone. Its good ideas (600 mm sleepers, pads, clips, fishplates) are built here with instancing.
+ Android version 2.2 (code 13).
+
+[v12] Water pipe lines on the platforms and realistic points (turnouts)
+ + Water pipe line: a dark pipe on yellow-and-black posts (every 6 m) runs along each platform in the gap between the two main lines at Secunderabad, Charlapalli and Ghatkesar,
+   with brass taps every 24 m and water running down to the ground. It stands 2.25 m from each line, 0.5 m clear of the carriage sides.
+ + Points now look like real points: the loop line leaves the main line on a 500 m lead curve (about 1 in 12) instead of a 625 m long stretch, so the inner rails cross at a normal frog angle.
+   The closure rails are drawn all the way from the switch rails to the frog (before, the inner rail was missing there).
+ + Frog: V nose and heavy body, wing rails with a flangeway beside the nose and flared ends, check rails opposite on both the main and the loop line.
+ + Long sleepers across both tracks where the loop is closer than 3.2 m to the main line, as in the photos (the overlapping short sleepers are no longer drawn there).
+ + The four loops (dl_one, dl_two, ul_one, ul_two) were rebuilt with these curves; the parallel stretch beside the platforms is unchanged (7.75 m from the main line), so platforms, stops and signals stay where they were.
+ Android version 2.1 (code 12).
+
 [v11] Review of MainWorld.cs, ProcTex.cs and TouchControls.cs, then merged into v10
  + ProcTex.cs: new ballast texture (granite chips in grey, pink and pale stone, with a little red-soil fines). Only the gravel function changed; the public methods are the same.
  + MainWorld.cs: new ballast bed (top half-width 1.72 m, base 2.15 m, height 0.32 m). It no longer pokes into the platform edge (1.8 m) and the beds of the two lines no longer overlap. Sleepers sit 9 cm into it.

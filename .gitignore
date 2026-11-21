@@ -1,8 +1,5 @@
-*.keystore
-keys.bat
-1_KEYS/
-ANDROID_KEYSTORE*
 .godot/
 Builds/
 bin/
 obj/
+*.keystore

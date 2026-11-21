@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v11";
+        public const string Version = "v13";
         public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
         public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
@@ -79,8 +79,11 @@ namespace TNBCY
                 BuildSky();
                 cam = new Camera3D { Near = .12f, Far = 3500f, Fov = 72f }; AddChild(cam); cam.MakeCurrent();
                 matGravel = TexMat(ProcTex.Gravel()); matConcrete = TexMat(ProcTex.Concrete());
-                matSteel = Solid(new Color(.55f, .55f, .6f), .75f, .4f); matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
-                BuildTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildSwitchTags();
+                matConcrete.VertexColorUseAsAlbedo = true;   // sleepers get a slightly different shade each
+                matSteel = Solid(new Color(.34f, .27f, .23f), .55f, .45f);
+                matRail = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .45f, Roughness = .38f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
+                matFit = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .3f, Roughness = .6f, CullMode = BaseMaterial3D.CullModeEnum.Disabled }; matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
+                BuildTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildWaterPipes(); BuildSwitchTags();
                 playerVis = BuildTrain(sc.Train, null, null);
                 if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
                 BuildCab(); BuildHorn();
