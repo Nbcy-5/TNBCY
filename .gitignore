@@ -2,3 +2,7 @@
 Builds/
 bin/
 obj/
+*.keystore
+keys.bat
+1_KEYS/
+ANDROID_KEYSTORE*
