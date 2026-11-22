@@ -1,26 +1,26 @@
-TNBCY in-game updater (C# only)
+TNBCY in-game updates (GitHub)
+
+WHAT THE PLAYER SEES
+- On start the game looks for a newer version. If there is one, a window says "New version available" with what is new.
+  Download opens the APK link in the browser, then the player taps the file to install it over the old game. Later closes the window.
+- No internet, or nothing new: nothing is shown and the game just starts.
 
 HOW IT WORKS
-- On start the game downloads version.json from your web address (needs internet).
-- contentVersion higher than the phone's  -> downloads content.pck (routes, trains, numbers), applies it, restarts the scene.
-- apkVersion higher than the app's       -> shows "New version available" with a Download button that opens the APK link.
-  (C# code changes always ship as a new APK. Android does not allow swapping compiled code inside the app.)
-- If offline or the server is down the game just plays normally.
+- Each GitHub build publishes a release (TNBCY.apk, content.pck, version.json) to the PUBLIC repository  Nbcy-5/tnbcy-updates.
+  (The main repository stays private: a private repository cannot be read by the game.)
+- The game reads  https://github.com/Nbcy-5/tnbcy-updates/releases/latest/download/version.json  (set in Data/update_config.json).
+- version.json says which version code is newest. If it is higher than ApkVersion in Scripts/Updater.cs the window appears.
 
-ONE-TIME SETUP
-1. Make a free GitHub account and a public repository, e.g. tnbcy-updates.
-2. Upload ServerExample\version.json to the repo and edit the links inside (see below).
-3. Put the address of version.json in  Data\update_config.json :
-   {"versionUrl":"https://raw.githubusercontent.com/YOURNAME/tnbcy-updates/main/version.json"}
-4. Rebuild the APK once (update.bat). From then on updates can arrive in the game.
+ONE-TIME SETUP (Termux)
+  gh repo create Nbcy-5/tnbcy-updates --public --add-readme
+  gh auth token | gh secret set UPDATES_TOKEN -R Nbcy-5/TNBCY
+  (the token lets the build upload releases to the updates repository)
 
-PUBLISH CONTENT UPDATE (no new APK)
-1. Change files in Data\ (new route or train json). New files must be added in Project > Export > Content > Resources.
-2. Run make_content.bat -> Builds\content.pck
-3. Upload content.pck to your repo (Releases or the repo files).
-4. Edit version.json: raise contentVersion by 1 and set pckUrl to the file link. Upload version.json.
+EVERY NEW VERSION
+- Raise  version/code  in export_presets.cfg and  ApkVersion  in Scripts/Updater.cs to the SAME number (the build stops if they differ).
+- Push as usual. The build publishes the release; phones that have this updater see the window next time they start the game.
+- Android only lets an update install if it is signed with the same key (your tnbcy key) and has a higher version code.
 
-PUBLISH APP UPDATE (code changes)
-1. In Scripts\Updater.cs raise ApkVersion, and in Project > Export > Android raise Version Code to the same number.
-2. Run update.bat -> Builds\TNBCY.apk, upload it.
-3. In version.json raise apkVersion to that number and set apkUrl to the APK link.
+LIMITS
+- C# code and new files always need a new APK (Android does not let an app replace its own compiled code).
+- content.pck (data files only) is published too; it is only used if you later publish a content number higher than the APK number.

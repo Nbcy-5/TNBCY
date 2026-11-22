@@ -1,3 +1,12 @@
+[v16] In-game updates through GitHub
+ + Every GitHub build now publishes a release (the APK, and a small version.json) to the public repository Nbcy-5/tnbcy-updates.
+ + The game checks that address when it starts. If a newer build exists a window appears: "New version available" with what is new, and Download / Later buttons.
+   Download opens the APK in the browser; tap it to install over the old game (same signing key).
+ + The build refuses to publish if the version code in the export preset and ApkVersion in Updater.cs differ, so a wrong number can never reach the game.
+ + The updater now treats the content built into the app as already installed, and drops an old downloaded content pack when the app itself is newer.
+ + Needs the secret UPDATES_TOKEN on the main repository (one-time setup, see UPDATES.txt).
+ Android version 2.5 (code 16).
+
 [v15] Speed-based train sounds (5 to 95 km/h) and a sound system you can extend
  + From your reference video (the phone speedometer in it was read second by second) the sound between 5 and 95 km/h was cut into eleven
    seamless loops, roll_07 ... roll_93, one for each speed band. They crossfade as the speed changes, the volume rises with speed and the pitch follows speed a little.
