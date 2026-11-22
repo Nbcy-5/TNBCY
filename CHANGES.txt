@@ -1,3 +1,10 @@
+[v18] 42 locomotives added, wheels that turn
+ + 42 real 3D locomotives (WAP-7, WAP-4, WDP-4D, WDM-3D, WDG-3A, WDM-2, WDAP-5) in Assets/Locos, listed in Data/locos.json.
+ + Menu: pick a loco with < > and press "Drive the chosen locomotive + 16 coaches".
+ + All wheels (locos and coaches) are now round iron wheelsets with spokes that turn with the speed.
+ + Real track (MainRealTrack.cs): granite ballast and concrete sleepers with relief, cast frogs, grass tufts, no more flicker.
+ + Bogie frames added where a model had none. Android version 2.7 (code 18).
+
 [v17] Silent content updates now work (data and sounds without a new APK)
  + Content version = app version x 100 + a patch number kept in content_patch.txt. Raise that number, push, and phones that already have this app
    download the new content pack (data files and sounds) at the next start, apply it and reload; no new APK, no window.

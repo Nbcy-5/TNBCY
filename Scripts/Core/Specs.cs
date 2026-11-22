@@ -21,7 +21,34 @@ namespace TNBCY
         public float maxTractiveEffortKn;
         public float maxSpeedKmh = 120f;
         public int colorRgb = 0x2f7d84;     // used by the 3D view
+        public string model = "";           // id of a 3D locomotive model in Data/locos.json (empty = the built-in box loco / coach)
+        public float bogieCentreM;          // distance from the middle of the vehicle to each bogie centre (0 = 13% in from the ends)
     }
+
+    // One locomotive model from Data/locos.json: the 3D file, its physical data and where the axles are.
+    [Serializable]
+    public class LocoSpec
+    {
+        public string id = "";
+        public string name = "";
+        public string model = "";           // file name (without .glb) in Assets/Locos
+        public bool electric;
+        public float massTonnes = 120f;
+        public float lengthM = 21f;
+        public float brakeForceKn = 150f;
+        public float maxPowerKw = 3000f;
+        public float maxTractiveEffortKn = 250f;
+        public float maxSpeedKmh = 110f;
+        public float bogieCentreM = 6f;
+        public float wheelR = .55f;         // wheel radius in metres
+        public float zc;                    // the model is shifted by this much along its own Z so both bogies sit symmetrically
+        public bool frames = true;          // true = the model has no bogie frames, so simple ones are added
+        public float roofY = 4.2f;          // roof height above the rail (pantograph base), electric locos only
+        public float pantZ = -3.6f;         // pantograph position along the loco (+Z = front)
+        public List<float> axles = new List<float>();   // axle positions along the loco, front = +Z
+    }
+
+    public class LocoList { public List<LocoSpec> locos = new List<LocoSpec>(); }
 
     [Serializable]
     public class ConsistSpec

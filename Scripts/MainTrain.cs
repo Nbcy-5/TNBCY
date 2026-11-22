@@ -6,7 +6,7 @@ namespace TNBCY
     // Trains: each car is ONE mesh with baked colours (few draw calls), pantographs that raise and lower, and the driver's cab.
     public partial class Main
     {
-        class TrainVis { public Train T; public List<Node3D> Cars = new List<Node3D>(); public List<Node3D> Pants = new List<Node3D>(); }
+        class TrainVis { public Train T; public List<Node3D> Cars = new List<Node3D>(); public List<Node3D> Pants = new List<Node3D>(); public List<WheelSet> Wheels = new List<WheelSet>(); }
         readonly Dictionary<string, ArrayMesh> carMeshes = new Dictionary<string, ArrayMesh>();
         StandardMaterial3D carMat;
         Node3D cabRig, leverPower, leverBrake, leverRev;
@@ -56,7 +56,8 @@ namespace TNBCY
                 float bh = loco ? 3.4f : 3.0f, cy = 1.05f + bh * .5f, top = 1.05f + bh, bl = L - .6f;
                 BoxC(st, new Vector3(0f, cy, 0f), new Vector3(3.2f, bh, bl), body);
                 BoxC(st, new Vector3(0f, top + .1f, 0f), new Vector3(3.0f, .22f, bl - .6f), loco ? body.Darkened(.3f) : roofC);
-                BoxC(st, new Vector3(0f, .95f, 0f), new Vector3(2.7f, .55f, L - 2.5f), dark);
+                float eqHalf = Mathf.Max(1f, L * .37f - (loco ? 3.1f : 2.4f));   // equipment box between the bogies; the wheels stay visible
+                BoxC(st, new Vector3(0f, .98f, 0f), new Vector3(2.4f, .42f, eqHalf * 2f), dark);
                 if (loco)
                 {
                     foreach (float sd in new[] { -1f, 1f })
@@ -69,11 +70,7 @@ namespace TNBCY
                     for (int k = 0; k < 6; k++) { float zz = -bl * .32f + k * bl * .13f; BoxC(st, new Vector3(-1.62f, 2.3f, zz), new Vector3(.06f, 1.0f, 1.0f), dark); BoxC(st, new Vector3(1.62f, 2.3f, zz), new Vector3(.06f, 1.0f, 1.0f), dark); }
                     BoxC(st, new Vector3(0f, top + .35f, 3.5f), new Vector3(1.2f, .5f, 2.2f), steel);
                     BoxC(st, new Vector3(0f, top + .3f, -.5f), new Vector3(1.0f, .4f, 1.6f), steel);
-                    foreach (float bz in new[] { -L * .37f, L * .37f })
-                    {
-                        BoxC(st, new Vector3(0f, 1.0f, bz), new Vector3(2.2f, .25f, 4.8f), dark);
-                        foreach (float az in new[] { -2.1f, 0f, 2.1f }) CylC(st, new Vector3(0f, 1.07f, bz + az), .44f, .95f, 0, black);
-                    }
+                    foreach (float bz in new[] { -L * .37f, L * .37f }) BogieFrame(st, bz, new[] { -2.1f, 0f, 2.1f }, RailTop + .546f, .97f, .14f);   // wheels are separate, they turn
                 }
                 else
                 {
@@ -84,11 +81,7 @@ namespace TNBCY
                     BoxC(st, new Vector3(0f, cy, bl * .5f + .02f), new Vector3(3.1f, 2.8f, .12f), body.Darkened(.4f));
                     BoxC(st, new Vector3(0f, cy, -bl * .5f - .02f), new Vector3(3.1f, 2.8f, .12f), body.Darkened(.4f));
                     CylC(st, new Vector3(-.7f, .8f, 0f), .3f, 1.6f, 2, dark); CylC(st, new Vector3(.7f, .8f, 0f), .3f, 1.6f, 2, dark);
-                    foreach (float bz in new[] { -L * .37f, L * .37f })
-                    {
-                        BoxC(st, new Vector3(0f, 1.0f, bz), new Vector3(2.1f, .22f, 3.2f), dark);
-                        foreach (float az in new[] { -1.25f, 1.25f }) CylC(st, new Vector3(0f, 1.07f, bz + az), .44f, .95f, 0, black);
-                    }
+                    foreach (float bz in new[] { -L * .37f, L * .37f }) BogieFrame(st, bz, new[] { -1.25f, 1.25f }, RailTop + .4575f, .97f, .14f);   // wheels are separate, they turn
                 }
                 foreach (float sd in new[] { -1f, 1f })        // buffers and coupler
                 {
@@ -128,18 +121,25 @@ namespace TNBCY
         {
             var vis = new TrainVis { T = T };
             if (carMat == null) carMat = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = .55f, Metallic = .12f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
+            LoadLocoCatalog();
             for (int i = 0; i < T.Cars.Count; i++)
             {
                 var c = T.Cars[i]; var v = c.Spec; float L = c.Length; string nm = (v.name ?? "").ToLowerInvariant();
                 bool loco = v.powered && nm.Contains("loco"), pant = v.powered && !nm.Contains("demu") && !nm.Contains("diesel");
                 var col = new Color(((v.colorRgb >> 16) & 255) / 255f, ((v.colorRgb >> 8) & 255) / 255f, (v.colorRgb & 255) / 255f);
                 if (loco && locoCol.HasValue) col = locoCol.Value; else if (!loco && coachCol.HasValue) col = coachCol.Value;
-                var mi = new MeshInstance3D { Mesh = CarMesh(v, L, col, loco), MaterialOverride = carMat }; AddChild(mi); vis.Cars.Add(mi);
+                LocoSpec ls = null; Node3D car = null;
+                if (loco && !string.IsNullOrEmpty(v.model) && locoCat.TryGetValue(v.model, out ls)) car = BuildLocoNode(ls);   // 3D model from Assets/Locos
+                if (car == null) { ls = null; car = new MeshInstance3D { Mesh = CarMesh(v, L, col, loco), MaterialOverride = carMat }; }
+                AddChild(car); vis.Cars.Add(car);
+                if (ls != null) AddWheels(vis, car, i, ls.wheelR, ls.axles.ToArray());
+                else if (loco) AddWheels(vis, car, i, .546f, new[] { -L * .37f - 2.1f, -L * .37f, -L * .37f + 2.1f, L * .37f - 2.1f, L * .37f, L * .37f + 2.1f });
+                else AddWheels(vis, car, i, .4575f, new[] { -L * .37f - 1.25f, -L * .37f + 1.25f, L * .37f - 1.25f, L * .37f + 1.25f });
                 if (pant)
                 {
-                    float baseY = 1.05f + (loco ? 3.4f : 3.0f) + .1f;
-                    var pn = new MeshInstance3D { Mesh = PantMesh(6.32f - baseY), MaterialOverride = carMat, Position = new Vector3(0f, baseY, -3.6f) };
-                    mi.AddChild(pn); vis.Pants.Add(pn);
+                    float baseY = ls != null ? RailTop + ls.roofY : 1.05f + (loco ? 3.4f : 3.0f) + .1f;
+                    var pn = new MeshInstance3D { Mesh = PantMesh(6.32f - baseY), MaterialOverride = carMat, Position = new Vector3(0f, baseY, ls != null ? ls.pantZ : -3.6f) };
+                    car.AddChild(pn); vis.Pants.Add(pn);
                 }
             }
             return vis;
@@ -151,13 +151,19 @@ namespace TNBCY
             var T = vis.T;
             for (int i = 0; i < vis.Cars.Count; i++)
             {
-                var c = T.Cars[i]; float ins = c.Length * .13f;
+                var c = T.Cars[i]; float ins = c.Spec.bogieCentreM > .5f ? Mathf.Max(.1f, c.Length * .5f - c.Spec.bogieCentreM) : c.Length * .13f;
                 T.PointAt(T.Odo - c.Offset - ins, out var pf, out var df); T.PointAt(T.Odo - c.Offset - c.Length + ins, out var pr, out _);
                 var fwd = pf - pr; fwd.Y = 0f; fwd = fwd.LengthSquared() < .0001f ? df : fwd.Normalized();
                 vis.Cars[i].Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(fwd.X, fwd.Z)), (pf + pr) * .5f);
             }
             if (vis.Cars.Count > 0) vis.Cars[0].Visible = !hideLoco;
             foreach (var pn in vis.Pants) pn.Scale = new Vector3(1f, Mathf.Lerp(.12f, 1f, pantK), 1f);
+            float odo = T.Odo;      // the wheels turn with the distance run: angle = distance / radius
+            foreach (var w in vis.Wheels)
+            {
+                float ang = Mathf.PosMod(odo / w.R, Mathf.Tau);
+                for (int k = 0; k < w.Pos.Length; k++) w.MM.SetInstanceTransform(k, new Transform3D(new Basis(Vector3.Right, ang + w.Phase + k * .9f), w.Pos[k]));
+            }
         }
 
         // ------------------------------------------------------------------ driver's cab

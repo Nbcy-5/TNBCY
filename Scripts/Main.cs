@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v17";
+        public const string Version = "v18";
         public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
         public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
@@ -59,13 +59,14 @@ namespace TNBCY
             Updater.LoadSavedPack();                       // content downloaded by the updater overrides built-in data
             DisplayServer.ScreenSetKeepOn(true);
             DisplayServer.ScreenSetOrientation(DisplayServer.ScreenOrientation.SensorLandscape);    // flip the phone either way
+            RTPrefetch();                                  // real-track textures (granite ballast, concrete sleepers) are made while the menu is open
             ProcTex.Prefetch();                            // textures are made on worker threads while the menu is open
             GetViewport().Msaa3D = Viewport.Msaa.Disabled;
             BuildHud();
             AddChild(new Updater { Message = m => Toast(m, true), ApkAvailable = OnApk });
         }
 
-        async void StartGame(string consistFile)
+        async void StartGame(string consistFile, string locoId = null)
         {
             try
             {
@@ -73,6 +74,12 @@ namespace TNBCY
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
                 var net = LoadJson<NetworkSpec>("res://Data/network_demo.json");
                 var consist = LoadJson<ConsistSpec>("res://Data/" + consistFile + ".json");
+                LoadLocoCatalog();
+                if (!string.IsNullOrEmpty(locoId) && locoCat.TryGetValue(locoId, out var chosen))    // a locomotive picked in the menu replaces the consist's loco
+                {
+                    int li = consist.vehicles.FindIndex(x => x.powered); if (li < 0) li = 0;
+                    consist.vehicles[li] = LocoVehicle(chosen); consist.name = chosen.name + " + coaches";
+                }
                 ConsistSpec aiConsist = null;
                 try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); } catch { }
                 sc = new Scenario(net, consist, aiConsist) { OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); } };
@@ -84,7 +91,7 @@ namespace TNBCY
                 matSteel = Solid(new Color(.34f, .27f, .23f), .55f, .45f);
                 matRail = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .45f, Roughness = .38f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
                 matFit = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .3f, Roughness = .6f, CullMode = BaseMaterial3D.CullModeEnum.Disabled }; matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
-                BuildTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildWaterPipes(); BuildSwitchTags();
+                BuildRealTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildWaterPipes(); BuildSwitchTags();
                 playerVis = BuildTrain(sc.Train, null, null);
                 if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
                 BuildCab(); BuildHorn();
@@ -197,6 +204,7 @@ namespace TNBCY
                 b.CustomMinimumSize = new Vector2(760, 50); b.AddThemeFontSizeOverride("font_size", 24); vb.AddChild(b);
                 b.Pressed += () => StartGame(o.file);
             }
+            BuildLocoPicker(vb);
             gfxBtn = Btn("Graphics: Auto (adjusts itself to keep the game smooth)", new Color(.16f, .26f, .2f));
             gfxBtn.CustomMinimumSize = new Vector2(760, 46); gfxBtn.AddThemeFontSizeOverride("font_size", 22); vb.AddChild(gfxBtn);
             gfxBtn.Pressed += () => { gfxChoice = (gfxChoice + 1) % 5; gfxBtn.Text = "Graphics: " + GfxNames[gfxChoice] + (gfxChoice == 0 ? " (adjusts itself to keep the game smooth)" : ""); };
