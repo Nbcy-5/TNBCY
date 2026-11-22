@@ -8,7 +8,9 @@ namespace TNBCY
     //  * New app version (C# code changes): shows a message and opens the APK download link.
     public partial class Updater : Node
     {
-        public const int ApkVersion = 16;   // keep equal to version/code in the Android export preset
+        public const int ApkVersion = 17;   // keep equal to version/code in the Android export preset
+        const int ContentScale = 100;      // content version = app version * 100 + patch number (content_patch.txt)
+        static int BuiltInContent { get { return ApkVersion * ContentScale; } }
         const string CfgPath = "user://update.cfg", PackFile = "content.pck", PackPath = "user://content.pck";
 
         public class Remote { public int apkVersion; public int contentVersion; public string apkUrl = ""; public string pckUrl = ""; public string notes = ""; }
@@ -22,7 +24,7 @@ namespace TNBCY
         public static void LoadSavedPack()
         {
             if (!Godot.FileAccess.FileExists(PackPath)) return;
-            if (SavedVersion() < ApkVersion)   // the installed app is newer than the downloaded pack: the app's own data wins, drop the old pack
+            if (SavedVersion() < BuiltInContent)   // the installed app is newer than the downloaded pack: the app's own data wins, drop the old pack
             {
                 using (var d = DirAccess.Open("user://")) { if (d != null) d.Remove(PackFile); }
                 return;
@@ -34,7 +36,7 @@ namespace TNBCY
             var cf = new ConfigFile();
             return cf.Load(CfgPath) == Error.Ok ? cf.GetValue("content", "version", 0).AsInt32() : 0;
         }
-        static int LocalVersion() { return System.Math.Max(SavedVersion(), ApkVersion); }   // what is built into the app counts as already installed
+        static int LocalVersion() { return System.Math.Max(SavedVersion(), BuiltInContent); }   // what is built into the app counts as already installed
         static void SaveVersion(int v)
         {
             var cf = new ConfigFile(); cf.Load(CfgPath); cf.SetValue("content", "version", v); cf.Save(CfgPath);

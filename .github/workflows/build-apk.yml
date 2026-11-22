@@ -104,6 +104,7 @@ jobs:
           mkdir -p rel
           cp Builds/TNBCY.apk rel/TNBCY.apk
           [ -f Builds/content.pck ] && cp Builds/content.pck rel/content.pck || true
+          if [ ! -f Builds/content.pck ]; then echo "WARNING: content.pck was not built - silent content updates will not reach the game this time"; fi
           export CODE NAME
           python3 - <<'PY'
           import json, os
@@ -112,7 +113,8 @@ jobs:
           lines = open("CHANGES.txt", encoding="utf-8").read().split("\n\n")[0].split("\n")
           short = [l.strip()[:90] for l in lines[:4]]
           notes = ("Version " + name + "\n" + "\n".join(short)).strip()
-          v = {"apkVersion": code, "contentVersion": code, "apkUrl": base + "TNBCY.apk", "notes": notes}
+          patch = int(open("content_patch.txt").read().strip() or 0) if os.path.exists("content_patch.txt") else 0
+          v = {"apkVersion": code, "contentVersion": code * 100 + patch, "apkUrl": base + "TNBCY.apk", "notes": notes}
           if os.path.exists("rel/content.pck"): v["pckUrl"] = base + "content.pck"
           json.dump(v, open("rel/version.json", "w"), indent=2)
           PY

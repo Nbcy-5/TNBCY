@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v16";
+        public const string Version = "v17";
         public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
         public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };

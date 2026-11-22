@@ -1,3 +1,10 @@
+[v17] Silent content updates now work (data and sounds without a new APK)
+ + Content version = app version x 100 + a patch number kept in content_patch.txt. Raise that number, push, and phones that already have this app
+   download the new content pack (data files and sounds) at the next start, apply it and reload; no new APK, no window.
+ + A new app version always wins over an older downloaded pack (the old pack is dropped), so content can never go back to an old state.
+ + The build warns if the content pack could not be built.
+ Android version 2.6 (code 17).
+
 [v16] In-game updates through GitHub
  + Every GitHub build now publishes a release (the APK, and a small version.json) to the public repository Nbcy-5/tnbcy-updates.
  + The game checks that address when it starts. If a newer build exists a window appears: "New version available" with what is new, and Download / Later buttons.

@@ -1,26 +1,25 @@
 TNBCY in-game updates (GitHub)
 
-WHAT THE PLAYER SEES
-- On start the game looks for a newer version. If there is one, a window says "New version available" with what is new.
-  Download opens the APK link in the browser, then the player taps the file to install it over the old game. Later closes the window.
-- No internet, or nothing new: nothing is shown and the game just starts.
+TWO KINDS OF UPDATE
+1) NEW APP VERSION (anything that is C# code: new features, controls, 3D look, rules)
+   - Raise version/code in export_presets.cfg AND ApkVersion in Scripts/Updater.cs to the same new number, push.
+   - Phones with this updater show a window at start: "New version available" + Download / Later.
+     Download opens the APK in the browser; tap the file to install over the old game.
+2) SILENT CONTENT UPDATE (only data files and sounds, no new APK, no window)
+   - Change files in Data/ (trains.json, consist_*.json, network_demo.json, train_sounds.json ...) and/or put new sounds in Assets/Audio/.
+   - Raise the number in content_patch.txt by 1 (0 -> 1 -> 2 ...). Do NOT change version/code.
+   - Push. At the next start the phone downloads the new content (a few MB), applies it and reloads. A short "Update installed" message shows.
+   - When you next publish a new APK version, content_patch.txt goes back to 0 (the new app already contains the content).
+
+WHAT CAN BE A SILENT CONTENT UPDATE
+- New or changed trains: add consist_xxx.json and a line in trains.json (name, file, description). Mass, length, brakes, power, speed, colour are all data.
+- The route: network_demo.json (track, stations, signals, speed limits, gradients, start, AI train, clock, time scale). It is ONE route file for now.
+- Sounds: new loops that play in a speed range, and one-shot sounds that the game already plays, in Data/train_sounds.json + Assets/Audio/.
+WHAT NEEDS A NEW APP VERSION
+- Anything C#: how things look (locomotive and coach shapes, platforms, signals, track), controls and screens, physics rules, new kinds of data the code does not read yet,
+  playing a one-shot sound from a new event, choosing between several routes.
 
 HOW IT WORKS
-- Each GitHub build publishes a release (TNBCY.apk, content.pck, version.json) to the PUBLIC repository  Nbcy-5/tnbcy-updates.
-  (The main repository stays private: a private repository cannot be read by the game.)
-- The game reads  https://github.com/Nbcy-5/tnbcy-updates/releases/latest/download/version.json  (set in Data/update_config.json).
-- version.json says which version code is newest. If it is higher than ApkVersion in Scripts/Updater.cs the window appears.
-
-ONE-TIME SETUP (Termux)
-  gh repo create Nbcy-5/tnbcy-updates --public --add-readme
-  gh auth token | gh secret set UPDATES_TOKEN -R Nbcy-5/TNBCY
-  (the token lets the build upload releases to the updates repository)
-
-EVERY NEW VERSION
-- Raise  version/code  in export_presets.cfg and  ApkVersion  in Scripts/Updater.cs to the SAME number (the build stops if they differ).
-- Push as usual. The build publishes the release; phones that have this updater see the window next time they start the game.
-- Android only lets an update install if it is signed with the same key (your tnbcy key) and has a higher version code.
-
-LIMITS
-- C# code and new files always need a new APK (Android does not let an app replace its own compiled code).
-- content.pck (data files only) is published too; it is only used if you later publish a content number higher than the APK number.
+- Each GitHub build publishes a release (TNBCY.apk, content.pck, version.json) to the PUBLIC repository Nbcy-5/tnbcy-updates (the main repository stays private).
+- The game reads https://github.com/Nbcy-5/tnbcy-updates/releases/latest/download/version.json (Data/update_config.json).
+- The build refuses to publish if version/code and ApkVersion differ. No internet or nothing new: the game just starts.
