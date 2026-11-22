@@ -1,3 +1,10 @@
+[v14] High-speed running sound
+ + New sound (taken from your video, looped without a click): Assets/Audio/high_speed_loop.ogg.
+ + HighSpeedSound.cs plays it only after the train goes faster than 95 km/h: fades in over 1.5 s, gets louder up to 140 km/h,
+   fades out over 2 s when the speed drops below 92 km/h (the gap stops it flickering on and off around 95).
+ + Added the sound to the Android export list in export_presets.cfg (the export only includes listed files).
+ Android version 2.3 (code 14).
+
 [v13] Real-looking rail track (checked against your photos and IndianBroadGaugeTrack.cs)
  + Rails use a real 60 kg flat-bottom section (head, web with fillets, foot) instead of three flat boxes: polished running surface, polished gauge face, rusty outer side and web, dark foot.
    Rails in the points (wing, check and switch rails) use the same section.
