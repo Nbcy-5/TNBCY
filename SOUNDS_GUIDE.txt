@@ -1,0 +1,34 @@
+TRAIN SOUNDS - HOW IT WORKS AND HOW TO ADD MORE
+================================================
+Everything is set in  Data/train_sounds.json  - you do not need to touch the code to add sounds.
+The code is Scripts/TrainSounds.cs (Main.cs creates it and calls Tick(speed, dt) every frame).
+
+Sounds that come with this update (taken from your reference video, speedometer read from the phone in the video):
+  roll_07 ... roll_93   eleven rolling loops for 5-95 km/h (the number is the speed the loop was recorded at)
+  high_speed_loop       the loop that fades in after 95 km/h (from the earlier video)
+Neighbouring loops crossfade as the speed changes (equal power, so the loudness stays even), the pitch follows speed a little,
+and the volume rises with speed.
+
+1) ADD A SPEED LOOP (a sound heard only inside a speed range)
+   - Put the file in Assets/Audio/ (OGG is best, loop it seamlessly first).
+   - Add an entry to "layers":
+       { "id": "my_loop",
+         "file": "res://Assets/Audio/my_loop.ogg",
+         "fade": [30, 40, 60, 70],            silent below 30, fades in to 40, full until 60, fades out to 70 (km/h)
+         "volumeDb": -6,                      or  "volumeCurve": [[30,-12],[70,-3]]  (louder with speed)
+         "pitch": { "refKmh": 50, "power": 0.6, "min": 0.8, "max": 1.3 }     optional: pitch follows speed
+       }
+   - Two layers whose fade ranges overlap (one fading out while the other fades in) blend smoothly.
+   - "enabled": false switches an entry off without deleting it.
+
+2) ADD A ONE-SHOT SOUND (horn, brake release, doors, announcement ...)
+   - Add an entry to "oneShots":
+       { "id": "brake_release", "file": "res://Assets/Audio/brake_release.ogg", "volumeDb": -3, "cooldownS": 2, "pitchMin": 0.97, "pitchMax": 1.03 }
+   - Play it from any code that has the sound object:   sounds.Play("brake_release");
+     (in Main.cs the object is called  sounds ; it returns false if the sound is unknown or still cooling down)
+
+3) OTHER SETTINGS
+   "masterDb": overall volume for all train sounds (now +6).     "smoothS": how quickly the volume follows speed changes (now 0.2 s).
+
+4) AFTER ADDING FILES: push to GitHub as usual. The Android export takes everything in Assets/Audio/ and Data/*.json automatically.
+   If a sound is missing in the game, look for "TrainSounds: missing sound" in the Godot output.

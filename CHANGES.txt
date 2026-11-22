@@ -1,3 +1,12 @@
+[v15] Speed-based train sounds (5 to 95 km/h) and a sound system you can extend
+ + From your reference video (the phone speedometer in it was read second by second) the sound between 5 and 95 km/h was cut into eleven
+   seamless loops, roll_07 ... roll_93, one for each speed band. They crossfade as the speed changes, the volume rises with speed and the pitch follows speed a little.
+ + Above 95 km/h the rolling sound hands over to the high-speed loop from v14 (smooth crossfade 95 to 105 km/h).
+ + TrainSounds.cs reads Data/train_sounds.json: add more speed loops or one-shot sounds (horn, brakes, doors ...) just by adding entries. See SOUNDS_GUIDE.txt.
+ + HighSpeedSound.cs from v14 is replaced by this system (its sound is now an entry in the JSON file).
+ + Android export takes everything in Assets/Audio and Data/*.json, so new sounds need no change in export_presets.cfg.
+ Android version 2.4 (code 15).
+
 [v14] High-speed running sound
  + New sound (taken from your video, looped without a click): Assets/Audio/high_speed_loop.ogg.
  + HighSpeedSound.cs plays it only after the train goes faster than 95 km/h: fades in over 1.5 s, gets louder up to 140 km/h,

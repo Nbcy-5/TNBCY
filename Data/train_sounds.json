@@ -1,0 +1,214 @@
+{
+  "masterDb": 6.0,
+  "smoothS": 0.2,
+  "layers": [
+    {
+      "id": "roll_07",
+      "file": "res://Assets/Audio/Train/roll_07.ogg",
+      "fade": [
+        5,
+        7,
+        7,
+        11
+      ],
+      "volumeDb": -16,
+      "pitch": {
+        "refKmh": 7,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_11",
+      "file": "res://Assets/Audio/Train/roll_11.ogg",
+      "fade": [
+        7,
+        11,
+        11,
+        16
+      ],
+      "volumeDb": -15,
+      "pitch": {
+        "refKmh": 11,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_16",
+      "file": "res://Assets/Audio/Train/roll_16.ogg",
+      "fade": [
+        11,
+        16,
+        16,
+        23
+      ],
+      "volumeDb": -14,
+      "pitch": {
+        "refKmh": 16,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_23",
+      "file": "res://Assets/Audio/Train/roll_23.ogg",
+      "fade": [
+        16,
+        23,
+        23,
+        31
+      ],
+      "volumeDb": -13,
+      "pitch": {
+        "refKmh": 23,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_31",
+      "file": "res://Assets/Audio/Train/roll_31.ogg",
+      "fade": [
+        23,
+        31,
+        31,
+        41
+      ],
+      "volumeDb": -12,
+      "pitch": {
+        "refKmh": 31,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_41",
+      "file": "res://Assets/Audio/Train/roll_41.ogg",
+      "fade": [
+        31,
+        41,
+        41,
+        53
+      ],
+      "volumeDb": -10.5,
+      "pitch": {
+        "refKmh": 41,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_53",
+      "file": "res://Assets/Audio/Train/roll_53.ogg",
+      "fade": [
+        41,
+        53,
+        53,
+        66
+      ],
+      "volumeDb": -9,
+      "pitch": {
+        "refKmh": 53,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_66",
+      "file": "res://Assets/Audio/Train/roll_66.ogg",
+      "fade": [
+        53,
+        66,
+        66,
+        73
+      ],
+      "volumeDb": -7.5,
+      "pitch": {
+        "refKmh": 66,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_73",
+      "file": "res://Assets/Audio/Train/roll_73.ogg",
+      "fade": [
+        66,
+        73,
+        73,
+        86
+      ],
+      "volumeDb": -6.5,
+      "pitch": {
+        "refKmh": 73,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_86",
+      "file": "res://Assets/Audio/Train/roll_86.ogg",
+      "fade": [
+        73,
+        86,
+        86,
+        93
+      ],
+      "volumeDb": -5,
+      "pitch": {
+        "refKmh": 86,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "roll_93",
+      "file": "res://Assets/Audio/Train/roll_93.ogg",
+      "fade": [
+        86,
+        93,
+        95,
+        105
+      ],
+      "volumeDb": -4.5,
+      "pitch": {
+        "refKmh": 93,
+        "power": 0.6,
+        "min": 0.8,
+        "max": 1.3
+      }
+    },
+    {
+      "id": "hi_speed",
+      "file": "res://Assets/Audio/high_speed_loop.ogg",
+      "fade": [
+        95,
+        105,
+        999,
+        999
+      ],
+      "volumeCurve": [
+        [
+          95,
+          -7
+        ],
+        [
+          140,
+          -1
+        ]
+      ]
+    }
+  ],
+  "oneShots": []
+}

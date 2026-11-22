@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v14";
+        public const string Version = "v15";
         public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
         public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
@@ -19,7 +19,7 @@ namespace TNBCY
         readonly Dictionary<TNode, Label3D> swTags = new Dictionary<TNode, Label3D>();
         readonly List<Vector3> trackPts = new List<Vector3>();
         AudioStreamPlayer horn;
-        HighSpeedSound hiss;   // running-train sound that starts above 95 km/h
+        TrainSounds sounds;   // speed-driven train sounds, set up in Data/train_sounds.json
         Label speedL, nextL, infoL, toastL, endL, updL, clockL, aiL;
         TouchControls touch; Control endPanel, updPanel; float toastT, noteT, startT, frameAcc, fpsT; int frameN, stableUp, lastRev; string apkUrl = "";
         bool electric; float pantK;
@@ -88,7 +88,7 @@ namespace TNBCY
                 playerVis = BuildTrain(sc.Train, null, null);
                 if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
                 BuildCab(); BuildHorn();
-                if (hiss == null) { hiss = new HighSpeedSound(); AddChild(hiss); }
+                if (sounds == null) { sounds = new TrainSounds(); AddChild(sounds); }
 
                 electric = false;
                 foreach (var c in sc.Train.Cars) { string nm = (c.Spec.name ?? "").ToLowerInvariant(); if (c.Spec.powered && !nm.Contains("demu") && !nm.Contains("diesel")) electric = true; }
@@ -311,7 +311,7 @@ namespace TNBCY
             UpdateCamera(dt);
 
             float lim = sc.LimitKmh(T.FrontSeg.Edge), spd = T.Speed * 3.6f;
-            hiss?.Tick(spd, dt, sc.Ended);
+            sounds?.Tick(spd, dt, sc.Ended);
             speedL.Text = Mathf.RoundToInt(spd) + " km/h  (limit " + Mathf.RoundToInt(lim) + ")";
             speedL.AddThemeColorOverride("font_color", spd > lim + 3f ? new Color(1f, .4f, .35f) : Colors.White);
             clockL.Text = sc.ClockText() + "   25 kV OHE";
