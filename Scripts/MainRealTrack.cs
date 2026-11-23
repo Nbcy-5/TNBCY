@@ -321,6 +321,53 @@ void fragment() {
         }
 
         // ------------------------------------------------------------------ the track itself (use instead of BuildTrack)
+        // A mast stands 3.7 m beside its track. Near the points a loop line runs close by, so the mast is slid along the track (up to 20 m)
+        // until it is at least 2.7 m from every loop/main neighbour, and left out if there is no free spot. Loop masts that would stand
+        // right beside the main line's own masts are left out too (the main line's masts already carry the wires there).
+        const float MastOffset = 3.7f, MastClear = 2.7f;
+
+        float MastPlace(TEdge e, float s)
+        {
+            if (e.Turnout && NearMainLine(e.PosAt(s), e, 5.5f)) return -1f;
+            for (int k = 0; k <= 20; k++)
+            {
+                float t = s + (k == 0 ? 0f : ((k + 1) / 2) * 2f * (k % 2 == 1 ? 1f : -1f));
+                if (t < 1f || t > e.Length - 1f) continue;
+                if (MastClearOfOthers(e, t)) return t;
+            }
+            return -1f;
+        }
+
+        static float DistToPts(Vector3 q, System.Collections.Generic.List<Vector3> pts)
+        {
+            float best = float.MaxValue;
+            for (int k = 0; k + 1 < pts.Count; k++)
+            {
+                Vector3 a = pts[k], b = pts[k + 1], ab = b - a; ab.Y = 0f; Vector3 aq = q - a; aq.Y = 0f;
+                float l2 = ab.LengthSquared(), u = l2 > 1e-6f ? Mathf.Clamp(aq.Dot(ab) / l2, 0f, 1f) : 0f;
+                best = Mathf.Min(best, (aq - ab * u).Length());
+            }
+            return best;
+        }
+
+        bool MastClearOfOthers(TEdge e, float t)
+        {
+            Vector3 q = e.PosAt(t) - Right(e.DirAt(t)) * MastOffset;
+            foreach (var o in sc.Graph.Edges.Values)
+            {
+                if (o == e || !(o.Turnout || e.Turnout)) continue;      // only a loop line can come near a mast
+                if (DistToPts(q, o.Pts) < MastClear) return false;
+            }
+            return true;
+        }
+
+        bool NearMainLine(Vector3 p, TEdge e, float within)
+        {
+            foreach (var o in sc.Graph.Edges.Values)
+                if (o != e && !o.Turnout && DistToPts(p, o.Pts) < within && o.Id[0] == e.Id[0]) return true;   // a main line of the same direction
+            return false;
+        }
+
         void BuildRealTrack()
         {
             RTMaterials();
@@ -387,7 +434,7 @@ void fragment() {
                         wires.SetInstanceTransform(k, Xf(Basis.LookingAt(e.DirAt(s), Vector3.Up), e.PosAt(s), new Vector3(1f, 1f, step / 6f)));
                     }
                     float s0 = c0 * step, s1 = (c0 + cn) * step; var mastS = new List<float>();
-                    for (int m = Mathf.CeilToInt(s0 / MastSpacing - .5f); (m + .5f) * MastSpacing < s1; m++) { float sm = (m + .5f) * MastSpacing; if (sm >= s0) mastS.Add(sm); }
+                    for (int m = Mathf.CeilToInt(s0 / MastSpacing - .5f); (m + .5f) * MastSpacing < s1; m++) { float sm = (m + .5f) * MastSpacing; if (sm >= s0) { float sp = MastPlace(e, sm); if (sp >= 0f) mastS.Add(sp); } }
                     if (mastS.Count > 0)
                     {
                         var masts = MM(mastMesh, matMast, mastS.Count, 2000f);

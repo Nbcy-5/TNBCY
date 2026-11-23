@@ -7,13 +7,13 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v18";
+        public const string Version = "v20";
         public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
         public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
         static readonly string[] GfxNames = { "Auto", "Fast", "Balanced", "High", "Ultra" };
 
-        Control menuPanel; Label loadL, fpsL; Button gfxBtn; int gfxChoice;
+        Control menuPanel; Label loadL, fpsL, updStatL; Button gfxBtn; int gfxChoice;
         Scenario sc; Camera3D cam; TrainVis playerVis, aiVis;
         readonly Dictionary<TSignal, StandardMaterial3D[]> sigMats = new Dictionary<TSignal, StandardMaterial3D[]>();
         readonly Dictionary<TNode, Label3D> swTags = new Dictionary<TNode, Label3D>();
@@ -63,7 +63,7 @@ namespace TNBCY
             ProcTex.Prefetch();                            // textures are made on worker threads while the menu is open
             GetViewport().Msaa3D = Viewport.Msaa.Disabled;
             BuildHud();
-            AddChild(new Updater { Message = m => Toast(m, true), ApkAvailable = OnApk });
+            AddChild(new Updater { Message = m => Toast(m, true), ApkAvailable = OnApk, Status = t => { if (updStatL != null) updStatL.Text = t; } });
         }
 
         async void StartGame(string consistFile, string locoId = null)
@@ -91,7 +91,7 @@ namespace TNBCY
                 matSteel = Solid(new Color(.34f, .27f, .23f), .55f, .45f);
                 matRail = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .45f, Roughness = .38f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
                 matFit = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .3f, Roughness = .6f, CullMode = BaseMaterial3D.CullModeEnum.Disabled }; matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
-                BuildRealTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildWaterPipes(); BuildSwitchTags();
+                BuildRealTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildLineSigns(); BuildWaterPipes(); BuildSwitchTags();
                 playerVis = BuildTrain(sc.Train, null, null);
                 if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
                 BuildCab(); BuildHorn();
@@ -196,6 +196,7 @@ namespace TNBCY
             var vb = new VBoxContainer(); vb.AddThemeConstantOverride("separation", 8); cc.AddChild(vb);
             vb.AddChild(Lbl("TNBCY  " + Version, 46, HorizontalAlignment.Center));
             vb.AddChild(Lbl("Secunderabad Jn to Ghatkesar (20 km) - choose your train", 24, HorizontalAlignment.Center));
+            updStatL = Lbl("", 18, HorizontalAlignment.Center); updStatL.AddThemeColorOverride("font_color", new Color(.7f, .8f, .85f)); vb.AddChild(updStatL);   // what the update check found
             TrainList list; try { list = LoadJson<TrainList>("res://Data/trains.json"); } catch { list = new TrainList(); }
             if (list.trains.Count == 0) list.trains.Add(new TrainOption { name = "Demo train", file = "consist_demo", desc = "" });
             foreach (var opt in list.trains)

@@ -1,3 +1,23 @@
+[v20] Realistic signals and lineside signs
+ + Colour-light signals rebuilt: black target plate with white edge, three round lenses with hoods that glow when lit, tubular post, ladder, concrete foundation and a flat number plate
+   (the floating white signal-number tag is gone). Head is lower and closer to real height (about 5 m).
+ + Kilometre posts: white concrete post with a black top and the number painted on the face (the see-through floating numbers are gone).
+ + Station name boards: yellow board with black border on two posts, name in English, Telugu and Hindi (set ShowRegionalScripts=false in MainFurniture.cs if the phone font shows boxes).
+ + New: speed boards where the line speed drops, T/P boards where it returns to 100 km/h, gradient posts (two arms and "1 IN 200") where the gradient changes.
+ + Everything faces the driver, stays on the left, steps aside for overhead-line masts and moves to the right-hand side where a platform is on the left.
+ ! Checked from the Signal_signs_etc pack and fixed before use: bool assigned to a float (would not compile), letters 10x too small, lens rims and T/P disc lying flat,
+   whistle board 75 cm too low against the pack's own rule (underside should be 2.1 m), level-crossing barrier at 2.1 m instead of about 1 m, no glow on lenses, blue station board.
+   Whistle boards and the crossing gate are NOT placed: this route has no level crossing.
+ + Poles of v19 re-checked: all 1003 masts are at least 2.79 m from every other track, none is on a rail.
+ Android version 2.9 (code 20).
+
+[v19] The 42 locomotives and real track together with the update status line, and poles off the tracks
+ + Merged: the update-check line under the title in the menu (build number, newest build, or why the check failed) is now in the version with the 42 locomotives.
+ ! Overhead-line poles: 8 poles stood too close to a loop line near the points (two of them almost on the rails: 0.4 m from the loop line's centre).
+   A pole now slides along its track (up to 20 m) until it is at least 2.7 m from every loop line, and is left out if there is no free spot.
+   Loop-line poles that would stand beside the main line's own poles are left out; the wires are unchanged.
+ Android version 2.8 (code 19).
+
 [v18] 42 locomotives added, wheels that turn
  + 42 real 3D locomotives (WAP-7, WAP-4, WDP-4D, WDM-3D, WDG-3A, WDM-2, WDAP-5) in Assets/Locos, listed in Data/locos.json.
  + Menu: pick a loco with < > and press "Drive the chosen locomotive + 16 coaches".

@@ -446,6 +446,7 @@ void fragment() {
             const float PlatLen = 620f, Piece = 40f;
             var yellow = Mat(new Color(.9f, .75f, .1f)); var pole = Mat(new Color(.25f, .25f, .27f)); var roof = Mat(new Color(.55f, .55f, .58f));
             var brick = Mat(new Color(.55f, .3f, .24f)); var rf2 = Mat(new Color(.3f, .3f, .32f));
+            fxPlat.Clear();
             var slabs = new List<Transform3D>(); var lines = new List<Transform3D>(); var roofs = new List<Transform3D>(); var poles = new List<Transform3D>();
             foreach (var st in sc.Graph.Stations)
             {
@@ -459,6 +460,7 @@ void fragment() {
                         float e1 = Mathf.Min(s0 + Piece, hi), len = e1 - s0, mid = (s0 + e1) * .5f;
                         var pp = e.PosAt(mid); var dd = e.DirAt(mid); var qq = Basis.LookingAt(dd, Vector3.Up); var rr = Right(dd) * sm;
                         slabs.Add(Xf(qq, pp + rr * 3.5f + Vector3.Up * .72f, new Vector3(3.4f, 1.45f, len + .2f)));
+                        for (float u = s0 + 5f; u < e1; u += 10f) fxPlat.Add(e.PosAt(u) + Right(e.DirAt(u)) * sm * 3.5f);   // for keeping signs off platforms
                         lines.Add(Xf(qq, pp + rr * 1.9f + Vector3.Up * 1.46f, new Vector3(.35f, .02f, len + .2f)));
                         roofs.Add(Xf(qq, pp + rr * 4.6f + Vector3.Up * 5.4f, new Vector3(3.8f, .25f, len + .2f)));
                         poles.Add(Xf(qq, pp + rr * 5.4f + Vector3.Up * 3.4f, new Vector3(.25f, 3.9f, .25f)));
@@ -476,26 +478,8 @@ void fragment() {
             FillMM(slabs, matConcrete); FillMM(lines, yellow); FillMM(roofs, roof); FillMM(poles, pole);
         }
 
-        // Colour light signals: three lamps (red, yellow, green) on the driver's left side.
-        void BuildSignals()
-        {
-            var pole = Mat(new Color(.2f, .2f, .2f)); var head = Mat(new Color(.05f, .05f, .05f));
-            var cols = new[] { Colors.Red, new Color(1f, .8f, .1f), new Color(.2f, 1f, .3f) };
-            foreach (var s in sc.Graph.Signals)
-            {
-                var p = s.Edge.PosAt(s.Offset); var d = s.Edge.DirAt(s.Offset); var q = Basis.LookingAt(d, Vector3.Up); var bp = p - Right(d) * 3.4f;
-                Box(this, bp + Vector3.Up * 3f, q, new Vector3(.25f, 6f, .25f), pole);
-                Box(this, bp + Vector3.Up * 6.2f, q, new Vector3(.9f, 2.7f, .4f), head);
-                var mats = new StandardMaterial3D[3];
-                for (int i = 0; i < 3; i++)
-                {
-                    mats[i] = Mat(cols[i].Darkened(.8f)); mats[i].EmissionEnabled = false;
-                    Box(this, bp + Vector3.Up * (7.0f - i * .8f) - d * .22f, q, new Vector3(.6f, .6f, .1f), mats[i]);
-                }
-                sigMats[s] = mats;
-                Tag(s.Id, bp + Vector3.Up * 8.6f, Colors.White);
-            }
-        }
+        // Colour light signals: three lamps (red, yellow, green) on the driver's left side. The look is built in MainFurniture.cs (v20).
+        void BuildSignals() { BuildRealSignals(); }
 
         // True when point pt is at least minDist metres from every loop line (straight-segment distance on the 5 m track samples).
         bool ClearOfLoopLines(Vector3 pt, float minDist)
@@ -524,14 +508,7 @@ void fragment() {
             var roofMat = Mat(new Color(.25f, .25f, .27f));
             foreach (var st in sc.Graph.Stations)
             {
-                var p = st.Edge.PosAt(st.Offset); var d = st.Edge.DirAt(st.Offset);
-                var q = Basis.LookingAt(d, Vector3.Up); var side = Right(d) * (st.Side == "L" ? -1f : 1f);
-                var center = p + side * 4.8f;   // on the platform, facing the track
-                Box(this, center + Vector3.Up * 3.2f, q, new Vector3(.22f, 2.0f, 7.2f), boardBlue);
-                Box(this, center + Vector3.Up * 2.0f, q, new Vector3(.35f, 2.4f, .35f), postMat);
-                var label = new Label3D { Text = st.Name, FontSize = 48, PixelSize = .018f, Modulate = Colors.White,
-                    OutlineSize = 8, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true };
-                AddChild(label); label.Position = center + Vector3.Up * 3.0f;
+                FxStationBoard(st);   // yellow trilingual name board on two posts (MainFurniture.cs)
             }
             // Signal relay/equipment huts, positioned outside the running clearance.
             foreach (var sg in sc.Graph.Signals)
@@ -561,10 +538,7 @@ void fragment() {
                         var pt = e.PosAt(off + shift) - Right(e.DirAt(off + shift)) * 2.9f;
                         if (ClearOfLoopLines(pt, 2.6f)) { off += shift; break; }
                     }
-                    var p = e.PosAt(off); var d = e.DirAt(off); var q = Basis.LookingAt(d, Vector3.Up);
-                    var side = -Right(d) * 2.9f;
-                    Box(this, p + side + Vector3.Up * .9f, q, new Vector3(.75f, 1.8f, .18f), postMat);
-                    Tag("" + km, p + side + Vector3.Up * 1.2f, Colors.Black);
+                    FxKmPost(e, off, km);
                     break;
                 }
             }
