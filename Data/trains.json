@@ -13,17 +13,17 @@
   {
    "name": "Passenger 16 coaches",
    "file": "consist_passenger16",
-   "desc": "WAP-4, 395 m"
+   "desc": "any WAP loco, 395 m"
   },
   {
    "name": "Express 20 coaches",
    "file": "consist_express20",
-   "desc": "heavy, 491 m"
+   "desc": "any WAP loco, 491 m"
   },
   {
    "name": "Superfast 24 coaches",
    "file": "consist_superfast24",
-   "desc": "longest, 585 m"
+   "desc": "any WAP loco, 585 m"
   },
   {
    "name": "WAP-7 + 12 coaches",

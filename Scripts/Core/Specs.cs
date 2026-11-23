@@ -54,6 +54,7 @@ namespace TNBCY
     public class ConsistSpec
     {
         public string name = "Train";
+        public bool randomElectricLoco;         // true = a different electric (WAP) loco from Data/locos.json is coupled on each start
         public float brakeApplyRate = 0.25f;    // brake level per second when applying
         public float brakeReleaseRate = 0.12f;  // slower release, like a real air brake
         public List<VehicleSpec> vehicles = new List<VehicleSpec>();

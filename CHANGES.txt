@@ -1,3 +1,9 @@
+[v22] Electric locos only
+ - All diesel locomotives (WDM, WDG, WDP, WDAP: 38 models) removed from Data/locos.json and Assets/Locos (smaller APK).
+ - The loco picker button/arrows are removed from the menu.
+ - Passenger 16, Express 20 and Superfast 24 now couple a random electric WAP loco (WAP-4 LGD, WAP-7 Lalaguda, WAP-7 VSKP Dusty, WAP-7 WAP-9 VSKP) every start.
+   Switch on/off per train with "randomElectricLoco" in its Data/consist_*.json. Android version 3.1 (code 22).
+
 [v21] Photo-real pine trees from the nature pack
  + 40 % of the trees are now photo-textured pines (5 different ones, crossed quads, cut-out edges) mixed with the old round trees. Random size 8-22 m, random turn and shade.
  + Textures fixed: photo and mask merged to PNG, dark/orange colour casts balanced, colour spread under the transparent edge (no dark outline).

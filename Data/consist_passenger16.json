@@ -30,5 +30,6 @@
    "maxSpeedKmh": 110,
    "colorRgb": 8018492
   }
- ]
+ ],
+ "randomElectricLoco": true
 }

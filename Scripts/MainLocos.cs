@@ -13,7 +13,6 @@ namespace TNBCY
 
         readonly List<LocoSpec> locoList = new List<LocoSpec>();
         readonly Dictionary<string, LocoSpec> locoCat = new Dictionary<string, LocoSpec>();
-        int locoPick; Label locoPickL;
         StandardMaterial3D wheelMat; ShaderMaterial hideMat;
 
         // ------------------------------------------------------------------ catalogue (Data/locos.json)
@@ -34,35 +33,10 @@ namespace TNBCY
         {
             return new VehicleSpec
             {
-                name = l.name + (l.electric ? " electric loco" : " diesel loco"), count = 1, massTonnes = l.massTonnes, lengthM = l.lengthM,
+                name = l.name + " electric loco", count = 1, massTonnes = l.massTonnes, lengthM = l.lengthM,
                 brakeForceKn = l.brakeForceKn, powered = true, maxPowerKw = l.maxPowerKw, maxTractiveEffortKn = l.maxTractiveEffortKn,
                 maxSpeedKmh = l.maxSpeedKmh, colorRgb = 0x1f6f5c, model = l.id, bogieCentreM = l.bogieCentreM
             };
-        }
-
-        // ------------------------------------------------------------------ menu: choose a locomotive
-        void BuildLocoPicker(VBoxContainer vb)
-        {
-            LoadLocoCatalog();
-            if (locoList.Count == 0) return;
-            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10); vb.AddChild(row);
-            var prev = Btn("<", new Color(.24f, .36f, .44f)); prev.CustomMinimumSize = new Vector2(90, 50); prev.SizeFlagsHorizontal = Control.SizeFlags.Fill;
-            var next = Btn(">", new Color(.24f, .36f, .44f)); next.CustomMinimumSize = new Vector2(90, 50); next.SizeFlagsHorizontal = Control.SizeFlags.Fill;
-            locoPickL = Lbl("", 26, HorizontalAlignment.Center); locoPickL.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            locoPickL.CustomMinimumSize = new Vector2(500, 50); locoPickL.VerticalAlignment = VerticalAlignment.Center;
-            row.AddChild(prev); row.AddChild(locoPickL); row.AddChild(next);
-            var go = Btn("Drive the chosen locomotive + 16 coaches", new Color(.62f, .42f, .14f));
-            go.CustomMinimumSize = new Vector2(760, 50); go.AddThemeFontSizeOverride("font_size", 24); vb.AddChild(go);
-            prev.Pressed += () => { locoPick = (locoPick + locoList.Count - 1) % locoList.Count; RefreshLocoPick(); };
-            next.Pressed += () => { locoPick = (locoPick + 1) % locoList.Count; RefreshLocoPick(); };
-            go.Pressed += () => StartGame("consist_passenger16", locoList[locoPick].id);
-            RefreshLocoPick();
-        }
-
-        void RefreshLocoPick()
-        {
-            var l = locoList[locoPick];
-            locoPickL.Text = l.name + "   (" + (l.electric ? "electric" : "diesel") + ", " + Mathf.RoundToInt(l.maxPowerKw) + " kW)   " + (locoPick + 1) + "/" + locoList.Count;
         }
 
         // ------------------------------------------------------------------ the 3D loco

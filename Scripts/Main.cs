@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v21";
+        public const string Version = "v22";
         public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
         public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
@@ -66,7 +66,7 @@ namespace TNBCY
             AddChild(new Updater { Message = m => Toast(m, true), ApkAvailable = OnApk, Status = t => { if (updStatL != null) updStatL.Text = t; } });
         }
 
-        async void StartGame(string consistFile, string locoId = null)
+        async void StartGame(string consistFile)
         {
             try
             {
@@ -75,10 +75,13 @@ namespace TNBCY
                 var net = LoadJson<NetworkSpec>("res://Data/network_demo.json");
                 var consist = LoadJson<ConsistSpec>("res://Data/" + consistFile + ".json");
                 LoadLocoCatalog();
-                if (!string.IsNullOrEmpty(locoId) && locoCat.TryGetValue(locoId, out var chosen))    // a locomotive picked in the menu replaces the consist's loco
+                if (consist.randomElectricLoco && locoList.Count > 0)    // passenger / express / superfast: any electric (WAP) loco
                 {
+                    var chosen = locoList[(int)(GD.Randi() % (uint)locoList.Count)];
                     int li = consist.vehicles.FindIndex(x => x.powered); if (li < 0) li = 0;
-                    consist.vehicles[li] = LocoVehicle(chosen); consist.name = chosen.name + " + coaches";
+                    var old = consist.vehicles[li];
+                    var lv = LocoVehicle(chosen); lv.davisA = old.davisA; lv.davisB = old.davisB; lv.davisC = old.davisC;
+                    consist.vehicles[li] = lv; consist.name = chosen.name + " + " + consist.name.Substring(0, consist.name.IndexOf(" (") > 0 ? consist.name.IndexOf(" (") : consist.name.Length);
                 }
                 ConsistSpec aiConsist = null;
                 try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); } catch { }
@@ -206,7 +209,6 @@ namespace TNBCY
                 b.CustomMinimumSize = new Vector2(760, 50); b.AddThemeFontSizeOverride("font_size", 24); vb.AddChild(b);
                 b.Pressed += () => StartGame(o.file);
             }
-            BuildLocoPicker(vb);
             gfxBtn = Btn("Graphics: Auto (adjusts itself to keep the game smooth)", new Color(.16f, .26f, .2f));
             gfxBtn.CustomMinimumSize = new Vector2(760, 46); gfxBtn.AddThemeFontSizeOverride("font_size", 22); vb.AddChild(gfxBtn);
             gfxBtn.Pressed += () => { gfxChoice = (gfxChoice + 1) % 5; gfxBtn.Text = "Graphics: " + GfxNames[gfxChoice] + (gfxChoice == 0 ? " (adjusts itself to keep the game smooth)" : ""); };
