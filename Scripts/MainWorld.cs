@@ -344,16 +344,17 @@ void fragment() {
         }
 
         // ---------------------------------------------------------------- scenery (grouped in cells so far cells are culled)
-        struct Prop { public Vector3 p; public float s, rot; public Color c; }
+        struct Prop { public Vector3 p; public float s, rot; public Color c; public int v; }
 
         void BuildScenery()
         {
+            NatureInit();
             var rng = new RandomNumberGenerator { Seed = 7 };
             var blocked = new HashSet<long>(); const float G = 24f;
             foreach (var t in trackPts)
                 for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++)
                     blocked.Add(((long)(Mathf.FloorToInt(t.X / G) + dx) << 32) ^ (uint)(Mathf.FloorToInt(t.Z / G) + dz));
-            var trees = new Dictionary<long, List<Prop>>(); var bushes = new Dictionary<long, List<Prop>>(); var rocks = new Dictionary<long, List<Prop>>();
+            var trees = new Dictionary<long, List<Prop>>(); var pinesD = new Dictionary<long, List<Prop>>(); var bushes = new Dictionary<long, List<Prop>>(); var rocks = new Dictionary<long, List<Prop>>();
             const float Cell = 450f; int nt = 1700, nb = 1300, nr = 450;
             for (int n = 0; n < nt + nb + nr; n++)
             {
@@ -361,8 +362,9 @@ void fragment() {
                 float x = tp.X + rng.RandfRange(-170f, 170f), z = tp.Z + rng.RandfRange(-170f, 170f);
                 if (blocked.Contains(((long)Mathf.FloorToInt(x / G) << 32) ^ (uint)Mathf.FloorToInt(z / G))) continue;
                 var pr = new Prop { p = new Vector3(x, 0f, z), s = rng.RandfRange(.8f, 1.6f), rot = rng.RandfRange(0f, 6.28f), c = new Color(rng.RandfRange(.10f, .24f), rng.RandfRange(.30f, .46f), rng.RandfRange(.10f, .2f)) };
+                pr.v = rng.RandiRange(0, 4); bool pine = n < nt && rng.Randf() < PineShare && PineOk(pr.v);
                 long key = ((long)Mathf.FloorToInt(x / Cell) << 32) ^ (uint)Mathf.FloorToInt(z / Cell);
-                var dict = n < nt ? trees : (n < nt + nb ? bushes : rocks);
+                var dict = n < nt ? (pine ? pinesD : trees) : (n < nt + nb ? bushes : rocks);
                 List<Prop> l; if (!dict.TryGetValue(key, out l)) { l = new List<Prop>(); dict[key] = l; }
                 l.Add(pr);
             }
@@ -382,6 +384,7 @@ void fragment() {
                     cr.SetInstanceTransform(i, new Transform3D(rot, l[i].p + new Vector3(0f, 4.4f * l[i].s, 0f))); cr.SetInstanceColor(i, l[i].c);
                 }
             }
+            BuildPines(pinesD);
             foreach (var kv in bushes)
             {
                 var l = kv.Value; var bu = MM(bushMesh, leafMat, l.Count, 800f, true);

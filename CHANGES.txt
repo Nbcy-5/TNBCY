@@ -1,3 +1,12 @@
+[v21] Photo-real pine trees from the nature pack
+ + 40 % of the trees are now photo-textured pines (5 different ones, crossed quads, cut-out edges) mixed with the old round trees. Random size 8-22 m, random turn and shade.
+ + Textures fixed: photo and mask merged to PNG, dark/orange colour casts balanced, colour spread under the transparent edge (no dark outline).
+ ! Checked and fixed in the pack: the foxglove files store the cut-out mask in separate _alpha files, and the alpha inside the .tga is the wrong way round (would show a green wall).
+   Folder names do not match the models (3286 is not "light green"; the "22 m" and "23 m" trees are really 24 m and 25 m tall).
+ + Credit line for the author in the menu and CREDITS.txt (the licence allows non-commercial use only).
+ + Foxglove converted (Assets/Nature/foxglove_*.png) but not placed: it is a European garden flower and looks out of place near Hyderabad.
+ + Never breaks the scene: if a tree texture is missing the old tree is used. Android version 3.0 (code 21).
+
 [v20] Realistic signals and lineside signs
  + Colour-light signals rebuilt: black target plate with white edge, three round lenses with hoods that glow when lit, tubular post, ladder, concrete foundation and a flat number plate
    (the floating white signal-number tag is gone). Head is lower and closer to real height (about 5 m).

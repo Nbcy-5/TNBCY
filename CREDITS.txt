@@ -1,0 +1,11 @@
+TNBCY02 - credits for third-party content
+=========================================
+Pine trees (Assets/Nature/pine_*.png, Scripts/NatureData.cs)
+  JVC pine trees by Jan K. (Jan's vegetation collection / UKBL - UK Branch Lines), Trainz KUIDs 328583:3286, 3308, 3315, 3372, 3375.
+  Licence stated in the original files: "You may use my content and modify it as you like, as long as you don't use it for commercial
+  purpose. Also refer to me as the creator of this content."
+  Changes made: meshes converted from Trainz .im, photo and mask merged into one PNG with alpha, colours brightened and balanced,
+  colour spread under the transparent edge to avoid dark outlines.
+Foxglove (Assets/Nature/foxglove_*.png, not used in the game yet)
+  JVC@-Foxglowe group high few, KUID 328583:1954, same author, same licence.
+This game may therefore not be sold or used commercially while it contains these files.

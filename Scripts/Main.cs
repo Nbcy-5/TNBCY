@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v20";
+        public const string Version = "v21";
         public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
         public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
@@ -197,6 +197,7 @@ namespace TNBCY
             vb.AddChild(Lbl("TNBCY  " + Version, 46, HorizontalAlignment.Center));
             vb.AddChild(Lbl("Secunderabad Jn to Ghatkesar (20 km) - choose your train", 24, HorizontalAlignment.Center));
             updStatL = Lbl("", 18, HorizontalAlignment.Center); updStatL.AddThemeColorOverride("font_color", new Color(.7f, .8f, .85f)); vb.AddChild(updStatL);   // what the update check found
+            var credL = Lbl("Pine trees: JVC / Jan K. (non-commercial licence)", 14, HorizontalAlignment.Center); credL.AddThemeColorOverride("font_color", new Color(.6f, .7f, .7f)); vb.AddChild(credL);
             TrainList list; try { list = LoadJson<TrainList>("res://Data/trains.json"); } catch { list = new TrainList(); }
             if (list.trains.Count == 0) list.trains.Add(new TrainOption { name = "Demo train", file = "consist_demo", desc = "" });
             foreach (var opt in list.trains)
