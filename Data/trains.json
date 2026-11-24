@@ -12,59 +12,15 @@
       "platform": 1
     },
     {
-      "name": "Deccan Intercity",
+      "name": "Deccan Express",
       "file": "consist_passenger16",
-      "desc": "Intercity passenger service",
-      "kind": "Intercity",
+      "desc": "Intercity express passenger service",
+      "kind": "Express",
       "coaches": 16,
-      "origin": "Secunderabad Jn",
-      "destination": "Gudur Jn",
+      "origin": "Kakinada Jn",
+      "destination": "Secunderabad Jn",
       "locomotive": "Random WAP electric locomotive",
       "platform": 2
-    },
-    {
-      "name": "Godavari Superfast",
-      "file": "consist_superfast24",
-      "desc": "Superfast long-distance service",
-      "kind": "Superfast",
-      "coaches": 24,
-      "origin": "Secunderabad Jn",
-      "destination": "Gudur Jn",
-      "locomotive": "Random WAP electric locomotive",
-      "platform": 3
-    },
-    {
-      "name": "Secunderabad MEMU",
-      "file": "consist_memu12",
-      "desc": "Mainline electric multiple unit service",
-      "kind": "MEMU",
-      "coaches": 12,
-      "origin": "Secunderabad Jn",
-      "destination": "Ghatkesar",
-      "locomotive": "MEMU motor coach",
-      "platform": 4
-    },
-    {
-      "name": "Ghatkesar DEMU",
-      "file": "consist_demu8",
-      "desc": "Diesel electric multiple unit service",
-      "kind": "DEMU",
-      "coaches": 8,
-      "origin": "Secunderabad Jn",
-      "destination": "Ghatkesar",
-      "locomotive": "DEMU power car",
-      "platform": 5
-    },
-    {
-      "name": "City Express",
-      "file": "consist_demo",
-      "desc": "Express passenger service",
-      "kind": "Express",
-      "coaches": 12,
-      "origin": "Secunderabad Jn",
-      "destination": "Gudur Jn",
-      "locomotive": "WAP-7 electric locomotive",
-      "platform": 6
     }
   ]
 }
