@@ -1,3 +1,8 @@
+[v29] Natural rail profile and weathered track bed
+ LOOK Rail-head top shoulders reshaped into smooth rounded curves, keeping a broad, flat running surface.
+ LOOK Ballast stays cement-grey with restrained irregular muddy patches and occasional dark greasy areas.
+ LOOK Concrete sleepers receive a subtle downward bow at both ends; track spacing and all other game systems stay unchanged.
+
 [v28] Realistic track material update
  NEW  Full-width, flat-topped concrete sleepers replace the narrow-waist sleeper profile.
  LOOK Ballast colour neutralised and lifted to light cement grey while retaining the generated stone relief.
