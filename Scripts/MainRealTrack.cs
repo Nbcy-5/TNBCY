@@ -281,10 +281,10 @@ void fragment() {
                 }
                 bed.GenerateTangents();
                 var mb = new MeshInstance3D { Mesh = bed.Commit(), MaterialOverride = matGravel }; AddChild(mb); Far(mb, 2600f);
-                var mr = new MeshInstance3D { Mesh = rail.Commit(), MaterialOverride = matRail }; AddChild(mr); Lod(mr, 0f, 200f);
+                var mr = new MeshInstance3D { Mesh = rail.Commit(), MaterialOverride = matRail }; AddChild(mr); Lod(mr, 0f, 140f);
                 var m1 = new MeshInstance3D { Mesh = far1.Commit(), MaterialOverride = rtFarRail }; AddChild(m1); Lod(m1, 140f, 520f);
-                var m2 = new MeshInstance3D { Mesh = far2.Commit(), MaterialOverride = rtFarRail }; AddChild(m2); Lod(m2, 440f, 1150f);
-                var m3 = new MeshInstance3D { Mesh = far3.Commit(), MaterialOverride = rtFarRail }; AddChild(m3); Lod(m3, 1000f, 2600f);
+                var m2 = new MeshInstance3D { Mesh = far2.Commit(), MaterialOverride = rtFarRail }; AddChild(m2); Lod(m2, 520f, 1150f);
+                var m3 = new MeshInstance3D { Mesh = far3.Commit(), MaterialOverride = rtFarRail }; AddChild(m3); Lod(m3, 1150f, 2600f);
                 i0 = i1;
             }
         }
@@ -292,7 +292,7 @@ void fragment() {
         // Flat strip lying on the top of a rail (used only far away).
         static void RTFarStrip(SurfaceTool st, Vector3 p0, Vector3 p1, Vector3 r0, Vector3 r1, float xc, float hw)
         {
-            Vector3 up = Vector3.Up * .60f;
+            Vector3 up = Vector3.Up * .615f;
             Strip(st, p0 + r0 * (xc - hw) + up, p0 + r0 * (xc + hw) + up, p1 + r1 * (xc - hw) + up, p1 + r1 * (xc + hw) + up, Vector3.Up, 0f, 1f, 0f, 1f);
         }
 
