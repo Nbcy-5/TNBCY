@@ -21,7 +21,7 @@ namespace TNBCY
         public System.Action OnResume, OnQuit, SettingsChanged;
         Control home, routesScr, trainsScr, settingsScr;
         Button resumeB; Label resumeSub, trainsSub, verL, updStatL;
-        HBoxContainer routeRow, trainRow;
+        HBoxContainer routeRow; VBoxContainer trainRow;
         SettingsPanel settings;
         List<RouteInfo> routes = new List<RouteInfo>(); List<TrainOption> trains = new List<TrainOption>();
         RouteInfo chosen; float t; string version = "";
@@ -175,7 +175,10 @@ namespace TNBCY
         {
             trainsScr = Screen(); Header(trainsScr, "SELECT TRAIN", out trainsSub);
             BackButton(trainsScr, () => Open(routesScr));
-            Scroller(trainsScr, out trainRow);
+            var sc = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
+            Ui.Place(sc, 0, 0, 1, 1, 30, 130, -30, -30); trainsScr.AddChild(sc);
+            trainRow = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            trainRow.AddThemeConstantOverride("separation", 18); sc.AddChild(trainRow);
         }
 
         void BuildTrainCards()
@@ -186,16 +189,28 @@ namespace TNBCY
             {
                 var to = tr;
                 if (to.trainNumber < 10000 || to.trainNumber > 99999) to.trainNumber = (int)GD.RandRange(10000, 99999);
-                if (chosen != null && chosen.stations.Count > 0) to.origin = chosen.stations[0];
-                VBoxContainer v; var card = Card(new Vector2(390, 470), out v);
-                v.AddChild(Ui.MakeLabel((string.IsNullOrEmpty(to.kind) ? "PASSENGER SERVICE" : to.kind.ToUpperInvariant() + " SERVICE"), 15, Ui.Gold, true));
-                var name = Ui.MakeLabel(to.name, 27, Colors.White, true); name.AutowrapMode = TextServer.AutowrapMode.WordSmart; name.CustomMinimumSize = new Vector2(344, 0); v.AddChild(name);
-                v.AddChild(Ui.MakeLabel("TRAIN NO.  " + to.trainNumber.ToString("D5"), 21, Ui.GoldHi, true));
-                v.AddChild(Ui.MakeLabel("FROM  " + to.origin + "\nTO  " + to.destination + "\nDEPARTURE PLATFORM  " + to.platform, 18, Colors.White));
-                v.AddChild(new TrainGlyph { Coaches = to.coaches, CustomMinimumSize = new Vector2(344, 82) });
-                var d = Ui.MakeLabel(to.locomotive + "\n" + to.coaches + " coaches  ·  " + to.desc, 16, Ui.Dim); d.AutowrapMode = TextServer.AutowrapMode.WordSmart; d.CustomMinimumSize = new Vector2(344, 0); v.AddChild(d);
-                v.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-                var go = Ui.MakeButton("DRIVE THIS TRAIN", 24, true, new Vector2(344, 58)); v.AddChild(go); go.Pressed += () => { if (OnStart != null) OnStart(chosen, to); };
+                VBoxContainer v; var card = Card(new Vector2(0, 0), out v);
+                card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                var title = Ui.MakeButton(to.name + "   +", 26, false, new Vector2(0, 64));
+                title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                v.AddChild(title);
+                var details = new VBoxContainer { Visible = false };
+                details.AddThemeConstantOverride("separation", 10);
+                v.AddChild(details);
+                title.Pressed += () =>
+                {
+                    details.Visible = !details.Visible;
+                    title.Text = to.name + (details.Visible ? "   −" : "   +");
+                };
+                details.AddChild(Ui.MakeLabel((string.IsNullOrEmpty(to.kind) ? "PASSENGER SERVICE" : to.kind.ToUpperInvariant() + " SERVICE"), 15, Ui.Gold, true));
+                details.AddChild(Ui.MakeLabel("TRAIN NO.  " + to.trainNumber.ToString("D5"), 21, Ui.GoldHi, true));
+                details.AddChild(Ui.MakeLabel("FROM  " + to.origin + "\nTO  " + to.destination + "\nDEPARTURE PLATFORM  " + to.platform, 18, Colors.White));
+                details.AddChild(new TrainGlyph { Coaches = to.coaches, CustomMinimumSize = new Vector2(344, 82) });
+                var d = Ui.MakeLabel(to.locomotive + "\n" + to.coaches + " coaches  ·  " + to.desc, 16, Ui.Dim);
+                d.AutowrapMode = TextServer.AutowrapMode.WordSmart; d.CustomMinimumSize = new Vector2(344, 0); details.AddChild(d);
+                var go = Ui.MakeButton("DRIVE THIS TRAIN", 24, true, new Vector2(344, 58));
+                go.Pressed += () => { if (OnStart != null) OnStart(chosen, to); };
+                details.AddChild(go);
                 trainRow.AddChild(card);
             }
         }
