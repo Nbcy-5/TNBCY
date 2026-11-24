@@ -1,3 +1,9 @@
+[v35] Visible curved sleepers and geometry-based distant sleeper LOD
+ TRACK  Increased the sleeper's transverse downward bow to a clearly visible 4.6 cm at full scale while retaining continuous shared-edge geometry.
+ LOD  Removed the flat textured sleeper planes that could shimmer against the ballast. Replaced them with simplified curved sleeper meshes at 2-, 4-, and 8-sleeper spacing for progressively distant views.
+ BALLAST  Shifted the generated granite chips toward a lighter neutral concrete-grey while retaining earthy mud and darker stone joints.
+ SCOPE  Track rendering only; no train, route, control, or gameplay changes.
+
 [v34] Stable sleepers and true concrete-grey granite track bed
  TRACK  Rebuilt each curved sleeper as one continuous mesh with shared edges instead of 31 overlapping boxes, removing internal coplanar faces that can shimmer.
  LOD  Matched the detailed sleeper visibility end to the 90 m start of the distant sleeper texture, removing the previous 18 m handover gap.
