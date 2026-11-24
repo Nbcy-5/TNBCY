@@ -223,6 +223,7 @@ void fragment() {
             {
                 float k = Curv(e, s); s = Mathf.Min(e.Length, s + Mathf.Clamp(.126f / Mathf.Sqrt(k + 1e-6f), 3f, 25f)); ss.Add(s);
             }
+            float uvOff = RTUvBase(e);
             int i0 = 0;
             while (i0 < ss.Count - 1)
             {
@@ -235,7 +236,7 @@ void fragment() {
                     Vector3 p0 = e.PosAt(sa), p1 = e.PosAt(sb), r0 = Right(e.DirAt(sa)), r1 = Right(e.DirAt(sb)), up = Vector3.Up;
                     const float tw = 1.72f, bw = 2.15f, h = .40f, dp = -.18f;
                     Vector3 nl = (-r0 * h + up * (bw - tw)).Normalized(), nr = (r0 * h + up * (bw - tw)).Normalized();
-                    float ua = sa * .5f, ub = sb * .5f;
+                    float ua = (sa + uvOff) * .5f, ub = (sb + uvOff) * .5f;       // v24: texture phase continues across piece joints
                     Color cToe = new Color(.50f, .44f, .37f), cShl = new Color(.80f, .75f, .68f), cOut = new Color(.95f, .93f, .90f), cGrs = new Color(.46f, .43f, .40f), cMid = new Color(.68f, .65f, .60f);
                     RTBand(bed, p0 - r0 * (bw + .25f) + up * dp, p0 - r0 * bw, p1 - r1 * (bw + .25f) + up * dp, p1 - r1 * bw, nl, -(bw + .25f) * .5f, -bw * .5f, ua, ub, cToe, cToe);
                     RTBand(bed, p0 - r0 * bw, p0 - r0 * tw + up * h, p1 - r1 * bw, p1 - r1 * tw + up * h, nl, -bw * .5f, -tw * .5f, ua, ub, cToe, cShl);
@@ -383,6 +384,7 @@ void fragment() {
         {
             RTMaterials();
             MakeTrackMeshes();
+            RTV24Init();                                            // v24: N26-style sleeper and rail fastening
             RTFixJoints();                                          // v23: both pieces share one direction at every joint
             if (cam != null) cam.Near = .3f;                       // larger near plane = far better depth precision (less z-fighting / shaking)
             var min = new Vector3(1e9f, 0, 1e9f); var max = new Vector3(-1e9f, 0, -1e9f);
@@ -424,7 +426,7 @@ void fragment() {
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
                     }
                     if (tl.Count == 0) continue;
-                    var slp = MM(sleeperMesh, matConcrete, tl.Count, 90f, true); var fit = MM(fitMesh, matFit, fl.Count, 55f);
+                    var slp = MM(rtSleeperN26, matConcrete, tl.Count, 90f, true); var fit = MM(fitMesh, matFit, fl.Count, 55f);
                     for (int i = 0; i < tl.Count; i++) { slp.SetInstanceTransform(i, tl[i]); slp.SetInstanceColor(i, cl[i]); }
                     for (int i = 0; i < fl.Count; i++) fit.SetInstanceTransform(i, fl[i]);
                 }

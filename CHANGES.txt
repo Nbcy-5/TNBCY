@@ -1,3 +1,14 @@
+[v25] Same content as v24, rebuilt as version code 25 (name stays 3.4). No code change.
+
+[v24] N26-style concrete track and seamless joints
+ + Sleepers: new heavy monoblock concrete sleeper (N26 type): full-height rail-seat blocks, narrower and lower waist, lowered end caps and cast-in steel shoulders at each rail seat. Same 2.75 m length and 0.65 m spacing.
+ + Fastening: rubber pad, nylon insulator against the rail foot and a spring clip at every rail seat.
+ + Joints: the ballast texture used to restart at every track piece (a straight seam line in the stones at each joint). It now runs on across the joint.
+ + Points area keeps the plain long sleepers (their rail seats do not line up with the new sleeper shape).
+ ! The new sleeper and fastening are drawn in code. No files from the Trainz "Concrete track N26" pack (ALTDK, trainz.ru) are included: its licence does not allow reuse in other software, and the .im meshes cannot be read by Godot anyway.
+ ! NOT compiled or run in my sandbox (no Godot/.NET). If the build fails send the last 20 lines with "error CS".
+ Android version 3.4 (code 24).
+
 [v23] Secunderabad station rebuilt, realistic track and overhead line
  + Track: concrete sleepers now 0.65 m apart (was 0.60), spaced evenly so there is no odd gap where two track pieces meet.
  + Ballast: granite / cement grey with dried-mud patches and black grease right under the rails, mud at the toe of the slope.

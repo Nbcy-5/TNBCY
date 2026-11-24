@@ -1,4 +1,4 @@
-TNBCY - NOTES FOR FUTURE DEVELOPMENT (written at v23)
+TNBCY - NOTES FOR FUTURE DEVELOPMENT (updated at v25)
 =====================================================
 GOAL: real-looking Indian railway game. Phone can take a 10 GB install IF there is no lag. Rule: size on disk is free, frame time is not.
 
@@ -15,6 +15,12 @@ GOAL: real-looking Indian railway game. Phone can take a 10 GB install IF there 
  - MainSecunderabad.cs: Secunderabad platforms, shelters, benches, lights, number boards, foot-over-bridge, ramps.
  - MainRealTrack.cs: granite texture recoloured (cement grey, mud, grease), sleepers evenly spaced.
  - MainWorld.cs BuildStations: Secunderabad uses the new builder; other stations are unchanged (plain platforms).
+
+2b. WHAT v24 CHANGED (all in code, no new image files)
+ - MainTrackV24.cs: N26-style monoblock sleeper (RTMakeSleeperN26), new rail fastening (RTMakeFit24), ballast texture phase across joints (RTUvBase).
+ - MainRealTrack.cs: uses them (3 small edits). The points area (fan sleepers) still uses the plain box sleeper.
+ - TO DO: real welds/fishplates are still only in yard loops; sleeper shoulders do not exist under points; check every switch on the phone.
+ - Trainz pack licence: the "Concrete track N26" files (ALTDK, trainz.ru) may not be reused in other software without written permission. Ask trainz.ru before bundling any of its textures.
 
 3. KNOWN LIMITS / TO DO NEXT
  - Points (turnouts) and crossings: geometry unchanged from v19-v22 except even sleeper spacing and joint smoothing. Needs a close look on the phone at every switch.

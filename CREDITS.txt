@@ -9,3 +9,6 @@ Pine trees (Assets/Nature/pine_*.png, Scripts/NatureData.cs)
 Foxglove (Assets/Nature/foxglove_*.png, not used in the game yet)
   JVC@-Foxglowe group high few, KUID 328583:1954, same author, same licence.
 This game may therefore not be sold or used commercially while it contains these files.
+
+Concrete sleeper style (v24, Scripts/MainTrackV24.cs)
+  Drawn in code, inspired by the type "Concrete_track_N26" by ALTDK (www.trainz.ru). No files from that pack are included in the game.
