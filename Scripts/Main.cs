@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v30";
+        public const string Version = "v31";
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
 
         FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
@@ -20,7 +20,7 @@ namespace TNBCY
         AudioStreamPlayer horn;
         TrainSounds sounds;   // speed-driven train sounds, set up in Data/train_sounds.json
         Label nextL, infoL, toastL, endL, updL, aiL;
-        TouchControls touch; Control endPanel, updPanel; float toastT, noteT, startT, frameAcc, fpsT; int frameN, stableUp, lastRev; string apkUrl = "";
+        TouchControls touch; Control endPanel, updPanel, briefingOverlay; Label briefingDetails; float toastT, noteT, startT, frameAcc, fpsT; int frameN, stableUp, lastRev; string apkUrl = "";
         bool electric; float pantK;
 
         static T LoadJson<T>(string path)
@@ -135,10 +135,14 @@ namespace TNBCY
                 lastRev = touch.Reverser; pantK = touch.PantoUp ? 1f : 0f; RefreshSwitchTags();
                 ride.Reset(); lastEdge = null; saveT = 0f; paused = false;
                 ApplyQuality(Settings.Gfx == 0 ? 1 : Settings.Gfx - 1); startT = 0f;
-                loadL.Visible = false; touch.Enabled = true; ApplyHudVisible();
+                loadL.Visible = false; touch.Enabled = resumed; ApplyHudVisible();
                 if (resumed) Toast("Session resumed", true, 4f);
-                else if (resume != null) Toast("Could not resume - starting a new run", false, 5f);
-                else Toast(electric ? "Raise PANTO, close VCB, set reverser FWD, release the brake, then power up" : "Start ENGINE, set reverser FWD, release the brake, then power up", true, 7f);
+                else
+                {
+                    briefingDetails.Text = BuildServiceBriefing(route, consist);
+                    briefingOverlay.Visible = true;
+                    if (resume != null) Toast("Saved session could not be restored - starting a new run", false, 5f);
+                }
             }
             catch (System.Exception ex) { GD.PrintErr(ex.ToString()); if (loadL != null) { loadL.Text = "Error: " + ex.Message; loadL.Visible = true; } }
         }
@@ -229,6 +233,70 @@ namespace TNBCY
             dl.Pressed += () => OS.ShellOpen(apkUrl);
             later.Pressed += () => { updPanel.Visible = false; touch.Enabled = true; };
             root.AddChild(updPanel);
+            BuildBriefing(root);
+        }
+
+        string BuildServiceBriefing(RouteInfo route, ConsistSpec consist)
+        {
+            string[] drivers = { "Arjun Reddy", "Ravi Kumar", "Suresh Naidu", "Kiran Rao", "Vijay Sharma", "Manoj Varma" };
+            string[] assistants = { "Rahul", "Prakash", "Naveen", "Ajay", "Srinivas", "Mahesh" };
+            string engine = "Locomotive";
+            string coachType = "Passenger coach";
+            int coachCount = 0;
+            foreach (var vehicle in consist.vehicles)
+            {
+                if (vehicle.powered) engine = vehicle.name;
+                else
+                {
+                    coachCount += System.Math.Max(1, vehicle.count);
+                    coachType = vehicle.name;
+                }
+            }
+            string from = route.stations != null && route.stations.Count > 0 ? route.stations[0] : "Secunderabad Jn";
+            string sectionEnd = route.stations != null && route.stations.Count > 0 ? route.stations[route.stations.Count - 1] : "Ghatkesar";
+            string driver = drivers[(int)(GD.Randi() % (uint)drivers.Length)];
+            string assistant = assistants[(int)(GD.Randi() % (uint)assistants.Length)];
+            int number = (int)GD.RandRange(10000, 99999);
+            return "SIMHAPURI EXPRESS  |  TRAIN NO. " + number.ToString("D5")
+                + "\n\nFROM: " + from + "     DEPARTURE PLATFORM: 1"
+                + "\nSERVICE DESTINATION: Gudur Jn"
+                + "\nCURRENT PLAYABLE SECTION: " + from + "  →  " + sectionEnd
+                + "\nGudur is beyond the currently available section; this build's route ends at " + sectionEnd + "."
+                + "\n\nLOCOMOTIVE: " + engine
+                + "\nCOACH FORMATION: " + coachCount + " × " + coachType + " (simulated passenger rake)"
+                + "\nLOCO PILOT: " + driver
+                + "\nASSISTANT LOCO PILOT: " + assistant;
+        }
+
+        void BuildBriefing(Control root)
+        {
+            var dim = new ColorRect { Color = new Color(0f, 0f, 0f, .82f), Visible = false, MouseFilter = Control.MouseFilterEnum.Stop };
+            dim.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(dim); briefingOverlay = dim;
+            var center = new CenterContainer(); center.SetAnchorsPreset(Control.LayoutPreset.FullRect); dim.AddChild(center);
+            var panel = new PanelContainer { CustomMinimumSize = new Vector2(900, 0) };
+            panel.AddThemeStyleboxOverride("panel", Ui.Panel(new Color(.04f, .08f, .14f, .98f), new Color(Ui.Gold.R, Ui.Gold.G, Ui.Gold.B, .9f), 22, 2, 20));
+            center.AddChild(panel);
+            var margin = new MarginContainer();
+            margin.AddThemeConstantOverride("margin_left", 30); margin.AddThemeConstantOverride("margin_right", 30);
+            margin.AddThemeConstantOverride("margin_top", 24); margin.AddThemeConstantOverride("margin_bottom", 24);
+            panel.AddChild(margin);
+            var column = new VBoxContainer(); column.AddThemeConstantOverride("separation", 16); margin.AddChild(column);
+            column.AddChild(Ui.MakeLabel("TRAIN SERVICE DETAILS", 34, Ui.GoldHi, true, HorizontalAlignment.Center));
+            briefingDetails = Ui.MakeLabel("", 22, Colors.White);
+            briefingDetails.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            briefingDetails.CustomMinimumSize = new Vector2(820, 280);
+            column.AddChild(briefingDetails);
+            var start = Ui.MakeButton("START JOURNEY", 28, true, new Vector2(0, 68));
+            start.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; column.AddChild(start);
+            start.Pressed += BeginDriving;
+        }
+
+        void BeginDriving()
+        {
+            briefingOverlay.Visible = false;
+            touch.Enabled = true;
+            ApplyHudVisible();
+            Toast(electric ? "Raise PANTO, close VCB, set reverser FWD, release the brake, then power up" : "Start ENGINE, set reverser FWD, release the brake, then power up", true, 7f);
         }
 
         void BuildPause(Control root)

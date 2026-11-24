@@ -1,3 +1,7 @@
+[v31] Simhapuri Express service briefing before driving
+ NEW  Show a train-service information screen after selecting DRIVE: random five-digit train number, Secunderabad departure platform 1, Gudur service destination, current playable section, actual selected locomotive, coach count and randomly assigned crew.
+ NOTE  Gudur is shown as the service destination beyond the currently simulated Secunderabad–Ghatkesar section; the existing route and track network are unchanged.
+
 [v30] Stable track rendering and visible distant sleepers
  FIX  Move the distance sleeper surface below the real sleeper tops and rail feet to remove coplanar flicker.
  FIX  Add progressively coarser sleeper-distance LODs so cross-ties remain visible farther down the track.
