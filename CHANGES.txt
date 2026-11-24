@@ -230,3 +230,235 @@ Update 02 (v3) - update01 (track graph + switches) merged into the TNBCY version
 + Kept: multi-touch levers, 3D look (sky, shadows, trees), in-game updater, my physics (adhesion, Davis, air brake).
 Changed: the old single-line route and block signals are replaced by the network. Old files are overwritten with stubs.
 Note: your update.bat (from update01) is NOT needed - use the normal update.bat. It deletes Updater and TouchControls.
+[v26] v25 (real track, locos, sounds, Secunderabad) + the v12 front end, plus a rail and track rendering fix
+ NEW  Home screen with the TNBCY logo: PLAY (route, then train), RESUME SESSION, SETTINGS, EXIT. The update-check line from v25 is shown at the bottom.
+ NEW  Settings (home screen and in-game pause menu): camera sensitivity, ride shake, phone vibration, graphics, FPS readout.
+ NEW  Eye button (top right) hides all controls for a clear view. Menu button next to it: pause, settings, save and go home.
+ NEW  Resume session: saved every 8 s, when the menu opens and when the app goes to the background.
+ NEW  Top bar (speed, speed-limit sign, next stop with distance, clock), restyled glass controls with filled throttle / brake bars.
+ NEW  Ride feel: wheel rumble, rail-joint clack every 25 m, jolt over points, curve roll, braking dip, phone vibration (all adjustable).
+ NEW  Cab: raked windscreen pillars, long wipers, grey sun blind, perforated board, key panel, emergency button, red digital speed display, wider instrument screen.
+ NEW  Poppins font, new logo and app icon (adaptive icon layers).
+ FIX  Rails looked white and shimmered while the train was running. Causes and fixes:
+      - rail head was drawn almost white (0.74) and metallic, so it mirrored the sky. Now dark worn steel, rusty web and foot, matte (almost no metallic).
+      - a 7 cm rail head is smaller than a pixel beyond about 100 m. Rails are now real 3D up to 200 m, then flat dark-iron strips that get wider with distance
+        (0.2 m, 0.6 m, 1.2 m), so a rail never shrinks below a pixel. The strips are matte iron colour, never white.
+      - sleepers vanished at 90 m and the ballast looked empty. A concrete-sleeper texture strip now shows between 90 m and 450 m (darker, closer to the real sleepers).
+      - track pieces are 150 m long (were 300 m), so the switch between detail levels happens in small steps.
+      - MSAA 4x on High / Ultra, 2x on Fast / Balanced (was off), FXAA, 16x anisotropic textures, no more 65 % resolution mode, camera near plane 0.5 m outside the cab
+        (4x more depth precision), far plane 2.6 km, a little more haze.
+      - overhead wires are less shiny and vanish at 520 m (were 750 m), masts unchanged.
+ LOOK Ballast: rose granite and rust-orange stones added to the granite texture (like the reference photo), concrete sleepers a little darker, frog and joints in iron colours.
+ NOT DONE  Not compiled or run here (no Godot/.NET in my sandbox). Check on the phone: home screen, Play -> route -> train, eye button, Resume, the far view of the track while
+           running at 100+ km/h, the points, the cab. If the build fails send the last 20 lines with "error CS".
+ Android version 3.5 (code 26).
+
+[v25] Same content as v24, rebuilt as version code 25 (name stays 3.4). No code change.
+
+[v24] N26-style concrete track and seamless joints
+ + Sleepers: new heavy monoblock concrete sleeper (N26 type): full-height rail-seat blocks, narrower and lower waist, lowered end caps and cast-in steel shoulders at each rail seat. Same 2.75 m length and 0.65 m spacing.
+ + Fastening: rubber pad, nylon insulator against the rail foot and a spring clip at every rail seat.
+ + Joints: the ballast texture used to restart at every track piece (a straight seam line in the stones at each joint). It now runs on across the joint.
+ + Points area keeps the plain long sleepers (their rail seats do not line up with the new sleeper shape).
+ ! The new sleeper and fastening are drawn in code. No files from the Trainz "Concrete track N26" pack (ALTDK, trainz.ru) are included: its licence does not allow reuse in other software, and the .im meshes cannot be read by Godot anyway.
+ ! NOT compiled or run in my sandbox (no Godot/.NET). If the build fails send the last 20 lines with "error CS".
+ Android version 3.4 (code 24).
+
+[v23] Secunderabad station rebuilt, realistic track and overhead line
+ + Track: concrete sleepers now 0.65 m apart (was 0.60), spaced evenly so there is no odd gap where two track pieces meet.
+ + Ballast: granite / cement grey with dried-mud patches and black grease right under the rails, mud at the toe of the slope.
+ + Under and beside the ballast: muddy cement formation strip (2.95 m each side) instead of the green grass strip. World-space shader, no seams.
+ + Joints: track pieces met with 0.6 to 1.6 degree kinks (checked on all 22 joints) which left small wedge gaps. Both pieces now share one direction.
+ + Overhead line (25 kV AC): I-section steel masts on concrete blocks, cantilever with stay tube, registration arm, ribbed insulators,
+   messenger wire that sags between masts, contact wire at 5.75 m zig-zagging +-0.2 m, droppers. Wires join exactly at piece ends.
+ + Secunderabad: 7 m platforms (top 0.85 m above rail, edge 1.70 m from track centre), tiled paving, cream coping, red line, studded yellow tactile band,
+   railing, end ramps, blue-roof shelters with columns, benches, tube lights, hanging PLATFORM 1 / 2 boards, foot-over-bridge with 28 degree stairs.
+ ! P2 pack checked: platform edge 3.06 m from the track (real 1.70), platform only 0.18 m above rail (real 0.85), yellow strip floating off the platform,
+   stairs 55 degrees (real about 30), no materials (vertex colours only), Z-up axis. The new code uses the P2 look but corrected sizes.
+ ! NOT compiled or run in my sandbox (no Godot/.NET). If the build fails send the last 20 lines with "error CS".
+ ! No reference photos reached me in this chat, so the overhead line follows standard Indian 25 kV practice. Send the photos to match them exactly.
+ Android version 3.2 (code 23).
+
+[v22] Electric locos only
+ - All diesel locomotives (WDM, WDG, WDP, WDAP: 38 models) removed from Data/locos.json and Assets/Locos (smaller APK).
+ - The loco picker button/arrows are removed from the menu.
+ - Passenger 16, Express 20 and Superfast 24 now couple a random electric WAP loco (WAP-4 LGD, WAP-7 Lalaguda, WAP-7 VSKP Dusty, WAP-7 WAP-9 VSKP) every start.
+   Switch on/off per train with "randomElectricLoco" in its Data/consist_*.json. Android version 3.1 (code 22).
+
+[v21] Photo-real pine trees from the nature pack
+ + 40 % of the trees are now photo-textured pines (5 different ones, crossed quads, cut-out edges) mixed with the old round trees. Random size 8-22 m, random turn and shade.
+ + Textures fixed: photo and mask merged to PNG, dark/orange colour casts balanced, colour spread under the transparent edge (no dark outline).
+ ! Checked and fixed in the pack: the foxglove files store the cut-out mask in separate _alpha files, and the alpha inside the .tga is the wrong way round (would show a green wall).
+   Folder names do not match the models (3286 is not "light green"; the "22 m" and "23 m" trees are really 24 m and 25 m tall).
+ + Credit line for the author in the menu and CREDITS.txt (the licence allows non-commercial use only).
+ + Foxglove converted (Assets/Nature/foxglove_*.png) but not placed: it is a European garden flower and looks out of place near Hyderabad.
+ + Never breaks the scene: if a tree texture is missing the old tree is used. Android version 3.0 (code 21).
+
+[v20] Realistic signals and lineside signs
+ + Colour-light signals rebuilt: black target plate with white edge, three round lenses with hoods that glow when lit, tubular post, ladder, concrete foundation and a flat number plate
+   (the floating white signal-number tag is gone). Head is lower and closer to real height (about 5 m).
+ + Kilometre posts: white concrete post with a black top and the number painted on the face (the see-through floating numbers are gone).
+ + Station name boards: yellow board with black border on two posts, name in English, Telugu and Hindi (set ShowRegionalScripts=false in MainFurniture.cs if the phone font shows boxes).
+ + New: speed boards where the line speed drops, T/P boards where it returns to 100 km/h, gradient posts (two arms and "1 IN 200") where the gradient changes.
+ + Everything faces the driver, stays on the left, steps aside for overhead-line masts and moves to the right-hand side where a platform is on the left.
+ ! Checked from the Signal_signs_etc pack and fixed before use: bool assigned to a float (would not compile), letters 10x too small, lens rims and T/P disc lying flat,
+   whistle board 75 cm too low against the pack's own rule (underside should be 2.1 m), level-crossing barrier at 2.1 m instead of about 1 m, no glow on lenses, blue station board.
+   Whistle boards and the crossing gate are NOT placed: this route has no level crossing.
+ + Poles of v19 re-checked: all 1003 masts are at least 2.79 m from every other track, none is on a rail.
+ Android version 2.9 (code 20).
+
+[v19] The 42 locomotives and real track together with the update status line, and poles off the tracks
+ + Merged: the update-check line under the title in the menu (build number, newest build, or why the check failed) is now in the version with the 42 locomotives.
+ ! Overhead-line poles: 8 poles stood too close to a loop line near the points (two of them almost on the rails: 0.4 m from the loop line's centre).
+   A pole now slides along its track (up to 20 m) until it is at least 2.7 m from every loop line, and is left out if there is no free spot.
+   Loop-line poles that would stand beside the main line's own poles are left out; the wires are unchanged.
+ Android version 2.8 (code 19).
+
+[v18] 42 locomotives added, wheels that turn
+ + 42 real 3D locomotives (WAP-7, WAP-4, WDP-4D, WDM-3D, WDG-3A, WDM-2, WDAP-5) in Assets/Locos, listed in Data/locos.json.
+ + Menu: pick a loco with < > and press "Drive the chosen locomotive + 16 coaches".
+ + All wheels (locos and coaches) are now round iron wheelsets with spokes that turn with the speed.
+ + Real track (MainRealTrack.cs): granite ballast and concrete sleepers with relief, cast frogs, grass tufts, no more flicker.
+ + Bogie frames added where a model had none. Android version 2.7 (code 18).
+
+[v17] Silent content updates now work (data and sounds without a new APK)
+ + Content version = app version x 100 + a patch number kept in content_patch.txt. Raise that number, push, and phones that already have this app
+   download the new content pack (data files and sounds) at the next start, apply it and reload; no new APK, no window.
+ + A new app version always wins over an older downloaded pack (the old pack is dropped), so content can never go back to an old state.
+ + The build warns if the content pack could not be built.
+ Android version 2.6 (code 17).
+
+[v16] In-game updates through GitHub
+ + Every GitHub build now publishes a release (the APK, and a small version.json) to the public repository Nbcy-5/tnbcy-updates.
+ + The game checks that address when it starts. If a newer build exists a window appears: "New version available" with what is new, and Download / Later buttons.
+   Download opens the APK in the browser; tap it to install over the old game (same signing key).
+ + The build refuses to publish if the version code in the export preset and ApkVersion in Updater.cs differ, so a wrong number can never reach the game.
+ + The updater now treats the content built into the app as already installed, and drops an old downloaded content pack when the app itself is newer.
+ + Needs the secret UPDATES_TOKEN on the main repository (one-time setup, see UPDATES.txt).
+ Android version 2.5 (code 16).
+
+[v15] Speed-based train sounds (5 to 95 km/h) and a sound system you can extend
+ + From your reference video (the phone speedometer in it was read second by second) the sound between 5 and 95 km/h was cut into eleven
+   seamless loops, roll_07 ... roll_93, one for each speed band. They crossfade as the speed changes, the volume rises with speed and the pitch follows speed a little.
+ + Above 95 km/h the rolling sound hands over to the high-speed loop from v14 (smooth crossfade 95 to 105 km/h).
+ + TrainSounds.cs reads Data/train_sounds.json: add more speed loops or one-shot sounds (horn, brakes, doors ...) just by adding entries. See SOUNDS_GUIDE.txt.
+ + HighSpeedSound.cs from v14 is replaced by this system (its sound is now an entry in the JSON file).
+ + Android export takes everything in Assets/Audio and Data/*.json, so new sounds need no change in export_presets.cfg.
+ Android version 2.4 (code 15).
+
+[v14] High-speed running sound
+ + New sound (taken from your video, looped without a click): Assets/Audio/high_speed_loop.ogg.
+ + HighSpeedSound.cs plays it only after the train goes faster than 95 km/h: fades in over 1.5 s, gets louder up to 140 km/h,
+   fades out over 2 s when the speed drops below 92 km/h (the gap stops it flickering on and off around 95).
+ + Added the sound to the Android export list in export_presets.cfg (the export only includes listed files).
+ Android version 2.3 (code 14).
+
+[v13] Real-looking rail track (checked against your photos and IndianBroadGaugeTrack.cs)
+ + Rails use a real 60 kg flat-bottom section (head, web with fillets, foot) instead of three flat boxes: polished running surface, polished gauge face, rusty outer side and web, dark foot.
+   Rails in the points (wing, check and switch rails) use the same section.
+ + Concrete sleepers each have a slightly different shade; each rail seat has a black rubber pad and a spring clip on both sides of the rail foot (shown within 60 m).
+ + Ballast is filled up almost to the top of the sleepers (it was 11 cm below), so the sleepers sit in the stones like the photos.
+ + Loop lines in the yard have 13 m rails joined by fishplates with four bolts each (the main lines stay welded).
+ + Frog and fittings use a rust-steel colour to match the rails.
+ ! The standalone IndianBroadGaugeTrack.cs was not used as is: it places the rail centre at half the gauge (real gauge would be 1,604 mm), makes the rail 215 mm tall, leaves the rail pads floating,
+   and builds one node per part (about 10,000 nodes per 100 m), which is far too heavy for a 20 km route on a phone. Its good ideas (600 mm sleepers, pads, clips, fishplates) are built here with instancing.
+ Android version 2.2 (code 13).
+
+[v12] Water pipe lines on the platforms and realistic points (turnouts)
+ + Water pipe line: a dark pipe on yellow-and-black posts (every 6 m) runs along each platform in the gap between the two main lines at Secunderabad, Charlapalli and Ghatkesar,
+   with brass taps every 24 m and water running down to the ground. It stands 2.25 m from each line, 0.5 m clear of the carriage sides.
+ + Points now look like real points: the loop line leaves the main line on a 500 m lead curve (about 1 in 12) instead of a 625 m long stretch, so the inner rails cross at a normal frog angle.
+   The closure rails are drawn all the way from the switch rails to the frog (before, the inner rail was missing there).
+ + Frog: V nose and heavy body, wing rails with a flangeway beside the nose and flared ends, check rails opposite on both the main and the loop line.
+ + Long sleepers across both tracks where the loop is closer than 3.2 m to the main line, as in the photos (the overlapping short sleepers are no longer drawn there).
+ + The four loops (dl_one, dl_two, ul_one, ul_two) were rebuilt with these curves; the parallel stretch beside the platforms is unchanged (7.75 m from the main line), so platforms, stops and signals stay where they were.
+ Android version 2.1 (code 12).
+
+[v11] Review of MainWorld.cs, ProcTex.cs and TouchControls.cs, then merged into v10
+ + ProcTex.cs: new ballast texture (granite chips in grey, pink and pale stone, with a little red-soil fines). Only the gravel function changed; the public methods are the same.
+ + MainWorld.cs: new ballast bed (top half-width 1.72 m, base 2.15 m, height 0.32 m). It no longer pokes into the platform edge (1.8 m) and the beds of the two lines no longer overlap. Sleepers sit 9 cm into it.
+ + TouchControls.cs: new layout. Levers in the two lower corners, reverser as a FWD / NEUTRAL / REV row in the centre, six smaller buttons, labelled detents. Same members as before, so nothing else had to change.
+ ! Rail position: the uploaded MainWorld.cs moved the rail centre-lines from 0.873 m to 0.838 m. 0.838 m is half of 1676 mm measured to the INNER face of the rail, but the code draws the rail centre-line (head 0.07 m wide). That made the gauge 1606 mm, 7 cm too narrow, and it no longer matched the points code in TrackGraph (clears the main line at 1.75 m = 2 x 0.873). Put back to 0.873 m (6 places: rails, frog, switch blades).
+ ! Coach buttons ( < COACH  COACH > ) were moved to y = 22 and sat on top of the speed / limit readout in Chase and Free views. Moved to y = 122 (below the readout).
+ ! PC testing: with touch emulation on, one mouse click arrived as a touch AND as a mouse event, so toggle buttons (pantograph, breaker, camera) flipped twice. The mouse path is now used only if touch is not emulated. Phones were not affected.
+ Android version 2.0 (code 11).
+
+[v10] TNBCY02 - cab, controls, smooth track (from TNBCY03 v08) merged into the 20 km Indian route (v09)
+ + From TNBCY03 v08: faster loading and lower lag (Graphics menu Auto/Fast/Balanced/High/Ultra, fps readout), screen follows the phone in both landscape directions,
+   cameras fade between views, Chase/Free orbit around any coach (drag, pinch, < COACH >), real driver's cab with working gauges and moving levers,
+   brake handle detents REL RUN MIN 50 75 FULL EMG, 8-notch power lever, reverser, pantograph + VCB (ENGINE for DEMU) with interlocks,
+   continuous rails and ballast, smooth heading along curves, real turnouts with blades, frogs, point machine and stretcher bars.
+   (The curve shapes come from the v09 20 km network; TNBCY03's regenerated easement geometry belongs to its 8 km network and is not used here.)
+ + Kept from v09: 20 km route SC - MLY - CHZ - GT, train menu and consists, station boards, kilometre posts, signal huts, 620 m platforms, correct up-line order.
+ + Loop lines are flagged as turnouts (dl_one, dl_two, ul_one, ul_two) so the new switch and frog geometry is built.
+ ! Platforms and tracks: at Moula Ali and Charlapalli the platform ran across the points, so the loop line cut through it (it came within 0.5 m of the slab).
+   The stops now sit in the straight part where the loop runs parallel (island platform between main and loop, 7.75 m apart).
+ ! Up and down platforms were staggered (up platforms 270-600 m away from the down ones). All eight platforms are now 630 m and each up platform is exactly opposite its down platform.
+   Ghatkesar up line starts 173 m further so its platform is the full length too.
+ ! Station name boards stood across the loop line; they now stand on the platform facing the track. Station buildings moved from 14 m to 17 m, signal huts to 15 m, kilometre posts to 2.9 m
+   (posts near the points slide along the track until they clear the loop line).
+ ! Moved with the platforms: Moula Ali stop 1275 m on d7 (signal DM1 25 m beyond the platform end), Charlapalli stop 1256 m on d12 (signal D6 moved to 1280 m).
+   Moula Ali is now about 6.9 km and Charlapalli about 12.9 km from Secunderabad (the real distances are about 6 km and 12 km): the route stays schematic.
+ Android version 1.9 (code 10).
+
+[v09] CHECK FIXES on v08 (found by reading the v08 files)
+ ! Up line (the oncoming AI train): Moula Ali and Charlapalli were in the wrong order. From Ghatkesar the first stop is Charlapalli, then Moula Ali. Names swapped on u5 / u10.
+ ! Platforms at Moula Ali and Charlapalli (down line) were only 275 m, shorter than even the 303 m WAP-7 train. Platforms are 620 m again at every stop (they continue onto the track behind the stop mark).
+ ! Menu trains braked much faster than the WAP-7 train (apply 0.25 / release 0.12, about 0.9 m/s2). Now every train uses the realistic air brake (apply 0.08-0.14, release 0.03-0.05, about 0.76 m/s2).
+ ! Signal D2 sat exactly at the start of track piece d5 (offset 0); moved 20 m in.
+ ! Menu subtitle still said 8 km; now 20 km. Train descriptions show the real lengths (491 m / 585 m).
+ ! Content preset now lists all consist files and trains.json, so content updates can carry them.
+ Still true (not changed): the up-line stops are about 0.8 km closer to Ghatkesar than the real 8 km and 14 km; the route is a schematic stretch, not survey data.
+ Android version 1.8 (code 9).
+
+[v08] CHECK FIXES (applied after review)
+ ! Kilometre posts used a typed table of edge start distances that drifted up to ~145 m from the real track; now computed from the actual edge lengths.
+ ! Kilometre posts and signal relay huts were placed on the inner side, on top of the other line / its masts (lines are only 4.5 m apart); moved to the outer side, clear of the track.
+ ! Four stations (MLY down, CHZ down, GT up, SC up) had side R, which put the platform and building across the neighbouring line; all stations use side L like v07.
+ ! Ghatkesar (down) and Secunderabad (up) stop marks were exactly at the end of the line (no overrun room); moved back 60 m like v07.
+
+[v08] TNBCY02 - Indian route and infrastructure upgrade
+ + Route stations now follow Secunderabad (SC) - Moula Ali (MLY) - Charlapalli (CHZ) - Ghatkesar (GT).
+ + Both directions are represented on the existing double-track network; player and opposing AI starts retained.
+ + Network distances, signal offsets, terminal approach and station calls updated for an approximately 20 km journey.
+ + Added Indian-style station name and code boards, signal relay/equipment huts and kilometre posts.
+ + Preserved train menu/consists, train physics, AI driver, camera modes, HUD, touch controls, signals, switches and 25 kV OHE generation.
+ ! Alignment limitation: supplied v07 project contains an 8 km schematic geometry, not surveyed/GIS railway track coordinates. The geometry was longitudinally scaled to fit the published 20 km station chainage; it is not a survey-accurate reconstruction of curves, yard layouts, platform positions or track topology. Use verified SCR engineering/GIS data to achieve true track-by-track accuracy.
+
+[v07] TNBCY02 - merge of TNBCY01 v06 (realistic look) and TNBCY00 v06 (train menu)
+ + Train menu at start: MEMU 12, DEMU 8, Passenger 16, Express 20, Superfast 24 coaches, plus WAP-7 + 12 coaches (Data\trains.json).
+ + Opposing AI train is an 8-coach MEMU (Data\consist_ai.json).
+ + Platforms are 620 m long, follow the track, concrete texture, yellow safety line, roof, station building.
+ + Coaches swing on bogie points (13% in from each end); wheels sit under those points.
+ + Cameras glide smoothly between Cab / Chase / Nose / Side / Top / Free; cab interior appears when the camera reaches the seat.
+ + Electric trains (WAP loco, MEMU motor coaches) carry a pantograph; DEMU does not.
+ + Last track piece before Ghatkesar is 900 m long so even the 597 m train fits at the platform.
+ + Kept from TNBCY01: no score, no time limit, real-time physics, textured ground, 25 kV overhead line, 8 km route, loops, held signals.
+ + Android version 1.6 (code 7).
+
+[v06] TNBCY01 - realistic simulator update
+ - No score, no time limit, no time compression (timeScale 1): real-time acceleration and braking.
+ - New route: Secunderabad Jn to Ghatkesar, 8 km double line, two passing loops (SW1, SW2), only two stations.
+ - Electrified: 25 kV overhead line (masts, cantilevers, contact + catenary wires). WAP-7 electric loco with pantograph + 12 coaches.
+ - Real broad gauge track (1676 mm): gravel ballast, concrete sleepers, rail profile, concrete platforms and station buildings.
+ - Ground: grass and mud patches made in code (no image files), trees, bushes and rocks.
+ - Air brake is slower like a real train: service brake builds in about 6 s, releases in about 17 s.
+
+[v05] Bundle, version code 5. [v04] Fixed signing key (PC + GitHub), version code 4. [v03] UPDATE 03 - Secunderabad Jn to Ghatkesar, cameras, aspects, AI train
+ - Route: 20 km double line (Down + Up), Data/network_demo.json. Stations: Secunderabad Jn, Malkajgiri, Moula Ali (pass),
+   Charlapalli, Ghatkesar. Platform loops with switches at Malkajgiri and Charlapalli (SW1, SW2 on the Down line).
+ - Game time: timeScale 6 in network_demo.json (20 km in about 3 real minutes, clock shows game time). Edit "timeScale".
+ - Signals: 3-aspect colour lights. RED = stop, YELLOW = next signal is red, GREEN = clear. Yellow depends on the route
+   the switches are set for. Held signals (DM1, DM2, D13) start red.
+ - AI train leaves Ghatkesar on the Up line towards Secunderabad, stops at platforms and obeys signals.
+ - Cameras: Cab (real dashboard, levers move), Chase, Nose, Side (trackside), Top, Free (drag = look, pinch = fly, 2 fingers = pan).
+ - Track is built in culled chunks so a 20 km route stays smooth.
+
+Update 02 (v3) - update01 (track graph + switches) merged into the TNBCY version
++ Track is now a network: nodes + edges, switches (SW1, SW2), a siding with a buffer stop. Data/network_demo.json
++ Switch button: sets the next switch ahead (locked when the train is on it or within 40 m).
++ Trains follow the path through switches; every car follows the curve.
++ Smooth curves through "via" points. Held signals, station stops, buffer-stop and end-of-line penalties.
++ Kept: multi-touch levers, 3D look (sky, shadows, trees), in-game updater, my physics (adhesion, Davis, air brake).
+Changed: the old single-line route and block signals are replaced by the network. Old files are overwritten with stubs.
+Note: your update.bat (from update01) is NOT needed - use the normal update.bat. It deletes Updater and TouchControls.
