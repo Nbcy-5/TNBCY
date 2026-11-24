@@ -261,14 +261,14 @@ namespace TNBCY
             string serviceFrom = string.IsNullOrWhiteSpace(train.origin) ? from : train.origin;
             string serviceTo = string.IsNullOrWhiteSpace(train.destination) ? sectionEnd : train.destination;
             return train.name.ToUpperInvariant() + "  |  TRAIN NO. " + serviceNumber.ToString("D5")
-                + "\\n\\nFROM: " + serviceFrom + "     DEPARTURE PLATFORM: " + train.platform
-                + "\\nSERVICE DESTINATION: " + serviceTo
-                + "\\nCURRENT PLAYABLE SECTION: " + from + "  →  " + sectionEnd
-                + "\\nThe currently available route ends at " + sectionEnd + "."
-                + "\\n\\nLOCOMOTIVE: " + engine
-                + "\\nCOACH FORMATION: " + coachCount + " × " + coachType
-                + "\\nLOCO PILOT: " + driver
-                + "\\nASSISTANT LOCO PILOT: " + assistant;
+                + "\n\nFROM: " + serviceFrom + "     DEPARTURE PLATFORM: " + train.platform
+                + "\nSERVICE DESTINATION: " + serviceTo
+                + "\nCURRENT PLAYABLE SECTION: " + from + "  →  " + sectionEnd
+                + "\nThe currently available route ends at " + sectionEnd + "."
+                + "\n\nLOCOMOTIVE: " + engine
+                + "\nCOACH FORMATION: " + coachCount + " × " + coachType
+                + "\nLOCO PILOT: " + driver
+                + "\nASSISTANT LOCO PILOT: " + assistant;
         }
 
         void BuildBriefing(Control root)
