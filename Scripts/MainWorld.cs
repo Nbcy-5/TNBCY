@@ -132,9 +132,14 @@ void fragment() {
         // 60 kg flat-bottom rail section (x across, y up from the underside of the foot), counter-clockwise.
         static readonly Vector2[] RailProfile =
         {
-            new Vector2(-.075f, 0f), new Vector2(.075f, 0f), new Vector2(.075f, .012f), new Vector2(.030f, .030f), new Vector2(.0085f, .052f), new Vector2(.0085f, .100f),
-            new Vector2(.0295f, .118f), new Vector2(.036f, .128f), new Vector2(.036f, .158f), new Vector2(.030f, .172f),
-            new Vector2(-.030f, .172f), new Vector2(-.036f, .158f), new Vector2(-.036f, .128f), new Vector2(-.0295f, .118f), new Vector2(-.0085f, .100f), new Vector2(-.0085f, .052f), new Vector2(-.030f, .030f), new Vector2(-.075f, .012f)
+            new Vector2(-.075f, 0f), new Vector2(.075f, 0f), new Vector2(.075f, .012f),
+            new Vector2(.030f, .030f), new Vector2(.0085f, .052f), new Vector2(.0085f, .100f),
+            new Vector2(.0295f, .118f), new Vector2(.036f, .128f), new Vector2(.036f, .155f),
+            new Vector2(.034f, .164f), new Vector2(.030f, .171f), new Vector2(.022f, .175f),
+            new Vector2(.012f, .176f), new Vector2(-.012f, .176f), new Vector2(-.022f, .175f),
+            new Vector2(-.030f, .171f), new Vector2(-.034f, .164f), new Vector2(-.036f, .155f),
+            new Vector2(-.036f, .128f), new Vector2(-.0295f, .118f), new Vector2(-.0085f, .100f),
+            new Vector2(-.0085f, .052f), new Vector2(-.030f, .030f), new Vector2(-.075f, .012f)
         };
 
         // Extrude the rail section between two track positions. xc: sideways position of the rail centre (0 for loose pieces); gaugeSide: -1/+1 = which head side
@@ -147,11 +152,13 @@ void fragment() {
                 Vector2 a = RailProfile[j], b = RailProfile[(j + 1) % n];
                 Vector2 n2 = new Vector2(b.Y - a.Y, -(b.X - a.X)).Normalized();
                 Vector3 nn = (r0 * n2.X + Vector3.Up * n2.Y).Normalized();
+                float midX = (a.X + b.X) * .5f, highY = Mathf.Max(a.Y, b.Y), lowY = Mathf.Min(a.Y, b.Y);
                 Color c = new Color(.27f, .18f, .13f);                                                     // web and under-head: rusty iron
-                if (j == 9) c = new Color(.36f, .34f, .33f);                                               // v26: running surface is worn dark steel, not white
-                else if (j == 8 || j == 10) c = new Color(.29f, .25f, .22f);                               // rounded head corners
-                else if (j == 7 || j == 11) c = (gaugeSide != 0 && ((j == 7) == (gaugeSide > 0))) ? new Color(.34f, .31f, .29f) : new Color(.30f, .21f, .16f);   // gauge face / outer face
-                else if (j <= 3 || j >= 16) c = new Color(.16f, .12f, .09f);                               // foot
+                if (lowY >= .1745f) c = new Color(.36f, .34f, .33f);                                       // worn steel tread, flat centre
+                else if (lowY >= .153f && Mathf.Abs(midX) >= .029f) c = new Color(.29f, .25f, .22f);       // smoothly rounded rail-head shoulders
+                else if (highY >= .118f && Mathf.Abs(midX) >= .025f)
+                    c = (gaugeSide != 0 && ((midX > 0f) == (gaugeSide > 0))) ? new Color(.34f, .31f, .29f) : new Color(.30f, .21f, .16f);
+                else if (highY <= .030f) c = new Color(.16f, .12f, .09f);                                  // foot
                 st.SetColor(c);
                 Strip(st, p0 + r0 * (xc + a.X) + Vector3.Up * (y0 + a.Y), p0 + r0 * (xc + b.X) + Vector3.Up * (y0 + b.Y),
                           p1 + r1 * (xc + a.X) + Vector3.Up * (y0 + a.Y), p1 + r1 * (xc + b.X) + Vector3.Up * (y0 + b.Y), nn, 0f, 1f, 0f, 1f);
