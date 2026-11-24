@@ -219,6 +219,14 @@ void fragment() {
     ROUGHNESS = 0.96;
 }";
 
+        MultiMesh RTMultiMeshLod(Mesh mesh, Material material, int count, float begin, float end)
+        {
+            var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = mesh, InstanceCount = count };
+            var instance = new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = material };
+            AddChild(instance); Lod(instance, begin, end);
+            return mm;
+        }
+
         // ------------------------------------------------------------------ ballast bed and rails
         // Same as BuildRibbons, but the bed has a buried skirt (no gap or z-fight with the ground) and tangents for the normal map.
         void RTRibbons(TEdge e)
@@ -452,11 +460,11 @@ void fragment() {
 
                     // Replace the old coplanar distance texture with actual low-poly curved sleepers.
                     // This keeps cross-ties crisp and avoids a second textured plane shimmering over the ballast.
-                    var farNear = MM(rtSleeperLod, matConcrete, lodNear.Count); Lod(farNear.GetParent() as GeometryInstance3D, 82f, 480f);
+                    var farNear = RTMultiMeshLod(rtSleeperLod, matConcrete, lodNear.Count, 82f, 480f);
                     for (int i = 0; i < lodNear.Count; i++) farNear.SetInstanceTransform(i, lodNear[i]);
-                    var farMid = MM(rtSleeperLod, matConcrete, lodMid.Count); Lod(farMid.GetParent() as GeometryInstance3D, 480f, 1250f);
+                    var farMid = RTMultiMeshLod(rtSleeperLod, matConcrete, lodMid.Count, 480f, 1250f);
                     for (int i = 0; i < lodMid.Count; i++) farMid.SetInstanceTransform(i, lodMid[i]);
-                    var farFar = MM(rtSleeperLod, matConcrete, lodFar.Count); Lod(farFar.GetParent() as GeometryInstance3D, 1250f, 2600f);
+                    var farFar = RTMultiMeshLod(rtSleeperLod, matConcrete, lodFar.Count, 1250f, 2600f);
                     for (int i = 0; i < lodFar.Count; i++) farFar.SetInstanceTransform(i, lodFar[i]);
                 }
                 RTBuildOHE(e);                                       // v23: realistic 25 kV overhead line
