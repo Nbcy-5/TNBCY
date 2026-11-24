@@ -92,7 +92,8 @@ namespace TNBCY
         }
 
         // ------------------------------------------------------------ building
-        Control Screen() { var c = new Control { MouseFilter = MouseFilterEnum.Ignore, Visible = false }; c.SetAnchorsPreset(LayoutPreset.FullRect); AddChild(c); return c; }
+        // v27: SetAnchorsAndOffsetsPreset (not SetAnchorsPreset) so the screen really fills its parent; SetAnchorsPreset keeps the old 0 x 0 size.
+        Control Screen() { var c = new Control { MouseFilter = MouseFilterEnum.Ignore, Visible = false }; c.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect); AddChild(c); return c; }
 
         Button BackButton(Control parent, System.Action act)
         {
@@ -102,7 +103,7 @@ namespace TNBCY
         public void Setup(List<RouteInfo> r, List<TrainOption> tr, string ver)
         {
             routes = r; trains = tr; version = ver;
-            MouseFilter = MouseFilterEnum.Stop; SetAnchorsPreset(LayoutPreset.FullRect);
+            MouseFilter = MouseFilterEnum.Stop; SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             logoTex = ResourceLoader.Exists("res://logo.png") ? GD.Load<Texture2D>("res://logo.png") : null;
             BuildHome(); BuildRoutes(); BuildTrains(); BuildSettings();
         }
