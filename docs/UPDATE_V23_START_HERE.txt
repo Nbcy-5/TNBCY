@@ -1,0 +1,19 @@
+TNBCY02 v23 - START HERE
+========================
+
+This update package describes the v23 project state:
+- v22 + rebuilt Secunderabad station, realistic track and 25 kV overhead line.
+- Track sleepers spaced at 0.65 m, with ballast, mud and grease detailing.
+- OHE masts, cantilevers, messenger/contact wires, zig-zag and droppers.
+- Secunderabad platforms with paving, tactile band, railings, shelters, benches, platform boards and foot-over-bridge.
+- Android version code 23, version name 3.2.
+
+See ../FUTURE_DEVELOPMENT.txt for development notes.
+
+PC build instructions:
+1. Review tools/windows/TNBCY02_update_v23.bat and edit GODOT_EXE / PROJ to match your PC.
+2. Put the TNBCY02 v23 ZIP in Downloads.
+3. Run the BAT file.
+4. If the build fails, capture the final error lines and share them for troubleshooting.
+
+The source repository already contains the Godot project and C# source. The ZIP package will be copied separately by the import workflow.
