@@ -147,10 +147,10 @@ namespace TNBCY
         {
             float n = Fbm(u, v, 8, 3, 91), fine = Hash((int)(u * 256), (int)(v * 256), 13);
             float d = Mathf.Abs(v - .5f), crib = Mathf.SmoothStep(.205f, .235f, d);        // 0 on the sleeper, 1 in the crib
-            float k = .52f + .08f * n + .035f * (fine - .5f);
-            float pad = (d < .09f && (Mathf.Abs(u - .18f) < .05f || Mathf.Abs(u - .82f) < .05f)) ? .78f : 1f;
-            float g = (.68f + .38f * n) * (.94f + .12f * fine);
-            float r = Mathf.Lerp(k * pad, .40f * g, crib), gg = Mathf.Lerp(k * .99f * pad, .35f * g, crib), b = Mathf.Lerp(k * .96f * pad, .29f * g, crib);
+            float k = .62f + .07f * n + .025f * (fine - .5f);
+            float pad = (d < .09f && (Mathf.Abs(u - .18f) < .05f || Mathf.Abs(u - .82f) < .05f)) ? .86f : 1f;
+            float g = (.72f + .22f * n) * (.96f + .08f * fine);
+            float r = Mathf.Lerp(k * pad, .52f * g, crib), gg = Mathf.Lerp(k * .99f * pad, .47f * g, crib), b = Mathf.Lerp(k * .97f * pad, .40f * g, crib);
             return new Color(r, gg, b);
         }
 
