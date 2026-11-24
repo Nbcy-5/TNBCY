@@ -110,7 +110,10 @@ void fragment() {
                 rtMudMat.SetShaderParameter("mud_tex", RTTexture(t.Albedo, t.Size, false));
                 rtMudMat.SetShaderParameter("macro_tex", ProcTex.Macro());
             }
-            const float hw = 2.95f, y = .05f;            // the strip hides the green ground for 2.95 m each side of the centre line
+            // Tiny deterministic height separation prevents coplanar formation strips from z-fighting
+            // where neighbouring track beds overlap. The offset is visually negligible.
+            float y = .05f + (int)((uint)e.Id.GetHashCode() % 9u) * .001f;
+            const float hw = 2.95f; // muddy cement formation each side of the track centre line
             int n = Mathf.Max(1, Mathf.CeilToInt(e.Length / 5f)); float ds = e.Length / n;
             for (int c0 = 0; c0 < n; c0 += 60)
             {
