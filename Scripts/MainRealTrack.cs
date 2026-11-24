@@ -192,7 +192,7 @@ namespace TNBCY
                 AlbedoTexture = RTTexture(c.Albedo, c.Size, false), NormalEnabled = true, NormalTexture = RTTexture(c.Normal, c.Size, true), NormalScale = 1.1f,
                 Roughness = .95f, VertexColorUseAsAlbedo = true, CullMode = BaseMaterial3D.CullModeEnum.Disabled, TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic
             };
-            rtFarRail = new StandardMaterial3D { AlbedoColor = new Color(.30f, .26f, .23f), Metallic = 0f, Roughness = 1f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };   // matte iron, never reflects the sky
+            rtFarRail = new StandardMaterial3D { AlbedoColor = new Color(.40f, .39f, .36f), Metallic = 0f, Roughness = 1f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };   // matte iron, never reflects the sky
             rtSleeperBedMat = TexMat(ProcTex.SleeperBed());
         }
 
@@ -453,7 +453,7 @@ void fragment() {
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
                     }
                     if (tl.Count == 0) continue;
-                    var slp = MM(rtSleeperN26, matConcrete, tl.Count, 90f, true); var fit = MM(fitMesh, matFit, fl.Count, 55f);
+                    var slp = MM(rtSleeperN26, matConcrete, tl.Count, 112.5f, true); // Far() applies .8 scale: exact 90 m handover to sleeper LOD var fit = MM(fitMesh, matFit, fl.Count, 55f);
                     for (int i = 0; i < tl.Count; i++) { slp.SetInstanceTransform(i, tl[i]); slp.SetInstanceColor(i, cl[i]); }
                     for (int i = 0; i < fl.Count; i++) fit.SetInstanceTransform(i, fl[i]);
                 }
