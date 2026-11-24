@@ -251,7 +251,8 @@ void fragment() {
                 {
                     float sa = ss[i], sb = ss[i + 1];
                     Vector3 p0 = e.PosAt(sa), p1 = e.PosAt(sb), r0 = Right(e.DirAt(sa)), r1 = Right(e.DirAt(sb)), up = Vector3.Up;
-                    const float tw = 1.72f, bw = 2.15f, h = .40f, dp = -.18f;
+                    // Lower the ballast crown and lift sleepers slightly so their curved concrete tops remain exposed.
+                    const float tw = 1.72f, bw = 2.15f, h = .34f, dp = -.18f;
                     Vector3 nl = (-r0 * h + up * (bw - tw)).Normalized(), nr = (r0 * h + up * (bw - tw)).Normalized();
                     float ua = (sa + uvOff) * .5f, ub = (sb + uvOff) * .5f;       // v24: texture phase continues across piece joints
                     Color cToe = new Color(.50f, .44f, .37f), cShl = new Color(.80f, .75f, .68f), cOut = new Color(.95f, .93f, .90f), cGrs = new Color(.46f, .43f, .40f), cMid = new Color(.68f, .65f, .60f);
@@ -443,7 +444,7 @@ void fragment() {
                         var p = e.PosAt(st); var q = Basis.LookingAt(e.DirAt(st), Vector3.Up);
                         min = min.Min(p); max = max.Max(p); if ((c0 + k) % 60 == 0) trackPts.Add(p);
                         float shade = .86f + .24f * RTHash(c0 + k, 11, 3);
-                        Vector3 sp = p + Vector3.Up * .33f;
+                        Vector3 sp = p + Vector3.Up * .345f;
                         var sleeperXf = Xf(q, sp, new Vector3(2.75f, .21f, .26f));
                         tl.Add(sleeperXf); cl.Add(new Color(shade, shade * .99f, shade * .96f));
                         int sleeperIndex = c0 + k;

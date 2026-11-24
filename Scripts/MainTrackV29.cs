@@ -2,7 +2,7 @@ using Godot;
 
 namespace TNBCY
 {
-    // v34: stable continuous sleeper geometry and a dedicated light cement-granite ballast texture.
+    // v36: keep the curved sleeper crown visible above a muted muddy concrete-grey ballast bed.
     public partial class Main
     {
         Mesh rtSleeperLod;
@@ -92,20 +92,21 @@ namespace TNBCY
                         }
 
                     float stone = RTHash(bx, by, 921), tint = RTHash(bx, by, 922);
-                    Color c = stone < .56f ? new Color(.61f, .63f, .64f)
-                        : stone < .78f ? new Color(.70f, .71f, .70f)
-                        : stone < .91f ? new Color(.57f, .59f, .59f)
-                        : new Color(.64f, .58f, .50f);
+                    // Muted mid-grey concrete chips; only a restrained earthy tint in a few stones.
+                    Color c = stone < .56f ? new Color(.48f, .50f, .51f)
+                        : stone < .78f ? new Color(.55f, .56f, .56f)
+                        : stone < .91f ? new Color(.43f, .45f, .46f)
+                        : new Color(.48f, .45f, .41f);
                     float facet = Mathf.Clamp(.88f + .20f * (fx * (tint - .5f) + fy * (RTHash(bx, by, 923) - .5f)), .76f, 1.08f);
                     c *= facet;
                     float seam = 1f - Mathf.SmoothStep(.018f, .075f, d2 - d1);
-                    c = c.Lerp(new Color(.31f, .31f, .30f), seam * .48f);
+                    c = c.Lerp(new Color(.27f, .28f, .28f), seam * .52f);
 
                     float u = x / (float)size, v = y / (float)size;
-                    float mud = Mathf.Clamp((RTFbm(u, v, 4, 4, 931) - .53f) * 3.2f, 0f, .48f);
-                    c = c.Lerp(new Color(.43f, .36f, .28f), mud * .52f);
-                    float grease = Mathf.Clamp((RTFbm(u + .37f, v + .12f, 3, 4, 941) - .73f) * 1.8f, 0f, .08f);
-                    c = c.Lerp(new Color(.32f, .30f, .27f), grease);
+                    float mud = Mathf.Clamp((RTFbm(u, v, 4, 4, 931) - .50f) * 3.8f, 0f, .58f);
+                    c = c.Lerp(new Color(.39f, .37f, .34f), mud * .62f);
+                    float grease = Mathf.Clamp((RTFbm(u + .37f, v + .12f, 3, 4, 941) - .73f) * 1.8f, 0f, .10f);
+                    c = c.Lerp(new Color(.28f, .28f, .27f), grease);
                     float fleck = RTHash(x, y, 951);
                     if (fleck > .992f) c = c.Lerp(new Color(.82f, .82f, .78f), .45f);
 

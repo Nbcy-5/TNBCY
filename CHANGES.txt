@@ -1,3 +1,8 @@
+[v36] Curved sleepers visible above muddy concrete-grey ballast
+TRACK  Lowered the ballast crown and raised the curved sleeper placement slightly so the sleeper tops remain visible instead of being buried by the ballast surface.
+LOOK  Recoloured ballast to a muted muddy concrete-grey: mid-grey angular stones, darker grey joints, restrained earthy mud and subtle relief.
+KEEP  Preserved the existing bowed sleeper geometry, sleeper spacing, rails, track curves, route, trains, controls and gameplay.
+
 [v35] Visible curved sleepers and geometry-based distant sleeper LOD
  TRACK  Increased the sleeper's transverse downward bow to a clearly visible 4.6 cm at full scale while retaining continuous shared-edge geometry.
  LOD  Removed the flat textured sleeper planes that could shimmer against the ballast. Replaced them with simplified curved sleeper meshes at 2-, 4-, and 8-sleeper spacing for progressively distant views.
