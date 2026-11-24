@@ -414,6 +414,7 @@ void fragment() {
             RTMaterials();
             MakeTrackMeshes();
             RTV24Init();                                            // v24: N26-style sleeper and rail fastening
+            RTV28Init();                                            // v28: full concrete sleepers, cement-grey ballast, rusted rails
             RTFixJoints();                                          // v23: both pieces share one direction at every joint
             var min = new Vector3(1e9f, 0, 1e9f); var max = new Vector3(-1e9f, 0, -1e9f);
             foreach (var e in sc.Graph.Edges.Values)

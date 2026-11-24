@@ -1,3 +1,9 @@
+[v28] Realistic track material update
+ NEW  Full-width, flat-topped concrete sleepers replace the narrow-waist sleeper profile.
+ LOOK Ballast colour neutralised and lifted to light cement grey while retaining the generated stone relief.
+ LOOK Rails receive irregular iron-brown rust patches using a generated world-space triplanar texture.
+ FIX  APK export version, in-game updater version and release metadata are aligned at version code 28 (display version 3.6).
+
 [v26] v25 (real track, locos, sounds, Secunderabad) + the v12 front end, plus a rail and track rendering fix
  NEW  Home screen with the TNBCY logo: PLAY (route, then train), RESUME SESSION, SETTINGS, EXIT. The update-check line from v25 is shown at the bottom.
  NEW  Settings (home screen and in-game pause menu): camera sensitivity, ride shake, phone vibration, graphics, FPS readout.
