@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -91,6 +91,12 @@ jobs:
           "$GODOT" --headless --path . --export-pack "Content" Builds/content.pck
           ls -lh Builds/content.pck
 
+      - name: Save APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TNBCY-apk
+          path: Builds/TNBCY.apk
+
       - name: Publish update for the in-game updater
         env:
           GH_TOKEN: ${{ secrets.UPDATES_TOKEN }}
@@ -109,7 +115,8 @@ jobs:
           python3 - <<'PY'
           import json, os
           code, name = int(os.environ["CODE"]), os.environ["NAME"]
-          base = "https://github.com/" + os.environ["UPD_REPO"] + "/releases/download/v" + str(code) + "/"
+          tag = "v" + str(code) + "-build-" + os.environ["GITHUB_RUN_ID"]
+          base = "https://github.com/" + os.environ["UPD_REPO"] + "/releases/download/" + tag + "/"
           lines = open("CHANGES.txt", encoding="utf-8").read().split("\n\n")[0].split("\n")
           short = [l.strip()[:90] for l in lines[:4]]
           notes = ("Version " + name + "\n" + "\n".join(short)).strip()
@@ -118,12 +125,8 @@ jobs:
           if os.path.exists("rel/content.pck"): v["pckUrl"] = base + "content.pck"
           json.dump(v, open("rel/version.json", "w"), indent=2)
           PY
-          gh release delete "v$CODE" -R "$UPD_REPO" -y --cleanup-tag 2>/dev/null || true
-          gh release create "v$CODE" rel/TNBCY.apk $( [ -f rel/content.pck ] && echo rel/content.pck ) -R "$UPD_REPO" --title "TNBCY $NAME" --notes "Build $CODE" --latest
-          gh release upload "v$CODE" rel/version.json -R "$UPD_REPO" --clobber
+          TAG="v${CODE}-build-${GITHUB_RUN_ID}"
+          gh release create "$TAG" rel/TNBCY.apk $( [ -f rel/content.pck ] && echo rel/content.pck ) rel/version.json -R "$UPD_REPO" --title "TNBCY $NAME (Build $CODE)" --notes "Build $CODE; workflow run $GITHUB_RUN_ID" --latest
           cat rel/version.json
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: TNBCY-apk
-          path: Builds/TNBCY.apk
+
