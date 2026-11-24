@@ -1,3 +1,26 @@
+[v26] v25 (real track, locos, sounds, Secunderabad) + the v12 front end, plus a rail and track rendering fix
+ NEW  Home screen with the TNBCY logo: PLAY (route, then train), RESUME SESSION, SETTINGS, EXIT. The update-check line from v25 is shown at the bottom.
+ NEW  Settings (home screen and in-game pause menu): camera sensitivity, ride shake, phone vibration, graphics, FPS readout.
+ NEW  Eye button (top right) hides all controls for a clear view. Menu button next to it: pause, settings, save and go home.
+ NEW  Resume session: saved every 8 s, when the menu opens and when the app goes to the background.
+ NEW  Top bar (speed, speed-limit sign, next stop with distance, clock), restyled glass controls with filled throttle / brake bars.
+ NEW  Ride feel: wheel rumble, rail-joint clack every 25 m, jolt over points, curve roll, braking dip, phone vibration (all adjustable).
+ NEW  Cab: raked windscreen pillars, long wipers, grey sun blind, perforated board, key panel, emergency button, red digital speed display, wider instrument screen.
+ NEW  Poppins font, new logo and app icon (adaptive icon layers).
+ FIX  Rails looked white and shimmered while the train was running. Causes and fixes:
+      - rail head was drawn almost white (0.74) and metallic, so it mirrored the sky. Now dark worn steel, rusty web and foot, matte (almost no metallic).
+      - a 7 cm rail head is smaller than a pixel beyond about 100 m. Rails are now real 3D up to 200 m, then flat dark-iron strips that get wider with distance
+        (0.2 m, 0.6 m, 1.2 m), so a rail never shrinks below a pixel. The strips are matte iron colour, never white.
+      - sleepers vanished at 90 m and the ballast looked empty. A concrete-sleeper texture strip now shows between 90 m and 450 m (darker, closer to the real sleepers).
+      - track pieces are 150 m long (were 300 m), so the switch between detail levels happens in small steps.
+      - MSAA 4x on High / Ultra, 2x on Fast / Balanced (was off), FXAA, 16x anisotropic textures, no more 65 % resolution mode, camera near plane 0.5 m outside the cab
+        (4x more depth precision), far plane 2.6 km, a little more haze.
+      - overhead wires are less shiny and vanish at 520 m (were 750 m), masts unchanged.
+ LOOK Ballast: rose granite and rust-orange stones added to the granite texture (like the reference photo), concrete sleepers a little darker, frog and joints in iron colours.
+ NOT DONE  Not compiled or run here (no Godot/.NET in my sandbox). Check on the phone: home screen, Play -> route -> train, eye button, Resume, the far view of the track while
+           running at 100+ km/h, the points, the cab. If the build fails send the last 20 lines with "error CS".
+ Android version 3.5 (code 26).
+
 [v25] Same content as v24, rebuilt as version code 25 (name stays 3.4). No code change.
 
 [v24] N26-style concrete track and seamless joints

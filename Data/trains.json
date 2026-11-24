@@ -3,32 +3,44 @@
   {
    "name": "MEMU 12 coaches",
    "file": "consist_memu12",
-   "desc": "fast, 258 m"
+   "desc": "fast, 258 m",
+   "kind": "MEMU",
+   "coaches": 12
   },
   {
    "name": "DEMU 8 coaches",
    "file": "consist_demu8",
-   "desc": "short, 172 m"
+   "desc": "short, 172 m",
+   "kind": "DEMU",
+   "coaches": 8
   },
   {
    "name": "Passenger 16 coaches",
    "file": "consist_passenger16",
-   "desc": "any WAP loco, 395 m"
+   "desc": "any WAP loco, 395 m",
+   "kind": "Passenger",
+   "coaches": 16
   },
   {
    "name": "Express 20 coaches",
    "file": "consist_express20",
-   "desc": "any WAP loco, 491 m"
+   "desc": "any WAP loco, 491 m",
+   "kind": "Express",
+   "coaches": 20
   },
   {
    "name": "Superfast 24 coaches",
    "file": "consist_superfast24",
-   "desc": "any WAP loco, 585 m"
+   "desc": "any WAP loco, 585 m",
+   "kind": "Superfast",
+   "coaches": 24
   },
   {
    "name": "WAP-7 + 12 coaches",
    "file": "consist_demo",
-   "desc": "original, 303 m"
+   "desc": "original, 303 m",
+   "kind": "Express",
+   "coaches": 12
   }
  ]
 }

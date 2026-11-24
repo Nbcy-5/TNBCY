@@ -10,7 +10,23 @@ namespace TNBCY
         int activeMode, fadePhase, wantFocus = -1, focusCar;
         float fadeA, idleT, chYaw, chPitch = .24f, chDist = 40f, frYaw = 1.35f, frPitch = .2f, frDist = 28f;
         Vector3 frPan, sidePos; bool sideInit, camPrimed;
-        float prevHead, prevSpeed, rollS, pitchS;
+        readonly RideFeel ride = new RideFeel();
+        TEdge lastEdge; float hapticT;
+
+        // Train running feel: updates the shake and sends a short phone vibration on joints and points.
+        void RideUpdate(float dt, Train T, float heading)
+        {
+            ride.Update(dt, T.Speed, T.Odo, heading, Settings.ShakeK);
+            var e = T.FrontSeg.Edge;
+            if (lastEdge != null && e != lastEdge) ride.Impulse((lastEdge.To.IsSwitch || e.Turnout || lastEdge.Turnout) ? 1.7f : .7f);   // jolt over points
+            lastEdge = e;
+            hapticT -= dt;
+            if (ride.Kick > 0f && hapticT <= 0f && Settings.HapticK > 0f && T.Speed > 1.5f)
+            {
+                Input.VibrateHandheld(Mathf.RoundToInt(10f + 22f * ride.Kick), Mathf.Clamp((.25f + .35f * ride.Kick) * Settings.HapticK, .1f, 1f));
+                hapticT = .16f;
+            }
+        }
         ColorRect fadeRect;
         readonly Dictionary<int, Vector2> fingers = new Dictionary<int, Vector2>();
 
@@ -52,21 +68,16 @@ namespace TNBCY
             int mode = activeMode; var up = Vector3.Up;
             T.PointAt(T.Odo, out var p, out var d);
             cam.Fov = mode == 0 ? 72f : 62f; cabRig.Visible = mode == 0; touch.ShowCoachButtons = mode == 1 || mode == 5;
+            float nn = mode == 0 ? .12f : .5f;                    // a larger near plane in outside views gives the depth buffer 4x more precision (less flicker)
+            if (!Mathf.IsEqualApprox(cam.Near, nn)) cam.Near = nn;
+            RideUpdate(dt, T, Mathf.Atan2(d.X, d.Z));
             Vector3 pos, look;
 
             if (mode == 0)
             {
                 T.PointAt(T.Odo - 2.8f, out var cp, out var cd);
-                float head = Mathf.Atan2(cd.X, cd.Z), dh = head - prevHead;
-                while (dh > Mathf.Pi) dh -= Mathf.Tau; while (dh < -Mathf.Pi) dh += Mathf.Tau;
-                float rate = dh / Mathf.Max(dt, .001f), accel = (T.Speed - prevSpeed) / Mathf.Max(dt, .001f);
-                if (!camPrimed) { rate = 0f; accel = 0f; camPrimed = true; }
-                prevHead = head; prevSpeed = T.Speed;
-                rollS = Mathf.Lerp(rollS, Mathf.Clamp(-T.Speed * rate * .012f, -.06f, .06f), 1f - Mathf.Exp(-4f * dt));
-                pitchS = Mathf.Lerp(pitchS, Mathf.Clamp(accel * .012f, -.035f, .035f), 1f - Mathf.Exp(-3f * dt));
-                float tt = (float)(Time.GetTicksMsec() / 1000.0), k = Mathf.Min(1f, T.Speed / 10f);
-                pos = cp + up * 3.3f + new Vector3(Mathf.Sin(tt * 5.1f) * .004f * k, Mathf.Sin(tt * 9.3f) * .006f * k, 0f);
-                var b = Basis.LookingAt(cd, up) * new Basis(Vector3.Back, rollS) * new Basis(Vector3.Right, pitchS);
+                var b = Basis.LookingAt(cd, up) * new Basis(Vector3.Back, ride.Rot.Z) * new Basis(Vector3.Right, ride.Rot.X);
+                pos = cp + up * 3.3f + b * new Vector3(ride.Pos.X, ride.Pos.Y, 0f);
                 cam.GlobalTransform = new Transform3D(b, pos);
                 UpdateCab(true);
                 return;
@@ -87,6 +98,12 @@ namespace TNBCY
                 pos = sidePos; look = mp + up * 1.8f;
             }
             else { pos = p - d * 30f + up * 85f; look = p + d * 8f; }
+            if (mode == 2)       // front view: half the cab shake
+            {
+                var bn = Basis.LookingAt(look - pos, up) * new Basis(Vector3.Back, ride.Rot.Z * .5f) * new Basis(Vector3.Right, ride.Rot.X * .5f);
+                cam.GlobalTransform = new Transform3D(bn, pos + bn * new Vector3(ride.Pos.X * .6f, ride.Pos.Y * .6f, 0f));
+                return;
+            }
             cam.GlobalTransform = new Transform3D(Basis.LookingAt(look - pos, up), pos);
         }
 
@@ -107,7 +124,7 @@ namespace TNBCY
                     Vector2 other = Vector2.Zero; foreach (var kv in fingers) if (kv.Key != d.Index) { other = kv.Value; break; }
                     float oldDist = (fingers[d.Index] - other).Length(), newDist = (d.Position - other).Length();
                     if (oldDist > 8f && newDist > 8f) Zoom(chase, oldDist / newDist);
-                    if (!chase) { float k = frDist * .003f; frPan.Z = Mathf.Clamp(frPan.Z + d.Relative.Y * k, -320f, 320f); frPan.X = Mathf.Clamp(frPan.X + d.Relative.X * k * .5f, -20f, 20f); }
+                    if (!chase) { float k = frDist * .003f * Settings.CamSens; frPan.Z = Mathf.Clamp(frPan.Z + d.Relative.Y * k, -320f, 320f); frPan.X = Mathf.Clamp(frPan.X + d.Relative.X * k * .5f, -20f, 20f); }
                 }
                 fingers[d.Index] = d.Position;
             }
@@ -117,12 +134,14 @@ namespace TNBCY
 
         void Look(bool chase, Vector2 rel)
         {
-            if (chase) { chYaw -= rel.X * .005f; chPitch = Mathf.Clamp(chPitch + rel.Y * .004f, -.05f, 1.45f); }
-            else { frYaw -= rel.X * .005f; frPitch = Mathf.Clamp(frPitch + rel.Y * .004f, -.05f, 1.45f); }
+            float sn = Settings.CamSens;                       // camera sensitivity from Settings
+            if (chase) { chYaw -= rel.X * .005f * sn; chPitch = Mathf.Clamp(chPitch + rel.Y * .004f * sn, -.05f, 1.45f); }
+            else { frYaw -= rel.X * .005f * sn; frPitch = Mathf.Clamp(frPitch + rel.Y * .004f * sn, -.05f, 1.45f); }
         }
 
         void Zoom(bool chase, float f)
         {
+            f = Mathf.Pow(f, Settings.CamSens);
             if (chase) chDist = Mathf.Clamp(chDist * f, 12f, 140f); else frDist = Mathf.Clamp(frDist * f, 7f, 100f);
         }
     }

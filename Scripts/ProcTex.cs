@@ -68,7 +68,7 @@ namespace TNBCY
         public static void Prefetch()
         {
             Job("grass", 512, GrassFn); Job("dirt", 512, DirtFn); Job("gravel", 512, GravelFn);
-            Job("concrete", 256, ConcreteFn); Job("macro", 256, MacroFn);
+            Job("concrete", 256, ConcreteFn); Job("macro", 256, MacroFn); Job("sleeperbed", 256, SleeperBedFn); Job("perf", 512, PerfFn);
         }
 
         public static ImageTexture Grass() { return Get("grass", 512, GrassFn); }
@@ -76,6 +76,8 @@ namespace TNBCY
         public static ImageTexture Gravel() { return Get("gravel", 512, GravelFn); }
         public static ImageTexture Concrete() { return Get("concrete", 256, ConcreteFn); }
         public static ImageTexture Macro() { return Get("macro", 256, MacroFn); }
+        public static ImageTexture SleeperBed() { return Get("sleeperbed", 256, SleeperBedFn); }
+        public static ImageTexture Perforated() { return Get("perf", 512, PerfFn); }
 
         static Color GrassFn(float u, float v)
         {
@@ -137,6 +139,30 @@ namespace TNBCY
             float n = Fbm(u, v, 4, 4, 41), fine = Hash((int)(u * 256), (int)(v * 256), 7);
             float k = .58f + .14f * n + .06f * (fine - .5f);
             return new Color(k, k * .985f, k * .95f);
+        }
+
+        // Track bed with concrete sleepers every 0.6 m (v repeats once per sleeper). Used only at a distance, where real
+        // sleeper boxes would be smaller than a pixel and flicker; the mip levels blend it smoothly into the ballast colour.
+        static Color SleeperBedFn(float u, float v)
+        {
+            float n = Fbm(u, v, 8, 3, 91), fine = Hash((int)(u * 256), (int)(v * 256), 13);
+            float d = Mathf.Abs(v - .5f), crib = Mathf.SmoothStep(.205f, .235f, d);        // 0 on the sleeper, 1 in the crib
+            float k = .44f + .09f * n + .04f * (fine - .5f);
+            float pad = (d < .09f && (Mathf.Abs(u - .18f) < .05f || Mathf.Abs(u - .82f) < .05f)) ? .6f : 1f;
+            float g = (.62f + .6f * n) * (.9f + .2f * fine);
+            float r = Mathf.Lerp(k * pad, .30f * g, crib), gg = Mathf.Lerp(k * .98f * pad, .27f * g, crib), b = Mathf.Lerp(k * .94f * pad, .23f * g, crib);
+            return new Color(r, gg, b);
+        }
+
+        // Beige perforated board (cab side wall)
+        static Color PerfFn(float u, float v)
+        {
+            const int cells = 64; float fu = u * cells, fv = v * cells;
+            float cx = fu - Mathf.Floor(fu) - .5f, cy = fv - Mathf.Floor(fv) - .5f;
+            float hole = 1f - Mathf.SmoothStep(.15f, .22f, Mathf.Sqrt(cx * cx + cy * cy));
+            float k = .92f + .12f * Fbm(u, v, 6, 3, 101);
+            float r = Mathf.Lerp(.80f * k, .22f, hole * .88f), g = Mathf.Lerp(.74f * k, .19f, hole * .88f), b = Mathf.Lerp(.62f * k, .14f, hole * .88f);
+            return new Color(r, g, b);
         }
 
         // large-scale variation used by the ground shader to place mud patches and colour drift

@@ -49,6 +49,14 @@ namespace TNBCY
         }
         float visScale = .8f;
 
+        // Fixed visibility window (not scaled by the graphics level): detailed geometry up to "end", a simpler version takes over from "begin".
+        static void Lod(GeometryInstance3D n, float begin, float end)
+        {
+            if (begin > 0f) n.VisibilityRangeBegin = begin;
+            if (end > 0f) n.VisibilityRangeEnd = end;
+            n.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        }
+
         void MakeTrackMeshes()
         {
             const float hl = 3f;
@@ -139,11 +147,11 @@ void fragment() {
                 Vector2 a = RailProfile[j], b = RailProfile[(j + 1) % n];
                 Vector2 n2 = new Vector2(b.Y - a.Y, -(b.X - a.X)).Normalized();
                 Vector3 nn = (r0 * n2.X + Vector3.Up * n2.Y).Normalized();
-                Color c = new Color(.3f, .2f, .15f);                                                       // web and under-head: rust
-                if (j == 9) c = new Color(.74f, .74f, .76f);                                               // running surface
-                else if (j == 8 || j == 10) c = new Color(.5f, .46f, .43f);                                // rounded head corners
-                else if (j == 7 || j == 11) c = (gaugeSide != 0 && ((j == 7) == (gaugeSide > 0))) ? new Color(.58f, .57f, .58f) : new Color(.36f, .26f, .2f);   // gauge face / outer face
-                else if (j <= 3 || j >= 16) c = new Color(.2f, .15f, .12f);                                // foot
+                Color c = new Color(.27f, .18f, .13f);                                                     // web and under-head: rusty iron
+                if (j == 9) c = new Color(.36f, .34f, .33f);                                               // v26: running surface is worn dark steel, not white
+                else if (j == 8 || j == 10) c = new Color(.29f, .25f, .22f);                               // rounded head corners
+                else if (j == 7 || j == 11) c = (gaugeSide != 0 && ((j == 7) == (gaugeSide > 0))) ? new Color(.34f, .31f, .29f) : new Color(.30f, .21f, .16f);   // gauge face / outer face
+                else if (j <= 3 || j >= 16) c = new Color(.16f, .12f, .09f);                               // foot
                 st.SetColor(c);
                 Strip(st, p0 + r0 * (xc + a.X) + Vector3.Up * (y0 + a.Y), p0 + r0 * (xc + b.X) + Vector3.Up * (y0 + b.Y),
                           p1 + r1 * (xc + a.X) + Vector3.Up * (y0 + a.Y), p1 + r1 * (xc + b.X) + Vector3.Up * (y0 + b.Y), nn, 0f, 1f, 0f, 1f);
@@ -408,7 +416,7 @@ void fragment() {
                 BackgroundMode = Godot.Environment.BGMode.Sky, Sky = sky,
                 AmbientLightSource = Godot.Environment.AmbientSource.Sky, AmbientLightEnergy = 1.0f,
                 TonemapMode = Godot.Environment.ToneMapper.Filmic, TonemapExposure = 1.05f,
-                FogEnabled = true, FogLightColor = new Color(.76f, .83f, .92f), FogDensity = 0.0006f
+                FogEnabled = true, FogLightColor = new Color(.74f, .79f, .85f), FogDensity = 0.0009f, FogSkyAffect = .55f
             };
             AddChild(new WorldEnvironment { Environment = env });
             sun = new DirectionalLight3D { RotationDegrees = new Vector3(-48, -35, 0), LightColor = new Color(1f, .96f, .9f), LightEnergy = 1.15f, ShadowEnabled = true, DirectionalShadowMode = DirectionalLight3D.ShadowMode.Orthogonal };
@@ -418,11 +426,11 @@ void fragment() {
         public void ApplyQuality(int q)
         {
             quality = Mathf.Clamp(q, 0, 3);
-            float[] scale = { .65f, .8f, 1f, 1f }, shadow = { 0f, 70f, 110f, 170f }, vis = { .5f, .75f, 1f, 1.3f };
+            float[] scale = { .85f, 1f, 1f, 1f }, shadow = { 0f, 70f, 110f, 170f }, vis = { .6f, .8f, 1f, 1.3f };
             var vp = GetViewport();
             vp.Scaling3DScale = scale[quality];
-            vp.Msaa3D = quality >= 3 ? Viewport.Msaa.Msaa2X : Viewport.Msaa.Disabled;
-            vp.ScreenSpaceAA = quality == 0 ? Viewport.ScreenSpaceAAEnum.Disabled : Viewport.ScreenSpaceAAEnum.Fxaa;
+            vp.Msaa3D = quality >= 2 ? Viewport.Msaa.Msaa4X : Viewport.Msaa.Msaa2X;      // smooths the thin rails and wires, the main cause of flicker
+            vp.ScreenSpaceAA = Viewport.ScreenSpaceAAEnum.Fxaa;
             if (sun != null) { sun.ShadowEnabled = shadow[quality] > 0f; sun.DirectionalShadowMaxDistance = Mathf.Max(30f, shadow[quality]); }
             visScale = vis[quality];
             for (int i = 0; i < farNodes.Count; i++) farNodes[i].VisibilityRangeEnd = farBase[i] * visScale;

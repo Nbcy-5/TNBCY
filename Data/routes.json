@@ -1,0 +1,36 @@
+{
+ "routes": [
+  {
+   "id": "sc_gt",
+   "name": "Secunderabad Jn – Ghatkesar",
+   "tag": "Main line",
+   "km": 20,
+   "stations": [
+    "Secunderabad Jn",
+    "Moula Ali",
+    "Charlapalli",
+    "Ghatkesar"
+   ],
+   "stationKm": [
+    0,
+    6,
+    12,
+    20
+   ],
+   "info": "20 km double line with 25 kV overhead electrification, passing loops, points and coloured-light signals. An oncoming train runs from Ghatkesar.",
+   "network": "network_demo",
+   "available": true
+  },
+  {
+   "id": "soon1",
+   "name": "More routes coming",
+   "tag": "Coming soon",
+   "km": 0,
+   "stations": [],
+   "stationKm": [],
+   "info": "New lines will appear here with future updates.",
+   "network": "",
+   "available": false
+  }
+ ]
+}

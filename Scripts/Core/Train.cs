@@ -30,6 +30,9 @@ namespace TNBCY
             Odo = Mathf.Max(startOffset, Length + 2f);
         }
 
+        // Puts the train back where a saved session left it.
+        public void Restore(List<PathSeg> trail, float odo) { Trail = trail; Phys.Position = odo; Finished = false; }
+
         PathSeg SegAt(float odo)
         {
             for (int i = Trail.Count - 1; i >= 0; i--) if (Trail[i].StartOdo <= odo) return Trail[i];

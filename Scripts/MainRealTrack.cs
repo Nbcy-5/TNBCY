@@ -22,6 +22,7 @@ namespace TNBCY
         sealed class RTTex { public byte[] Albedo, Normal; public int Size; }
         sealed class RTChunk { public List<Transform3D> T = new List<Transform3D>(); public List<Color> C = new List<Color>(); }
         static Task<RTTex> rtGraniteJob, rtConcreteJob;
+        StandardMaterial3D rtFarRail; Material rtSleeperBedMat;   // v26: flat dark-iron rail and sleeper-bed texture for the distance
         readonly Dictionary<long, List<Vector2>> rtCenters = new Dictionary<long, List<Vector2>>();
 
         static float RTHash(int x, int y, int seed)
@@ -99,6 +100,8 @@ namespace TNBCY
                     float cr = bs * 1.02f, cg = bs * 1.01f, cb = bs * .99f;
                     if (r2 > .94f) { cr = .28f + .1f * r1; cg = .19f + .05f * r1; cb = .14f; }                       // brown stone
                     else if (r2 < .16f) { cr = .40f + .15f * r1; cg = .41f + .15f * r1; cb = .42f + .15f * r1; }      // pale stone
+                    else if (r2 > .80f) { cr = .50f + .14f * r1; cg = .37f + .09f * r1; cb = .37f + .09f * r1; }      // v26: rose granite chips like the reference photo
+                    else if (r2 > .68f) { cr = .40f + .12f * r1; cg = .30f + .08f * r1; cb = .24f + .06f * r1; }      // v26: rust-orange stones
                     float spk = RTHash(x * 5 + bx * 7, y * 5 + by * 3, 6), spk2 = RTHash(x, y, 9);
                     float speck = spk > .90f ? .30f + .2f * spk2 : (spk < .10f ? -.09f : 0f);
                     float facet = Mathf.Clamp(.62f + 1.05f * (.5f + (fx * (r3 - .5f) + fy * (r4 - .5f)) * 1.1f), .25f, 1.7f);
@@ -127,7 +130,7 @@ namespace TNBCY
                 {
                     float u = x / (float)size, v = y / (float)size;
                     float n = RTFbm(u, v, 4, 4, 11), m = RTFbm(u + .3f, v + .1f, 8, 3, 12);
-                    float bs = .50f + .12f * (n - .5f) + .08f * (m - .5f);
+                    float bs = .45f + .11f * (n - .5f) + .07f * (m - .5f);
                     float cr = bs, cg = bs * .975f, cb = bs * .92f;
                     float uu = u * cells + .8f * (RTFbm(u, v, 6, 3, 41) - .5f), vv = v * cells + .8f * (RTFbm(u + .5f, v + .2f, 6, 3, 42) - .5f);
                     int xi = Mathf.FloorToInt(uu), yi = Mathf.FloorToInt(vv);
@@ -189,6 +192,8 @@ namespace TNBCY
                 AlbedoTexture = RTTexture(c.Albedo, c.Size, false), NormalEnabled = true, NormalTexture = RTTexture(c.Normal, c.Size, true), NormalScale = 1.1f,
                 Roughness = .95f, VertexColorUseAsAlbedo = true, CullMode = BaseMaterial3D.CullModeEnum.Disabled, TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic
             };
+            rtFarRail = new StandardMaterial3D { AlbedoColor = new Color(.30f, .26f, .23f), Metallic = 0f, Roughness = 1f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };   // matte iron, never reflects the sky
+            rtSleeperBedMat = TexMat(ProcTex.SleeperBed());
         }
 
         // ------------------------------------------------------------------ ground
@@ -224,12 +229,17 @@ void fragment() {
                 float k = Curv(e, s); s = Mathf.Min(e.Length, s + Mathf.Clamp(.126f / Mathf.Sqrt(k + 1e-6f), 3f, 25f)); ss.Add(s);
             }
             float uvOff = RTUvBase(e);
+            int sCnt = Mathf.Max(1, Mathf.RoundToInt(e.Length / RTSleeperSpacing)); float sStep = e.Length / sCnt;   // same spacing as the real sleepers
             int i0 = 0;
             while (i0 < ss.Count - 1)
             {
-                int i1 = i0 + 1; while (i1 < ss.Count - 1 && ss[i1] - ss[i0] < 300f) i1++;
+                int i1 = i0 + 1; while (i1 < ss.Count - 1 && ss[i1] - ss[i0] < 150f) i1++;      // v26: 150 m pieces, so the level of detail switches in small steps
                 var bed = new SurfaceTool(); bed.Begin(Mesh.PrimitiveType.Triangles);
                 var rail = new SurfaceTool(); rail.Begin(Mesh.PrimitiveType.Triangles);
+                var far1 = new SurfaceTool(); far1.Begin(Mesh.PrimitiveType.Triangles);
+                var far2 = new SurfaceTool(); far2.Begin(Mesh.PrimitiveType.Triangles);
+                var far3 = new SurfaceTool(); far3.Begin(Mesh.PrimitiveType.Triangles);
+                var sbed = new SurfaceTool(); sbed.Begin(Mesh.PrimitiveType.Triangles); bool anySbed = false;
                 for (int i = i0; i < i1; i++)
                 {
                     float sa = ss[i], sb = ss[i + 1];
@@ -246,17 +256,36 @@ void fragment() {
                         RTBand(bed, p0 + r0 * la[bi] + up * h, p0 + r0 * la[bi + 1] + up * h, p1 + r1 * la[bi] + up * h, p1 + r1 * la[bi + 1] + up * h, up, la[bi] * .5f, la[bi + 1] * .5f, ua, ub, lc[bi], lc[bi + 1]);
                     RTBand(bed, p0 + r0 * tw + up * h, p0 + r0 * bw, p1 + r1 * tw + up * h, p1 + r1 * bw, nr, tw * .5f, bw * .5f, ua, ub, cShl, cToe);
                     RTBand(bed, p0 + r0 * bw, p0 + r0 * (bw + .25f) + up * dp, p1 + r1 * bw, p1 + r1 * (bw + .25f) + up * dp, nr, bw * .5f, (bw + .25f) * .5f, ua, ub, cToe, cToe);
+                    if (!(e.Turnout && (sb <= e.SkipStart + 20f || sa >= e.Length - e.SkipEnd - 20f)))      // v26: distant sleepers are a texture on a strip over the ballast
+                    {
+                        float sy = h + .035f;
+                        Strip(sbed, p0 - r0 * 1.375f + up * sy, p0 + r0 * 1.375f + up * sy, p1 - r1 * 1.375f + up * sy, p1 + r1 * 1.375f + up * sy, up, 0f, 1f, sa / sStep, sb / sStep);
+                        anySbed = true;
+                    }
                     for (int side = -1; side <= 1; side += 2)
                     {
                         if (e.Turnout && side > 0 && ((e.SkipStart > 0f && sb <= TongueLen) || (e.SkipEnd > 0f && sa >= e.Length - TongueLen))) continue;
                         RailExtrude(rail, p0, p1, r0, r1, side * RailG, -side);
+                        float fx = side * RailG;      // v26: flat dark-iron strips for the distance; wider the further away, so a rail never shrinks below a pixel
+                        RTFarStrip(far1, p0, p1, r0, r1, fx, .10f); RTFarStrip(far2, p0, p1, r0, r1, fx, .30f); RTFarStrip(far3, p0, p1, r0, r1, fx, .60f);
                     }
                 }
                 bed.GenerateTangents();
                 var mb = new MeshInstance3D { Mesh = bed.Commit(), MaterialOverride = matGravel }; AddChild(mb); Far(mb, 2600f);
-                var mr = new MeshInstance3D { Mesh = rail.Commit(), MaterialOverride = matRail }; AddChild(mr); Far(mr, 2600f);
+                var mr = new MeshInstance3D { Mesh = rail.Commit(), MaterialOverride = matRail }; AddChild(mr); Lod(mr, 0f, 200f);
+                var m1 = new MeshInstance3D { Mesh = far1.Commit(), MaterialOverride = rtFarRail }; AddChild(m1); Lod(m1, 140f, 520f);
+                var m2 = new MeshInstance3D { Mesh = far2.Commit(), MaterialOverride = rtFarRail }; AddChild(m2); Lod(m2, 440f, 1150f);
+                var m3 = new MeshInstance3D { Mesh = far3.Commit(), MaterialOverride = rtFarRail }; AddChild(m3); Lod(m3, 1000f, 2600f);
+                if (anySbed) { var msb = new MeshInstance3D { Mesh = sbed.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msb); Lod(msb, 90f, 450f); }
                 i0 = i1;
             }
+        }
+
+        // Flat strip lying on the top of a rail (used only far away).
+        static void RTFarStrip(SurfaceTool st, Vector3 p0, Vector3 p1, Vector3 r0, Vector3 r1, float xc, float hw)
+        {
+            Vector3 up = Vector3.Up * .60f;
+            Strip(st, p0 + r0 * (xc - hw) + up, p0 + r0 * (xc + hw) + up, p1 + r1 * (xc - hw) + up, p1 + r1 * (xc + hw) + up, Vector3.Up, 0f, 1f, 0f, 1f);
         }
 
         // ------------------------------------------------------------------ points (switch and crossing)
@@ -281,7 +310,7 @@ void fragment() {
                 x + b * .9f + n * .04f + up * top, x + b * 2.0f + n * .06f + up * top,
                 x + b * 2.0f - n * .06f + up * top, x + b * .9f - n * .04f + up * top
             };
-            Color polished = new Color(.62f, .62f, .64f), rust = new Color(.30f, .20f, .15f);
+            Color polished = new Color(.38f, .36f, .35f), rust = new Color(.27f, .18f, .13f);
             var st = new SurfaceTool(); st.Begin(Mesh.PrimitiveType.Triangles);
             for (int i = 1; i < pts.Length - 1; i++) RTTri(st, pts[0], pts[i], pts[i + 1], up, polished);
             Vector3 ctr = x + b * 1.0f + up * (top * .5f);
@@ -291,7 +320,7 @@ void fragment() {
                 Vector3 nn = (pb - pa).Cross(up).Normalized(); if (nn.Dot((pa + pb) * .5f - ctr) < 0f) nn = -nn;
                 RTTri(st, pa, pb, pb0, nn, rust); RTTri(st, pa, pb0, pa0, nn, rust);
             }
-            var frogMat = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .55f, Roughness = .42f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
+            var frogMat = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .2f, Roughness = .55f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
             AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = frogMat });
             for (int k = -1; k <= 1; k += 2)
             {
@@ -386,7 +415,6 @@ void fragment() {
             MakeTrackMeshes();
             RTV24Init();                                            // v24: N26-style sleeper and rail fastening
             RTFixJoints();                                          // v23: both pieces share one direction at every joint
-            if (cam != null) cam.Near = .3f;                       // larger near plane = far better depth precision (less z-fighting / shaking)
             var min = new Vector3(1e9f, 0, 1e9f); var max = new Vector3(-1e9f, 0, -1e9f);
             foreach (var e in sc.Graph.Edges.Values)
             {

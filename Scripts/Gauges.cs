@@ -19,7 +19,7 @@ namespace TNBCY
         void Dial(Vector2 c, float r, float max, float major, float minor, int fs, string title, string unit)
         {
             DrawCircle(c, r + 6f, Rim); DrawCircle(c, r, Face);
-            var f = ThemeDB.FallbackFont;
+            var f = UiFont.Bold;
             for (float v = 0f; v <= max + .001f; v += minor)
             {
                 float a = Ang(v, max); bool mj = Mathf.Abs(v % major) < .001f || Mathf.Abs(v % major - major) < .001f;
@@ -41,43 +41,66 @@ namespace TNBCY
         {
             DrawRect(new Rect2(p, new Vector2(120f, 34f)), on ? col : new Color(.1f, .11f, .12f));
             DrawRect(new Rect2(p, new Vector2(120f, 34f)), Rim, false, 2f);
-            DrawString(ThemeDB.FallbackFont, p + new Vector2(0f, 24f), name, HorizontalAlignment.Center, 120f, 20, on ? Colors.Black : new Color(.5f, .52f, .55f));
+            DrawString(UiFont.Bold, p + new Vector2(0f, 24f), name, HorizontalAlignment.Center, 120f, 20, on ? Colors.Black : new Color(.5f, .52f, .55f));
+        }
+
+        void KeyPad(Vector2 o)
+        {
+            DrawRect(new Rect2(o, new Vector2(372f, 330f)), new Color(.05f, .06f, .08f)); DrawRect(new Rect2(o, new Vector2(372f, 330f)), Rim, false, 2f);
+            var f = UiFont.Bold;
+            // small LCD
+            DrawRect(new Rect2(o + new Vector2(14f, 14f), new Vector2(344f, 86f)), new Color(.01f, .05f, .02f));
+            Color lcd = new Color(.35f, 1f, .45f);
+            DrawString(f, o + new Vector2(24f, 44f), "NOTCH " + Notch + "    REV " + Reverser, HorizontalAlignment.Left, -1f, 24, lcd);
+            DrawString(f, o + new Vector2(24f, 74f), Volts > 1f ? "OHE 25 kV   " + Mathf.RoundToInt(Amps) + " A" : "OHE --   " + Mathf.RoundToInt(Amps) + " A", HorizontalAlignment.Left, -1f, 24, lcd);
+            DrawString(f, o + new Vector2(24f, 94f), "BP " + Bp.ToString("0.0") + "   BC " + Bc.ToString("0.0"), HorizontalAlignment.Left, -1f, 18, new Color(.2f, .7f, .3f));
+            // key grid: the first keys show real states, the rest are lit decoration like the reference panel
+            var pal = new[] { new Color(.9f, .2f, .15f), new Color(.2f, .8f, .3f), new Color(.95f, .8f, .2f), new Color(.25f, .55f, .95f), new Color(.92f, .92f, .92f) };
+            bool[] live = { Panto, Breaker && !Diesel, Over, Emergency, Bc > .3f, Notch > 0 };
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < 6; c++)
+                {
+                    int i = r * 6 + c; Color col = pal[i % pal.Length]; bool on = i < live.Length ? live[i] : (i % 7 != 3);
+                    DrawRect(new Rect2(o + new Vector2(18f + c * 56f, 118f + r * 50f), new Vector2(46f, 38f)), on ? col : col * .28f);
+                    DrawRect(new Rect2(o + new Vector2(18f + c * 56f, 118f + r * 50f), new Vector2(46f, 38f)), new Color(0f, 0f, 0f, .5f), false, 2f);
+                }
         }
 
         public override void _Draw()
         {
             DrawRect(new Rect2(Vector2.Zero, Size), new Color(.02f, .025f, .03f));
-            var f = ThemeDB.FallbackFont;
+            var f = UiFont.Bold;
+            KeyPad(new Vector2(24f, 24f));
 
             // speedometer 0..140 km/h with the line limit as a coloured ring
-            Vector2 c1 = new Vector2(230f, 190f); float r1 = 165f;
-            Dial(c1, r1, 140f, 20f, 10f, 26, "SPEED", "km/h");
+            Vector2 c1 = new Vector2(690f, 220f); float r1 = 190f;
+            Dial(c1, r1, 140f, 20f, 10f, 28, "SPEED", "km/h");
             DrawArc(c1, r1 - 8f, Ang(0f, 140f), Ang(Limit, 140f), 40, new Color(.2f, .8f, .35f), 6f, true);
             if (Limit < 140f) DrawArc(c1, r1 - 8f, Ang(Limit, 140f), Ang(140f, 140f), 24, new Color(.9f, .25f, .2f), 6f, true);
             Needle(c1, r1, Ang(Speed, 140f), Over ? new Color(1f, .35f, .3f) : new Color(1f, .85f, .3f), 5f);
-            DrawString(f, c1 + new Vector2(-70f, 78f), Mathf.RoundToInt(Speed).ToString("000"), HorizontalAlignment.Center, 140f, 44, Over ? new Color(1f, .4f, .35f) : Colors.White);
+            DrawString(f, c1 + new Vector2(-70f, 90f), Mathf.RoundToInt(Speed).ToString("000"), HorizontalAlignment.Center, 140f, 46, Over ? new Color(1f, .4f, .35f) : Colors.White);
 
             // brake pipe (white) and brake cylinder (red) pressures, kg/cm2
-            Vector2 c2 = new Vector2(560f, 190f); float r2 = 130f;
+            Vector2 c2 = new Vector2(1060f, 200f); float r2 = 130f;
             Dial(c2, r2, 10f, 2f, 1f, 22, "BP / BC", "kg/cm2");
             Needle(c2, r2, Ang(Bc, 10f), new Color(1f, .3f, .25f), 4f);
             Needle(c2, r2, Ang(Bp, 10f), Colors.White, 4f);
 
             // traction current
-            Vector2 c3 = new Vector2(850f, 190f); float r3 = 110f;
+            Vector2 c3 = new Vector2(1345f, 200f); float r3 = 120f;
             Dial(c3, r3, 1000f, 200f, 100f, 18, Diesel ? "ENGINE" : "TRACTION", "A");
             Needle(c3, r3, Ang(Amps, 1000f), new Color(.5f, .85f, 1f), 4f);
             if (!Diesel) DrawString(f, c3 + new Vector2(-r3, -r3 * .35f), Volts > 1f ? "25 kV" : "-- kV", HorizontalAlignment.Center, r3 * 2f, 20, Volts > 1f ? new Color(.4f, 1f, .5f) : new Color(.7f, .4f, .35f));
 
             // lamps
-            float y = 352f;
-            Lamp(new Vector2(30f, y), Diesel ? "ENGINE" : "PANTO", Panto, new Color(.3f, .9f, .45f));
-            Lamp(new Vector2(160f, y), "VCB", Breaker && !Diesel, new Color(.3f, .9f, .45f));
-            Lamp(new Vector2(290f, y), "REV " + Reverser, Reverser == "FWD", new Color(.4f, .75f, 1f));
-            Lamp(new Vector2(420f, y), "N" + Notch, Notch > 0, new Color(1f, .75f, .25f));
-            Lamp(new Vector2(550f, y), "BRAKE", Bc > .3f, new Color(1f, .4f, .3f));
-            Lamp(new Vector2(680f, y), "OVERSPD", Over, new Color(1f, .3f, .25f));
-            Lamp(new Vector2(810f, y), "EMERG", Emergency, new Color(1f, .2f, .2f));
+            float y = 396f, x0 = 400f;
+            Lamp(new Vector2(x0, y), Diesel ? "ENGINE" : "PANTO", Panto, new Color(.3f, .9f, .45f));
+            Lamp(new Vector2(x0 + 130f, y), "VCB", Breaker && !Diesel, new Color(.3f, .9f, .45f));
+            Lamp(new Vector2(x0 + 260f, y), "REV " + Reverser, Reverser == "FWD", new Color(.4f, .75f, 1f));
+            Lamp(new Vector2(x0 + 390f, y), "N" + Notch, Notch > 0, new Color(1f, .75f, .25f));
+            Lamp(new Vector2(x0 + 520f, y), "BRAKE", Bc > .3f, new Color(1f, .4f, .3f));
+            Lamp(new Vector2(x0 + 650f, y), "OVERSPD", Over, new Color(1f, .3f, .25f));
+            Lamp(new Vector2(x0 + 780f, y), "EMERG", Emergency, new Color(1f, .2f, .2f));
         }
 
         public override void _Process(double delta) { QueueRedraw(); }

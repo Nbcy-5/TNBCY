@@ -9,6 +9,7 @@ namespace TNBCY
         readonly TrackGraph g;
         readonly float departAt, defaultLimit;
         float dwell;
+        public float Dwell { get { return dwell; } set { dwell = value; } }
         public string Status = "waiting";
         const float A = 0.30f;     // planning deceleration, m/s^2 (a bit gentler than the real brake)
 

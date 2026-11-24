@@ -7,20 +7,19 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v22";
-        public class TrainOption { public string name = ""; public string file = ""; public string desc = ""; }
-        public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
+        public const string Version = "v26";
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
-        static readonly string[] GfxNames = { "Auto", "Fast", "Balanced", "High", "Ultra" };
 
-        Control menuPanel; Label loadL, fpsL, updStatL; Button gfxBtn; int gfxChoice;
+        FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
+        List<RouteInfo> routesList = new List<RouteInfo>(); List<TrainOption> trainsList = new List<TrainOption>();
+        bool paused; float saveT; string curRoute = "", curConsist = "", curConsistName = "", curRouteName = "";
         Scenario sc; Camera3D cam; TrainVis playerVis, aiVis;
         readonly Dictionary<TSignal, StandardMaterial3D[]> sigMats = new Dictionary<TSignal, StandardMaterial3D[]>();
         readonly Dictionary<TNode, Label3D> swTags = new Dictionary<TNode, Label3D>();
         readonly List<Vector3> trackPts = new List<Vector3>();
         AudioStreamPlayer horn;
         TrainSounds sounds;   // speed-driven train sounds, set up in Data/train_sounds.json
-        Label speedL, nextL, infoL, toastL, endL, updL, clockL, aiL;
+        Label nextL, infoL, toastL, endL, updL, aiL;
         TouchControls touch; Control endPanel, updPanel; float toastT, noteT, startT, frameAcc, fpsT; int frameN, stableUp, lastRev; string apkUrl = "";
         bool electric; float pantK;
 
@@ -45,6 +44,13 @@ namespace TNBCY
             AddChild(inst); if (visRange > 0f) Far(inst, visRange); return mm;
         }
         MultiMesh MMBox(Material m, int n, float visRange = 0f) => MM(new BoxMesh { Size = Vector3.One }, m, n, visRange);
+        // like MM, but with a fixed hide distance that the graphics level does not change
+        MultiMesh MMLod(Mesh mesh, Material m, int n, float end)
+        {
+            var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = mesh, InstanceCount = n };
+            var inst = new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = m };
+            AddChild(inst); Lod(inst, 0f, end); return mm;
+        }
         Label3D Tag(string text, Vector3 pos, Color c)
         {
             var l = new Label3D { Text = text, FontSize = 64, PixelSize = 0.02f, OutlineSize = 12, Modulate = c, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true };
@@ -52,6 +58,8 @@ namespace TNBCY
         }
         void Toast(string m, bool good, float secs = 3f) { toastL.Text = m; toastL.Modulate = good ? new Color(.5f, 1f, .6f) : new Color(1f, .5f, .4f); toastT = secs; }
         void Note(string m) { if (noteT <= 0f) { Toast(m, false); noteT = 2f; } }
+        // Rail iron: dark steel-brown, almost no metallic reflection, so the rails never glow white against the sky.
+        static StandardMaterial3D IronMat(float metal, float rough) => new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = metal, Roughness = rough, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
         static string AspectName(int a) => a == 2 ? " RED" : (a == 1 ? " YELLOW" : " GREEN");
 
         public override void _Ready()
@@ -59,21 +67,40 @@ namespace TNBCY
             Updater.LoadSavedPack();                       // content downloaded by the updater overrides built-in data
             DisplayServer.ScreenSetKeepOn(true);
             DisplayServer.ScreenSetOrientation(DisplayServer.ScreenOrientation.SensorLandscape);    // flip the phone either way
+            Settings.Load();
             RTPrefetch();                                  // real-track textures (granite ballast, concrete sleepers) are made while the menu is open
             ProcTex.Prefetch();                            // textures are made on worker threads while the menu is open
-            GetViewport().Msaa3D = Viewport.Msaa.Disabled;
+            GetViewport().Msaa3D = Viewport.Msaa.Msaa4X;
             BuildHud();
-            AddChild(new Updater { Message = m => Toast(m, true), ApkAvailable = OnApk, Status = t => { if (updStatL != null) updStatL.Text = t; } });
+            ShowHome();
+            AddChild(new Updater { Message = m => Toast(m, true), ApkAvailable = OnApk, Status = t => { if (frontEnd != null) frontEnd.SetUpdateStatus(t); } });
+            GetWindow().FocusExited += SaveSession;       // the app going to the background saves the session
         }
 
-        async void StartGame(string consistFile)
+        void ShowHome()
+        {
+            touch.Enabled = false; ApplyHudVisible();
+            frontEnd.ShowHome(Session.Load());
+        }
+
+        void ResumeSession()
+        {
+            var s = Session.Load(); if (s == null) return;
+            RouteInfo r = routesList.Find(x => x.id == s.route); TrainOption t = trainsList.Find(x => x.file == s.consist);
+            if (r == null) r = new RouteInfo { id = s.route, name = s.sub, network = "network_demo" };
+            if (t == null) t = new TrainOption { file = s.consist, name = s.title };
+            StartGame(r, t, s);
+        }
+
+        async void StartGame(RouteInfo route, TrainOption train, SessionData resume)
         {
             try
             {
-                menuPanel.Visible = false; loadL.Text = "Loading..."; loadL.Visible = true;
+                frontEnd.Visible = false; loadL.Text = "Loading..."; loadL.Visible = true;
+                curRoute = route.id; curConsist = train.file; curConsistName = train.name; curRouteName = route.name;
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-                var net = LoadJson<NetworkSpec>("res://Data/network_demo.json");
-                var consist = LoadJson<ConsistSpec>("res://Data/" + consistFile + ".json");
+                var net = LoadJson<NetworkSpec>("res://Data/" + route.network + ".json");
+                var consist = LoadJson<ConsistSpec>("res://Data/" + train.file + ".json");
                 LoadLocoCatalog();
                 if (consist.randomElectricLoco && locoList.Count > 0)    // passenger / express / superfast: any electric (WAP) loco
                 {
@@ -88,12 +115,12 @@ namespace TNBCY
                 sc = new Scenario(net, consist, aiConsist) { OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); } };
 
                 BuildSky();
-                cam = new Camera3D { Near = .12f, Far = 3500f, Fov = 72f }; AddChild(cam); cam.MakeCurrent();
+                cam = new Camera3D { Near = .5f, Far = 2600f, Fov = 72f }; AddChild(cam); cam.MakeCurrent();
                 matGravel = TexMat(ProcTex.Gravel()); matConcrete = TexMat(ProcTex.Concrete());
                 matConcrete.VertexColorUseAsAlbedo = true;   // sleepers get a slightly different shade each
                 matSteel = Solid(new Color(.34f, .27f, .23f), .55f, .45f);
-                matRail = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .45f, Roughness = .38f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
-                matFit = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .3f, Roughness = .6f, CullMode = BaseMaterial3D.CullModeEnum.Disabled }; matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
+                matRail = IronMat(.20f, .62f); matFit = IronMat(.15f, .65f); matFit.VertexColorUseAsAlbedo = true;
+                matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
                 BuildRealTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildLineSigns(); BuildWaterPipes(); BuildSwitchTags();
                 playerVis = BuildTrain(sc.Train, null, null);
                 if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
@@ -102,10 +129,16 @@ namespace TNBCY
 
                 electric = false;
                 foreach (var c in sc.Train.Cars) { string nm = (c.Spec.name ?? "").ToLowerInvariant(); if (c.Spec.powered && !nm.Contains("demu") && !nm.Contains("diesel")) electric = true; }
-                touch.Diesel = !electric; touch.Notch = 0; touch.BrakeStep = 1; touch.Reverser = 0; touch.PantoUp = false; touch.Breaker = false; lastRev = 0; pantK = 0f;
-                ApplyQuality(gfxChoice == 0 ? 1 : gfxChoice - 1); startT = 0f;
-                loadL.Visible = false; touch.Enabled = true;
-                Toast(electric ? "Raise PANTO, close VCB, set reverser FWD, release the brake, then power up" : "Start ENGINE, set reverser FWD, release the brake, then power up", true, 7f);
+                touch.Diesel = !electric;
+                bool resumed = resume != null && Session.Restore(sc, resume, touch);
+                if (!resumed) { touch.Notch = 0; touch.BrakeStep = 1; touch.Reverser = 0; touch.PantoUp = false; touch.Breaker = false; }
+                lastRev = touch.Reverser; pantK = touch.PantoUp ? 1f : 0f; RefreshSwitchTags();
+                ride.Reset(); lastEdge = null; saveT = 0f; paused = false;
+                ApplyQuality(Settings.Gfx == 0 ? 1 : Settings.Gfx - 1); startT = 0f;
+                loadL.Visible = false; touch.Enabled = true; ApplyHudVisible();
+                if (resumed) Toast("Session resumed", true, 4f);
+                else if (resume != null) Toast("Could not resume - starting a new run", false, 5f);
+                else Toast(electric ? "Raise PANTO, close VCB, set reverser FWD, release the brake, then power up" : "Start ENGINE, set reverser FWD, release the brake, then power up", true, 7f);
             }
             catch (System.Exception ex) { GD.PrintErr(ex.ToString()); if (loadL != null) { loadL.Text = "Error: " + ex.Message; loadL.Visible = true; } }
         }
@@ -161,22 +194,28 @@ namespace TNBCY
             var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; root.SetAnchorsPreset(Control.LayoutPreset.FullRect); layer.AddChild(root);
 
             fadeRect = new ColorRect { Color = new Color(0, 0, 0, 0), MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false }; fadeRect.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(fadeRect);
-            speedL = Lbl("0 km/h", 40, HorizontalAlignment.Center); Place(speedL, .5f, 0, .5f, 0, -300, 6, 300, 60); root.AddChild(speedL);
-            infoL = Lbl("", 22, HorizontalAlignment.Center); Place(infoL, .5f, 0, .5f, 0, -460, 62, 460, 110); root.AddChild(infoL);
-            nextL = Lbl("", 22); Place(nextL, 0, 0, 0, 0, 20, 8, 470, 110); root.AddChild(nextL);
-            clockL = Lbl("", 22, HorizontalAlignment.Right); Place(clockL, 1, 0, 1, 0, -420, 58, -20, 90); root.AddChild(clockL);
-            aiL = Lbl("", 22, HorizontalAlignment.Right); Place(aiL, 1, 0, 1, 0, -420, 88, -20, 120); root.AddChild(aiL);
-            fpsL = Lbl("", 18, HorizontalAlignment.Right); Place(fpsL, 1, 0, 1, 0, -420, 8, -20, 36); root.AddChild(fpsL);
+            hudBar = new HudBar { Visible = false }; hudBar.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(hudBar);
+            fpsL = Lbl("", 18); Place(fpsL, 0, 0, 0, 0, 20, 88, 320, 114); fpsL.Visible = false; root.AddChild(fpsL);
+            nextL = Lbl("", 20, HorizontalAlignment.Right); Place(nextL, 1, 0, 1, 0, -700, 88, -20, 116); root.AddChild(nextL);
+            infoL = Lbl("", 20); Place(infoL, 0, 0, 0, 0, 20, 118, 640, 146); root.AddChild(infoL);
+            aiL = Lbl("", 20, HorizontalAlignment.Right); Place(aiL, 1, 0, 1, 0, -640, 118, -20, 146); root.AddChild(aiL);
             toastL = Lbl("", 32, HorizontalAlignment.Center); Place(toastL, .5f, .3f, .5f, .3f, -620, 0, 620, 60); root.AddChild(toastL);
             loadL = Lbl("", 40, HorizontalAlignment.Center); Place(loadL, 0, .5f, 1, .5f, 0, -30, 0, 30); loadL.Visible = false; root.AddChild(loadL);
 
             touch = new TouchControls(); touch.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(touch);
             touch.OnSwitch = () => sc.ToggleSwitch();
+            touch.OnMenu = OpenPause; touch.OnHudToggle = ApplyHudVisible;
             touch.OnPantoToggle = TogglePanto; touch.OnBreakerToggle = ToggleBreaker;
             touch.OnPrevCoach = () => wantFocus = Mathf.Max(0, focusCar - 1);
             touch.OnNextCoach = () => wantFocus = Mathf.Min(sc.Train.Cars.Count - 1, focusCar + 1);
 
-            BuildMenu(root);
+            try { routesList = LoadJson<RouteList>("res://Data/routes.json").routes; } catch { }
+            try { trainsList = LoadJson<TrainList>("res://Data/trains.json").trains; } catch { }
+            if (routesList.Count == 0) routesList.Add(new RouteInfo { id = "sc_gt", name = "Secunderabad Jn - Ghatkesar", tag = "Main line", km = 20f, info = "Double line, 25 kV AC", network = "network_demo" });
+            if (trainsList.Count == 0) trainsList.Add(new TrainOption { name = "WAP-7 + 12 coaches", file = "consist_demo", desc = "original train", coaches = 12 });
+            frontEnd = new FrontEnd { OnStart = (r, t) => StartGame(r, t, null), OnResume = ResumeSession, OnQuit = () => GetTree().Quit(), SettingsChanged = OnSettingsChanged };
+            root.AddChild(frontEnd); frontEnd.Setup(routesList, trainsList, Version);
+            BuildPause(root);
             endPanel = Panel(out var vb1);
             endL = Lbl("", 34, HorizontalAlignment.Center); vb1.AddChild(endL);
             var again = Btn("Drive again", new Color(.94f, .63f, .19f)); vb1.AddChild(again);
@@ -192,27 +231,61 @@ namespace TNBCY
             root.AddChild(updPanel);
         }
 
-        void BuildMenu(Control root)
+        void BuildPause(Control root)
         {
-            var bg = new ColorRect { Color = new Color(.06f, .10f, .14f, 1f) }; bg.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(bg); menuPanel = bg;
-            var cc = new CenterContainer(); cc.SetAnchorsPreset(Control.LayoutPreset.FullRect); bg.AddChild(cc);
-            var vb = new VBoxContainer(); vb.AddThemeConstantOverride("separation", 8); cc.AddChild(vb);
-            vb.AddChild(Lbl("TNBCY  " + Version, 46, HorizontalAlignment.Center));
-            vb.AddChild(Lbl("Secunderabad Jn to Ghatkesar (20 km) - choose your train", 24, HorizontalAlignment.Center));
-            updStatL = Lbl("", 18, HorizontalAlignment.Center); updStatL.AddThemeColorOverride("font_color", new Color(.7f, .8f, .85f)); vb.AddChild(updStatL);   // what the update check found
-            var credL = Lbl("Pine trees: JVC / Jan K. (non-commercial licence)", 14, HorizontalAlignment.Center); credL.AddThemeColorOverride("font_color", new Color(.6f, .7f, .7f)); vb.AddChild(credL);
-            TrainList list; try { list = LoadJson<TrainList>("res://Data/trains.json"); } catch { list = new TrainList(); }
-            if (list.trains.Count == 0) list.trains.Add(new TrainOption { name = "Demo train", file = "consist_demo", desc = "" });
-            foreach (var opt in list.trains)
+            var dim = new ColorRect { Color = new Color(0f, 0f, 0f, .62f), Visible = false, MouseFilter = Control.MouseFilterEnum.Stop };
+            dim.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(dim); pauseOverlay = dim;
+            var cc = new CenterContainer(); cc.SetAnchorsPreset(Control.LayoutPreset.FullRect); dim.AddChild(cc);
+            var pc = new PanelContainer { CustomMinimumSize = new Vector2(760, 0) };
+            pc.AddThemeStyleboxOverride("panel", Ui.Panel(new Color(.05f, .09f, .15f, .96f), new Color(Ui.Gold.R, Ui.Gold.G, Ui.Gold.B, .8f), 22, 2, 16)); cc.AddChild(pc);
+            var m = new MarginContainer(); m.AddThemeConstantOverride("margin_left", 28); m.AddThemeConstantOverride("margin_right", 28); m.AddThemeConstantOverride("margin_top", 16); m.AddThemeConstantOverride("margin_bottom", 18); pc.AddChild(m);
+            var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 10); m.AddChild(v);
+            v.AddChild(Ui.MakeLabel("PAUSED", 34, Ui.GoldHi, true, HorizontalAlignment.Center));
+            pauseSettings = new SettingsPanel { Changed = OnSettingsChanged }; pauseSettings.Build(); v.AddChild(pauseSettings);
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 14); v.AddChild(row);
+            var resume = Ui.MakeButton("RESUME", 26, true, new Vector2(0, 62)); resume.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; row.AddChild(resume); resume.Pressed += ClosePause;
+            var home = Ui.MakeButton("SAVE AND HOME", 26, false, new Vector2(0, 62)); home.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; row.AddChild(home); home.Pressed += SaveAndHome;
+        }
+
+        void OpenPause() { if (sc == null || paused || sc.Ended) return; paused = true; touch.Enabled = false; pauseSettings.Refresh(); pauseOverlay.Visible = true; SaveSession(); }
+        void ClosePause() { paused = false; pauseOverlay.Visible = false; touch.Enabled = sc != null && !sc.Ended; }
+        void SaveAndHome() { SaveSession(); paused = false; GetTree().ReloadCurrentScene(); }
+
+        void SaveSession()
+        {
+            if (sc == null || sc.Ended || touch == null) return;
+            Session.Save(Session.Capture(sc, touch, curRoute, curConsist, curConsistName, curRouteName));
+        }
+
+        // the eye button hides / shows every on-screen control so the view is clear
+        void ApplyHudVisible()
+        {
+            bool v = touch.HudVisible && sc != null;
+            hudBar.Visible = v; infoL.Visible = v; aiL.Visible = v; nextL.Visible = v; fpsL.Visible = v && Settings.ShowFps; toastL.Visible = touch.HudVisible;
+        }
+
+        void OnSettingsChanged()
+        {
+            if (sc != null) ApplyQuality(Settings.Gfx == 0 ? quality : Settings.Gfx - 1);
+            if (fpsL != null && touch != null) fpsL.Visible = Settings.ShowFps && touch.HudVisible && sc != null;
+        }
+
+        void NextStop(out string name, out float dist)
+        {
+            name = "End of line"; dist = -1f;
+            var T = sc.Train; var e = T.FrontSeg.Edge; float acc = -T.FrontOffset;
+            for (int hop = 0; hop < 12 && e != null; hop++)
             {
-                var o = opt; var b = Btn(o.name + (o.desc.Length > 0 ? "   -   " + o.desc : ""), new Color(.24f, .36f, .44f));
-                b.CustomMinimumSize = new Vector2(760, 50); b.AddThemeFontSizeOverride("font_size", 24); vb.AddChild(b);
-                b.Pressed += () => StartGame(o.file);
+                float best = 1e9f; TStation bs = null;
+                foreach (var stn in sc.Graph.Stations)
+                {
+                    if (stn.Edge != e || stn.Done || !stn.Stop) continue;
+                    float d = acc + stn.Offset;
+                    if (d >= -40f && d < best) { best = d; bs = stn; }
+                }
+                if (bs != null) { name = bs.Name; dist = Mathf.Max(0f, best); return; }
+                var n = e.To; acc += e.Length; e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
             }
-            gfxBtn = Btn("Graphics: Auto (adjusts itself to keep the game smooth)", new Color(.16f, .26f, .2f));
-            gfxBtn.CustomMinimumSize = new Vector2(760, 46); gfxBtn.AddThemeFontSizeOverride("font_size", 22); vb.AddChild(gfxBtn);
-            gfxBtn.Pressed += () => { gfxChoice = (gfxChoice + 1) % 5; gfxBtn.Text = "Graphics: " + GfxNames[gfxChoice] + (gfxChoice == 0 ? " (adjusts itself to keep the game smooth)" : ""); };
-            touch.Enabled = false;
         }
 
         string NextText()
@@ -288,7 +361,7 @@ namespace TNBCY
         void AutoQuality()
         {
             float avg = frameAcc / Mathf.Max(1, frameN); fpsL.Text = Mathf.RoundToInt(1f / Mathf.Max(avg, .001f)) + " fps  " + QualityNames[quality];
-            if (sc != null && startT > 8f && gfxChoice == 0)
+            if (sc != null && startT > 8f && Settings.Gfx == 0)
             {
                 if (avg > .030f && quality > 0) { ApplyQuality(quality - 1); stableUp = 0; Toast("Graphics set to " + QualityNames[quality] + " to keep it smooth", true); }
                 else if (avg < .0165f && quality < 2) { if (++stableUp >= 4) { ApplyQuality(quality + 1); stableUp = 0; } }
@@ -301,8 +374,10 @@ namespace TNBCY
         public override void _Process(double delta)
         {
             float rd = (float)delta; frameAcc += rd; frameN++; fpsT += rd; if (fpsT >= 2f) AutoQuality();
+            if (paused) { sounds?.Tick(0f, (float)delta, true); return; }
             if (sc == null || cam == null) return;
             float dt = Mathf.Min(rd, .05f); startT += dt; noteT -= dt;
+            saveT += dt; if (saveT >= 8f && !sc.Ended) { saveT = 0f; SaveSession(); }
             var T = sc.Train; var P = T.Phys;
             ApplyControls(dt);
             sc.Update(dt); toastT -= dt; if (toastT <= 0f) toastL.Text = "";
@@ -324,9 +399,9 @@ namespace TNBCY
 
             float lim = sc.LimitKmh(T.FrontSeg.Edge), spd = T.Speed * 3.6f;
             sounds?.Tick(spd, dt, sc.Ended);
-            speedL.Text = Mathf.RoundToInt(spd) + " km/h  (limit " + Mathf.RoundToInt(lim) + ")";
-            speedL.AddThemeColorOverride("font_color", spd > lim + 3f ? new Color(1f, .4f, .35f) : Colors.White);
-            clockL.Text = sc.ClockText() + "   25 kV OHE";
+            hudBar.SpeedKmh = spd; hudBar.LimitKmh = lim; hudBar.Clock = sc.ClockText();
+            string nsName; float nsDist; NextStop(out nsName, out nsDist);
+            hudBar.NextName = nsName; hudBar.NextDist = nsDist < 0f ? "" : (nsDist < 1000f ? Mathf.RoundToInt(nsDist) + " m" : (nsDist / 1000f).ToString("0.0") + " km");
             nextL.Text = NextText();
             float km = T.Odo / 1000f, tot = sc.Net.routeLengthM / 1000f;
             string rv = touch.Reverser == 1 ? "FWD" : (touch.Reverser == 0 ? "NEU" : "REV");
@@ -339,7 +414,7 @@ namespace TNBCY
             }
             var sw = sc.NextSwitch(out float sd);
             touch.SwitchLabel = sw == null ? "none ahead" : sw.Name + (sw.Sel == 0 ? " main" : " loop") + " " + Mathf.RoundToInt(sd) + "m";
-            if (sc.Ended && !endPanel.Visible) { endL.Text = sc.EndMessage; endPanel.Visible = true; touch.Enabled = false; }
+            if (sc.Ended && !endPanel.Visible) { endL.Text = sc.EndMessage; endPanel.Visible = true; touch.Enabled = false; Session.Delete(); }
         }
     }
 }

@@ -1,4 +1,4 @@
-TNBCY - NOTES FOR FUTURE DEVELOPMENT (updated at v25)
+TNBCY - NOTES FOR FUTURE DEVELOPMENT (updated at v26)
 =====================================================
 GOAL: real-looking Indian railway game. Phone can take a 10 GB install IF there is no lag. Rule: size on disk is free, frame time is not.
 
@@ -21,6 +21,11 @@ GOAL: real-looking Indian railway game. Phone can take a 10 GB install IF there 
  - MainRealTrack.cs: uses them (3 small edits). The points area (fan sleepers) still uses the plain box sleeper.
  - TO DO: real welds/fishplates are still only in yard loops; sleeper shoulders do not exist under points; check every switch on the phone.
  - Trainz pack licence: the "Concrete track N26" files (ALTDK, trainz.ru) may not be reused in other software without written permission. Ask trainz.ru before bundling any of its textures.
+
+2c. WHAT v26 CHANGED
+ - Merged the v12 front end (FrontEnd, Settings, Session, HudBar, RideFeel, UiKit, TouchControls, Gauges, MainCam, cab detail) into v25.
+ - Rails: dark iron colours, matte material, 3D rail to 200 m then flat iron strips (RTFarStrip, widths 0.2 / 0.6 / 1.2 m), sleeper-bed texture strip 90-450 m.
+ - TO CHECK: tune the strip ranges in RTRibbons (Lod calls) and the colour of rtFarRail if the far rails look too dark or too light on the phone.
 
 3. KNOWN LIMITS / TO DO NEXT
  - Points (turnouts) and crossings: geometry unchanged from v19-v22 except even sleeper spacing and joint smoothing. Needs a close look on the phone at every switch.

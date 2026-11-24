@@ -4,7 +4,8 @@ config_version=5
 config/name="TNBCY"
 run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
+config/quit_on_go_back=false
 
 [display]
 window/size/viewport_width=1280
@@ -16,6 +17,10 @@ window/handheld/orientation=4
 [dotnet]
 project/assembly_name="TNBCY"
 
+[gui]
+
+theme/custom_font="res://fonts/Poppins-Medium.ttf"
+
 [input_devices]
 pointing/emulate_mouse_from_touch=true
 pointing/emulate_touch_from_mouse=true
@@ -24,3 +29,4 @@ pointing/emulate_touch_from_mouse=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+textures/default_filters/anisotropic_filtering_level=4

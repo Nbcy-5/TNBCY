@@ -159,7 +159,7 @@ void fragment() {
         void RTOheInit()
         {
             if (rtMastA != null) return;
-            rtMatCu = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .7f, Roughness = .35f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
+            rtMatCu = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .3f, Roughness = .5f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
             rtMatMast = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Metallic = .45f, Roughness = .55f, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
             rtMastA = RTMakeMast(OheStagger); rtMastB = RTMakeMast(-OheStagger);
         }
@@ -211,7 +211,7 @@ void fragment() {
                             RTBar(st, mb, cb, .012f, drop);   // dropper joins the messenger to the contact wire
                     }
                 }
-                var mi = new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = rtMatCu }; AddChild(mi); Far(mi, 750f);
+                var mi = new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = rtMatCu }; AddChild(mi); Far(mi, 520f);
             }
             // masts: cantilever to the track, standing on the driver's left
             var ta = new List<Transform3D>(); var tb = new List<Transform3D>();

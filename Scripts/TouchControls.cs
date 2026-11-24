@@ -10,6 +10,8 @@ namespace TNBCY
         public bool Enabled = true, Emergency, Diesel, ShowCoachButtons, PantoUp, Breaker;
         public int Notch, BrakeStep = 1, Reverser, CamMode;
         public string SwitchLabel = "No switch";
+        public bool HudVisible = true;                      // false = only the small eye button is shown
+        public System.Action OnMenu, OnHudToggle;
         public System.Action OnHorn, OnSwitch, OnPrevCoach, OnNextCoach, OnPantoToggle, OnBreakerToggle;
 
         public static readonly string[] CamNames = { "Cab", "Chase", "Nose", "Side", "Top", "Free" };
@@ -26,7 +28,7 @@ namespace TNBCY
         }
 
         float u, topY, bottomY, brakeX, powerX;
-        Rect2 brakeZone, powerZone, reverserZone, coachLeft, coachRight;
+        Rect2 brakeZone, powerZone, reverserZone, coachLeft, coachRight, eyeBtn, menuBtn;
         readonly Rect2[] reverserButtons = new Rect2[3];
         readonly Rect2[] actionButtons = new Rect2[6];
         readonly Dictionary<int, int> pointerOwners = new Dictionary<int, int>();
@@ -67,6 +69,10 @@ namespace TNBCY
             // below the speed / info readout (it ends about y = 110), not on top of it
             coachLeft = new Rect2(centre - 190f * u, 122f * u, 88f * u, 42f * u);
             coachRight = new Rect2(centre + 102f * u, 122f * u, 88f * u, 42f * u);
+
+            // eye (hide / show all controls) and menu, top right
+            eyeBtn = new Rect2(w - 66f * u, 12f * u, 54f * u, 54f * u);
+            menuBtn = new Rect2(w - 128f * u, 12f * u, 54f * u, 54f * u);
         }
 
         float BrakeY(int step) { return bottomY - step * (bottomY - topY) / 6f; }
@@ -76,6 +82,9 @@ namespace TNBCY
         {
             if (!Enabled) return false;
             LayoutControls();
+            if (eyeBtn.Grow(6f * u).HasPoint(p)) return true;
+            if (!HudVisible) return false;
+            if (menuBtn.Grow(6f * u).HasPoint(p)) return true;
             if (brakeZone.HasPoint(p) || powerZone.HasPoint(p) || reverserZone.HasPoint(p)) return true;
             foreach (Rect2 r in actionButtons) if (r.Grow(5f * u).HasPoint(p)) return true;
             return ShowCoachButtons && (coachLeft.HasPoint(p) || coachRight.HasPoint(p));
@@ -125,6 +134,9 @@ namespace TNBCY
         {
             LayoutControls();
             pointerOwners[id] = 0;
+            if (eyeBtn.Grow(6f * u).HasPoint(p)) { HudVisible = !HudVisible; Buzz(); if (OnHudToggle != null) OnHudToggle(); return; }
+            if (!HudVisible) return;
+            if (menuBtn.Grow(6f * u).HasPoint(p)) { Buzz(); if (OnMenu != null) OnMenu(); return; }
 
             if (brakeZone.HasPoint(p))
             {
@@ -169,7 +181,7 @@ namespace TNBCY
             else if (owner == 2) SetPower(p.Y);
         }
 
-        static void Buzz() { Input.VibrateHandheld(8); }
+        static void Buzz() { if (Settings.Haptics > 0) Input.VibrateHandheld(8, Settings.HapticK); }
 
         void SetBrake(float y)
         {
@@ -202,22 +214,24 @@ namespace TNBCY
             }
         }
 
-        void Panel(Rect2 r, Color c, int radius = 9)
+        void Panel(Rect2 r, Color c, int radius = 9, bool border = false)
         {
             style.BgColor = c;
             style.SetCornerRadiusAll(Mathf.RoundToInt(radius * u));
+            if (border) { style.BorderColor = new Color(Ui.Gold.R, Ui.Gold.G, Ui.Gold.B, .42f); style.SetBorderWidthAll(Mathf.Max(1, Mathf.RoundToInt(1.3f * u))); }
+            else style.SetBorderWidthAll(0);
             DrawStyleBox(style, r);
         }
 
         void Label(string value, Vector2 pos, int size, Color color,
             HorizontalAlignment align = HorizontalAlignment.Left, float width = -1f)
         {
-            DrawString(ThemeDB.FallbackFont, pos, value, align, width, size, color);
+            DrawString(UiFont.Bold, pos, value, align, width, size, color);
         }
 
         void Button(Rect2 r, string title, string subtitle, Color bg, bool active)
         {
-            Panel(r, bg);
+            Panel(r, bg, 10, true);
             if (active)
                 Panel(new Rect2(r.Position.X + 5f * u, r.Position.Y + 4f * u,
                     r.Size.X - 10f * u, 4f * u), new Color(.35f, .95f, .52f), 3);
@@ -231,81 +245,98 @@ namespace TNBCY
                     HorizontalAlignment.Center, r.Size.X);
         }
 
+        void DrawEyeMenu()
+        {
+            float a = HudVisible ? 1f : .55f;
+            Panel(eyeBtn, new Color(.03f, .06f, .10f, .80f * a), 12, true);
+            Vector2 c = eyeBtn.GetCenter(); float r = 13f * u; Color col = new Color(.94f, .96f, .98f, a);
+            DrawArc(c + new Vector2(0f, r * .62f), r * 1.2f, Mathf.DegToRad(215f), Mathf.DegToRad(325f), 14, col, 2.3f * u, true);
+            DrawArc(c - new Vector2(0f, r * .62f), r * 1.2f, Mathf.DegToRad(35f), Mathf.DegToRad(145f), 14, col, 2.3f * u, true);
+            DrawCircle(c, r * .36f, col);
+            if (!HudVisible) DrawLine(c + new Vector2(-r, r), c + new Vector2(r, -r), new Color(1f, .35f, .3f, a), 2.6f * u, true);
+            if (!HudVisible) return;
+            Panel(menuBtn, new Color(.03f, .06f, .10f, .80f), 12, true);
+            Vector2 m = menuBtn.GetCenter();
+            for (int i = -1; i <= 1; i++) DrawLine(m + new Vector2(-11f * u, i * 8f * u), m + new Vector2(11f * u, i * 8f * u), Colors.White, 2.6f * u, true);
+        }
+
         public override void _Draw()
         {
             if (!Enabled) return;
             LayoutControls();
+            DrawEyeMenu();
+            if (!HudVisible) return;
 
             int fs = Mathf.Max(10, Mathf.RoundToInt(12f * u));
-            Color glass = new Color(.025f, .035f, .045f, .72f);
+            Color glass = new Color(.03f, .06f, .10f, .74f);
             Color white = new Color(.94f, .96f, .98f);
             Color green = new Color(.25f, .72f, .42f);
             Color red = new Color(.83f, .22f, .17f);
+            Color track = new Color(.09f, .11f, .14f, .95f);
 
-            // Brake lever: larger handle, labelled detents and a clear active state.
-            Panel(brakeZone, glass, 12);
-            Label("BRAKE", new Vector2(brakeZone.Position.X, brakeZone.Position.Y + 22f * u),
+            // ---- Brake lever: labelled detents, red fill rising with the brake, clear active state.
+            Panel(brakeZone, glass, 14, true);
+            int bp = BrakeStep >= 5 ? 100 : (BrakeStep == 4 ? 75 : (BrakeStep == 3 ? 50 : (BrakeStep == 2 ? 20 : 0)));
+            Label("BRAKE  " + (Emergency ? "EMG" : bp + "%"), new Vector2(brakeZone.Position.X, brakeZone.Position.Y + 22f * u),
                 fs + 2, white, HorizontalAlignment.Center, brakeZone.Size.X);
-            Panel(new Rect2(brakeX - 7f * u, topY - 5f * u, 14f * u,
-                bottomY - topY + 10f * u), new Color(.12f, .14f, .16f), 6);
+            Panel(new Rect2(brakeX - 7f * u, topY - 5f * u, 14f * u, bottomY - topY + 10f * u), track, 6);
+            for (int i = 1; i < BrakeStep; i++)
+            {
+                float y0 = BrakeY(i + 1) + 2f * u, y1 = BrakeY(i) - 2f * u;
+                DrawRect(new Rect2(brakeX - 4f * u, y0, 8f * u, y1 - y0), new Color(.55f, .12f, .10f).Lerp(new Color(1f, .30f, .22f), i / 5f));
+            }
             for (int i = 0; i <= 6; i++)
             {
                 float y = BrakeY(i);
                 Color c = i == 6 ? red : (i <= 1 ? green : white);
-                DrawLine(new Vector2(brakeX + 11f * u, y),
-                    new Vector2(brakeX + 27f * u, y), c, 2f * u);
+                DrawLine(new Vector2(brakeX + 11f * u, y), new Vector2(brakeX + 27f * u, y), c, 2f * u);
                 Label(BrakeNames[i], new Vector2(brakeX + 32f * u, y + fs * .35f), fs, c);
             }
             float by = BrakeY(BrakeStep);
-            Panel(new Rect2(brakeX - 24f * u, by - 15f * u, 48f * u, 30f * u),
-                Emergency ? red : new Color(.88f, .43f, .19f), 7);
-            Label(BrakeNames[BrakeStep], new Vector2(brakeX - 24f * u, by + fs * .35f),
-                fs, Colors.White, HorizontalAlignment.Center, 48f * u);
+            Panel(new Rect2(brakeX - 24f * u, by - 15f * u, 48f * u, 30f * u), Emergency ? red : new Color(.90f, .45f, .20f), 8, true);
+            Label(BrakeNames[BrakeStep], new Vector2(brakeX - 24f * u, by + fs * .35f), fs, Colors.White, HorizontalAlignment.Center, 48f * u);
 
-            // Power lever.
-            Panel(powerZone, glass, 12);
-            Label("POWER", new Vector2(powerZone.Position.X, powerZone.Position.Y + 22f * u),
+            // ---- Power lever: green fill rising with the notch.
+            Panel(powerZone, glass, 14, true);
+            Label("POWER  " + Mathf.RoundToInt(Notch * 12.5f) + "%", new Vector2(powerZone.Position.X, powerZone.Position.Y + 22f * u),
                 fs + 2, white, HorizontalAlignment.Center, powerZone.Size.X);
-            Panel(new Rect2(powerX - 7f * u, topY - 5f * u, 14f * u,
-                bottomY - topY + 10f * u), new Color(.12f, .14f, .16f), 6);
+            Panel(new Rect2(powerX - 7f * u, topY - 5f * u, 14f * u, bottomY - topY + 10f * u), track, 6);
+            for (int i = 0; i < Notch; i++)
+            {
+                float y0 = PowerY(i + 1) + 2f * u, y1 = PowerY(i) - 2f * u;
+                DrawRect(new Rect2(powerX - 4f * u, y0, 8f * u, y1 - y0), new Color(.18f, .62f, .30f).Lerp(new Color(.55f, .95f, .35f), i / 7f));
+            }
             for (int i = 0; i <= 8; i++)
             {
                 float y = PowerY(i);
-                DrawLine(new Vector2(powerX - 27f * u, y),
-                    new Vector2(powerX - 11f * u, y), white, 2f * u);
-                Label(i.ToString(), new Vector2(powerX - 48f * u, y + fs * .35f),
-                    fs, white, HorizontalAlignment.Right, 16f * u);
+                DrawLine(new Vector2(powerX - 27f * u, y), new Vector2(powerX - 11f * u, y), white, 2f * u);
+                Label(i.ToString(), new Vector2(powerX - 48f * u, y + fs * .35f), fs, white, HorizontalAlignment.Right, 16f * u);
             }
             float py = PowerY(Notch);
-            Panel(new Rect2(powerX - 24f * u, py - 15f * u, 48f * u, 30f * u),
-                new Color(.95f, .66f, .19f), 7);
-            Label("N" + Notch, new Vector2(powerX - 24f * u, py + fs * .35f),
-                fs, Colors.Black, HorizontalAlignment.Center, 48f * u);
+            Panel(new Rect2(powerX - 24f * u, py - 15f * u, 48f * u, 30f * u), new Color(.96f, .70f, .22f), 8, true);
+            Label("N" + Notch, new Vector2(powerX - 24f * u, py + fs * .35f), fs, Colors.Black, HorizontalAlignment.Center, 48f * u);
 
-            // Reverser is a proper three-position row, not a narrow vertical stack.
-            Panel(reverserZone, glass, 8);
+            // ---- Reverser: a three-position row.
+            Panel(reverserZone, glass, 10, true);
             string[] reverseText = { "FWD", "NEUTRAL", "REV" };
             int selected = Reverser == 1 ? 0 : (Reverser == 0 ? 1 : 2);
             for (int i = 0; i < 3; i++)
-                Button(reverserButtons[i], reverseText[i], "",
-                    i == selected ? new Color(.17f, .43f, .29f) : new Color(.16f, .20f, .24f), i == selected);
+                Button(reverserButtons[i], reverseText[i], "", i == selected ? new Color(.17f, .43f, .29f) : new Color(.12f, .17f, .22f), i == selected);
 
             bool running = PantoUp;
-            Button(actionButtons[0], Diesel ? "ENGINE" : "PANTO",
-                Diesel ? (running ? "running" : "stopped") : (running ? "raised" : "lowered"),
-                new Color(.16f, .27f, .36f), running);
-            Button(actionButtons[1], "VCB", Diesel ? "not fitted" : (Breaker ? "closed" : "open"),
-                new Color(.16f, .27f, .36f), Breaker && !Diesel);
-            Button(actionButtons[2], "HORN", "sound horn", new Color(.16f, .27f, .36f), false);
-            Button(actionButtons[3], "POINTS", SwitchLabel, new Color(.16f, .27f, .36f), false);
-            Button(actionButtons[4], "CAMERA", CamNames[CamMode], new Color(.16f, .27f, .36f), false);
-            Button(actionButtons[5], Emergency ? "RELEASE" : "EMERGENCY",
-                Emergency ? "release brake" : "apply brake", Emergency ? new Color(.48f, .16f, .13f) : new Color(.65f, .16f, .13f), Emergency);
+            Color btn = new Color(.11f, .20f, .30f);
+            Button(actionButtons[0], Diesel ? "ENGINE" : "PANTO", Diesel ? (running ? "running" : "stopped") : (running ? "raised" : "lowered"), btn, running);
+            Button(actionButtons[1], "VCB", Diesel ? "not fitted" : (Breaker ? "closed" : "open"), btn, Breaker && !Diesel);
+            Button(actionButtons[2], "HORN", "sound horn", btn, false);
+            Button(actionButtons[3], "POINTS", SwitchLabel, btn, false);
+            Button(actionButtons[4], "CAMERA", CamNames[CamMode], btn, false);
+            Button(actionButtons[5], Emergency ? "RELEASE" : "EMERGENCY", Emergency ? "release brake" : "apply brake",
+                Emergency ? new Color(.48f, .16f, .13f) : new Color(.65f, .16f, .13f), Emergency);
 
             if (ShowCoachButtons)
             {
-                Button(coachLeft, "< COACH", "", new Color(.15f, .23f, .31f), false);
-                Button(coachRight, "COACH >", "", new Color(.15f, .23f, .31f), false);
+                Button(coachLeft, "< COACH", "", new Color(.12f, .20f, .28f), false);
+                Button(coachRight, "COACH >", "", new Color(.12f, .20f, .28f), false);
             }
         }
     }

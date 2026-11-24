@@ -180,12 +180,13 @@ namespace TNBCY
                 Box(cabRig, new Vector3(sx * 1.45f, .78f, -.2f), Basis.Identity, new Vector3(.1f, .45f, 2.6f), cream);
                 Box(cabRig, new Vector3(sx * 1.45f, -.3f, .8f), Basis.Identity, new Vector3(.1f, 2.6f, .8f), cream);
                 Box(cabRig, new Vector3(sx * 1.45f, .1f, -1.5f), Basis.Identity, new Vector3(.12f, 1.2f, .14f), dark);
-                Box(cabRig, new Vector3(sx * 1.33f, .3f, -1.6f), new Basis(Vector3.Back, -sx * .05f), new Vector3(.2f, 2.0f, .22f), dark);      // windscreen pillars
-                Box(cabRig, new Vector3(sx * .62f, -.40f, -1.55f), new Basis(Vector3.Back, sx * .12f), new Vector3(.95f, .025f, .025f), dark);   // wipers
+                Box(cabRig, new Vector3(sx * 1.26f, .28f, -1.6f), new Basis(Vector3.Back, -sx * .22f), new Vector3(.30f, 2.2f, .22f), dark);      // heavy raked windscreen pillars
+                Box(cabRig, new Vector3(sx * .81f, -.083f, -1.55f), new Basis(Vector3.Back, -sx * .95f), new Vector3(.03f, 1.3f, .02f), dark);    // long wiper arms
+                Box(cabRig, new Vector3(sx * .30f, -.45f, -1.55f), Basis.Identity, new Vector3(.07f, .05f, .05f), metal);                       // wiper pivots
             }
             Box(cabRig, new Vector3(0f, .3f, -1.6f), Basis.Identity, new Vector3(.12f, 2.0f, .18f), dark);       // centre pillar
             Box(cabRig, new Vector3(0f, .98f, -1.6f), Basis.Identity, new Vector3(2.9f, .2f, .28f), dark);       // header
-            Box(cabRig, new Vector3(0f, .82f, -1.4f), Basis.Identity, new Vector3(2.4f, .03f, .35f), panelC);    // sun visor
+            Box(cabRig, new Vector3(0f, .80f, -1.38f), new Basis(Vector3.Right, .10f), new Vector3(2.7f, .05f, .6f), Mat(new Color(.52f, .53f, .52f)));    // grey sun blind
             Box(cabRig, new Vector3(0f, 1.0f, -.2f), Basis.Identity, new Vector3(2.9f, .08f, 2.8f), ceil);
             Box(cabRig, new Vector3(0f, .95f, -.3f), Basis.Identity, new Vector3(.5f, .04f, .2f), lamp);
             Box(cabRig, new Vector3(0f, -1.05f, -1.15f), Basis.Identity, new Vector3(2.9f, 1.1f, 1.0f), dark);   // console body (top at -0.5)
@@ -193,11 +194,11 @@ namespace TNBCY
             Box(cabRig, new Vector3(0f, -.22f, -1.28f), Basis.Identity, new Vector3(1.45f, .5f, .3f), dark);     // instrument hood
             foreach (float sx in new[] { -1f, 1f }) Box(cabRig, new Vector3(sx * 1.0f, -.50f, -.88f), new Basis(Vector3.Right, .3f), new Vector3(.9f, .08f, .7f), panelC);
 
-            gaugeVp = new SubViewport { Size = new Vector2I(1024, 384), RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled, TransparentBg = false, Disable3D = true };
+            gaugeVp = new SubViewport { Size = new Vector2I(1536, 448), RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled, TransparentBg = false, Disable3D = true };
             AddChild(gaugeVp);
-            gauge = new GaugeCluster { Position = Vector2.Zero, Size = new Vector2(1024f, 384f) }; gaugeVp.AddChild(gauge);
+            gauge = new GaugeCluster { Position = Vector2.Zero, Size = new Vector2(1536f, 448f) }; gaugeVp.AddChild(gauge);
             var gm = new StandardMaterial3D { AlbedoTexture = gaugeVp.GetTexture(), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear };
-            cabRig.AddChild(new MeshInstance3D { Mesh = new QuadMesh { Size = new Vector2(1.3f, .4875f) }, MaterialOverride = gm, Position = new Vector3(0f, -.30f, -1.0f), Rotation = new Vector3(-.55f, 0f, 0f) });
+            cabRig.AddChild(new MeshInstance3D { Mesh = new QuadMesh { Size = new Vector2(1.9f, .5542f) }, MaterialOverride = gm, Position = new Vector3(0f, -.30f, -1.0f), Rotation = new Vector3(-.55f, 0f, 0f) });
 
             matBtn1 = Solid(new Color(.1f, .3f, .12f)); matBtn1.EmissionEnabled = true; matBtn2 = Solid(new Color(.1f, .3f, .12f)); matBtn2.EmissionEnabled = true;
             Box(cabRig, new Vector3(.82f, -.47f, -1.05f), Basis.Identity, new Vector3(.09f, .04f, .09f), matBtn1);
@@ -210,6 +211,28 @@ namespace TNBCY
                 Box(lv, new Vector3(0f, .11f, 0f), Basis.Identity, new Vector3(.03f, .22f, .03f), metal);
                 Box(lv, new Vector3(0f, .25f, 0f), Basis.Identity, new Vector3(.09f, .08f, .09f), Mat(lv == leverPower ? new Color(.94f, .63f, .19f) : (lv == leverBrake ? new Color(.85f, .3f, .22f) : new Color(.3f, .5f, .8f))));
             }
+            AddCabDetail(dark, panelC, metal);
+        }
+
+        Label3D cabDigi;
+
+        // Extra cab detail from the reference photos: peg-board wall, key panel, emergency button, red digital display.
+        void AddCabDetail(StandardMaterial3D dark, StandardMaterial3D panelC, StandardMaterial3D metal)
+        {
+            Box(cabRig, new Vector3(1.385f, -.02f, -1.28f), Basis.Identity, new Vector3(.02f, 1.5f, .75f), TexMat(ProcTex.Perforated()));   // beige perforated board
+            Box(cabRig, new Vector3(0f, -.306f, -1.018f), new Basis(Vector3.Right, -.55f), new Vector3(2.0f, .60f, .04f), dark);             // bezel behind the instrument screen
+            var palette = new[] { new Color(.9f, .2f, .15f), new Color(.2f, .8f, .3f), new Color(.95f, .8f, .2f), new Color(.25f, .55f, .95f), new Color(.92f, .92f, .92f) };
+            var keyMats = new StandardMaterial3D[palette.Length];
+            for (int i = 0; i < palette.Length; i++) { keyMats[i] = Solid(palette[i] * .75f); keyMats[i].EmissionEnabled = true; keyMats[i].Emission = palette[i] * .25f; }
+            for (int r = 0; r < 3; r++)
+                for (int c = 0; c < 5; c++)
+                    Box(cabRig, new Vector3(-1.38f + c * .07f, -.435f, -1.12f + r * .07f), Basis.Identity, new Vector3(.05f, .025f, .05f), keyMats[(r * 5 + c) % palette.Length]);
+            var redMat = Solid(new Color(.85f, .08f, .06f), .1f, .35f); redMat.EmissionEnabled = true; redMat.Emission = new Color(.25f, .02f, .02f);
+            cabRig.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = .034f, BottomRadius = .04f, Height = .045f, RadialSegments = 14 }, MaterialOverride = redMat, Position = new Vector3(-.60f, -.425f, -.98f) });   // emergency mushroom button
+            cabRig.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = .055f, BottomRadius = .055f, Height = .02f, RadialSegments = 16 }, MaterialOverride = metal, Position = new Vector3(-.60f, -.44f, -.98f) });
+            Box(cabRig, new Vector3(-.62f, -.343f, -1.046f), new Basis(Vector3.Right, -.55f), new Vector3(.26f, .12f, .01f), Mat(new Color(.02f, .02f, .02f)));   // display body
+            cabDigi = new Label3D { Text = "00", FontSize = 64, PixelSize = .0013f, Modulate = new Color(1f, .22f, .14f), Font = UiFont.Bold, Position = new Vector3(-.62f, -.34f, -1.038f), Rotation = new Vector3(-.55f, 0f, 0f) };
+            cabRig.AddChild(cabDigi);
         }
 
         void UpdateCab(bool active)
@@ -218,6 +241,7 @@ namespace TNBCY
             if (!active) return;
             var T = sc.Train; var P = T.Phys; float L = P.BrakeLevel;
             float spd = T.Speed * 3.6f, lim = sc.LimitKmh(T.FrontSeg.Edge);
+            if (cabDigi != null) cabDigi.Text = Mathf.RoundToInt(spd).ToString("00");
             gauge.Speed = spd; gauge.Limit = lim; gauge.Over = spd > lim + 3f; gauge.Emergency = P.Emergency;
             gauge.Bp = L <= .6f ? 5f - 2.5f * L : 3.5f - (L - .6f) / .4f * 3.5f; gauge.Bc = L <= .6f ? L / .6f * 3.8f : 3.8f + (L - .6f) / .4f * 1.2f;
             gauge.Notch = touch.Notch; gauge.Amps = P.Throttle * 900f * Mathf.Clamp(1.2f - spd / 140f, .15f, 1f); gauge.Volts = (touch.PantoUp && touch.Breaker) ? 25000f : 0f;

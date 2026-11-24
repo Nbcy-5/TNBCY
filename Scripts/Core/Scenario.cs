@@ -27,6 +27,8 @@ namespace TNBCY
                 if (Ai != null && st.Edge == Ai.T.FrontSeg.Edge && Mathf.Abs(st.Offset - net.ai.offsetM) < 20f) st.Offset = Ai.T.Odo;
             }
         }
+        public List<string> ServedNames() { return new List<string>(served); }
+        public void SetServed(IEnumerable<string> names) { served.Clear(); foreach (var n in names) served.Add(n); }
         public Train AiTrain { get { return Ai == null ? null : Ai.T; } }
         public float LimitKmh(TEdge e) { return e.LimitKmh > 0f ? e.LimitKmh : Net.defaultLimitKmh; }
         void Emit(string m, bool good) { if (OnEvent != null) OnEvent(m, good ? "ok" : "bad"); }
