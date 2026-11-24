@@ -9,22 +9,40 @@ namespace TNBCY
         // Weathering is applied to sleeper top faces only: rust at rail seats, grease near pads, and light dust.
         static Color RTSleeperTopColor(float x, float z)
         {
-            float broad = RTNoise((x + .5f) * 5f, (z + .5f) * 4f, 16, 1601);
-            float fine = RTNoise((x + .5f) * 17f, (z + .5f) * 13f, 32, 1602);
-            Color c = new Color(.91f, .92f, .91f) * (.93f + .10f * broad + .035f * fine);
-            float dust = Mathf.Clamp((broad - .48f) * .42f, 0f, .18f);
-            c = c.Lerp(new Color(.98f, .95f, .87f), dust);
+            // Strong, readable concrete weathering. The top surface is vertex-coloured directly,
+            // so no low-resolution albedo texture can wash the marks out.
+            float broad = RTNoise((x + .5f) * 5f, (z + .5f) * 5f, 16, 1601);
+            float fine = RTNoise((x + .5f) * 23f, (z + .5f) * 19f, 32, 1602);
+            Color c = new Color(.63f, .65f, .64f) * (.88f + .14f * broad + .07f * fine);
+
+            // Dry cement dust and pale mineral deposits, irregular rather than uniform.
+            float dust = Mathf.Clamp((broad - .42f) * .42f, 0f, .20f);
+            c = c.Lerp(new Color(.79f, .78f, .70f), dust);
+
             for (int side = -1; side <= 1; side += 2)
             {
-                float dx = (x - side * .3175f) / .052f;
+                float dx = (x - side * .3175f) / .085f;
                 float railSeat = Mathf.Exp(-dx * dx);
-                float rustNoise = RTNoise((z + .5f) * 10f + side * 3f, (x + .5f) * 6f, 16, 1603 + side);
-                c = c.Lerp(new Color(.58f, .30f, .16f), railSeat * (.22f + .18f * rustNoise));
-                float oilNoise = RTNoise((z + .5f) * 14f + side, (x + .5f) * 10f, 16, 1610 + side);
-                c = c.Lerp(new Color(.24f, .25f, .24f), railSeat * (.08f + .12f * oilNoise));
+                float rustNoise = RTNoise((z + .5f) * 8f + side * 3f, (x + .5f) * 7f, 16, 1603 + side);
+                float rust = railSeat * (.52f + .30f * rustNoise);
+                c = c.Lerp(new Color(.48f, .20f, .085f), rust);
+
+                // Dark oily residue sits inside the rusted rail-seat band.
+                float oilNoise = RTNoise((z + .5f) * 13f + side, (x + .5f) * 11f, 16, 1610 + side);
+                float oil = railSeat * (.28f + .24f * oilNoise);
+                c = c.Lerp(new Color(.105f, .115f, .115f), oil);
+
+                // A few short rust streaks trail away from each fastening.
+                float streakX = (x - side * .3175f) / .12f;
+                float streakZ = (z + .5f) * 3.1f + .22f * RTNoise((x + .5f) * 8f, (z + .5f) * 5f, 16, 1624 + side);
+                float streak = Mathf.Exp(-streakX * streakX) * Mathf.Clamp(1f - Mathf.Abs(streakZ - Mathf.Floor(streakZ) - .5f) * 3.5f, 0f, 1f) * .20f;
+                c = c.Lerp(new Color(.55f, .27f, .13f), streak);
             }
-            if (RTNoise((x + .5f) * 29f, (z + .5f) * 23f, 32, 1621) > .88f)
-                c = c.Lerp(new Color(.98f, .96f, .89f), .10f);
+
+            // Sparse embedded grime spots away from the rail seats.
+            float grimeNoise = RTNoise((x + .5f) * 31f, (z + .5f) * 17f, 32, 1621);
+            if (grimeNoise > .84f)
+                c = c.Lerp(new Color(.29f, .30f, .29f), (grimeNoise - .84f) * 1.5f);
             return c;
         }
 
@@ -41,7 +59,7 @@ namespace TNBCY
 
         static void RTSleeperVertex(SurfaceTool st, Vector3 p, Vector3 normal)
         {
-            st.SetColor(Colors.White); st.SetNormal(normal); st.AddVertex(p);
+            st.SetColor(new Color(.63f, .65f, .64f)); st.SetNormal(normal); st.AddVertex(p);
         }
 
         static void RTSleeperQuad(SurfaceTool st, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal)
@@ -65,7 +83,7 @@ namespace TNBCY
 
                     // Subdivide only the existing top surface for weathering colour interpolation.
                     // Vertex positions retain the exact curved sleeper profile from v36.
-                    const int zSegments = 12;
+                    const int zSegments = 24;
                     for (int j = 0; j < zSegments; j++)
                     {
                         float za = Mathf.Lerp(z0, z1, j / (float)zSegments);
@@ -174,6 +192,16 @@ namespace TNBCY
                 matGravel.AlbedoColor = Colors.White;
                 matGravel.Roughness = .98f;
             }
+
+            // Sleeper colour is now the mesh's own vertex colour, not multiplied by the old
+            // concrete bitmap. This keeps rust, oil and dust visible on both main and LOD meshes.
+            matConcrete = new StandardMaterial3D
+            {
+                AlbedoColor = Colors.White,
+                VertexColorUseAsAlbedo = true,
+                Roughness = .96f,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled
+            };
         }
     }
 }

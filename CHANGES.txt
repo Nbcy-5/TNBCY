@@ -1,3 +1,8 @@
+TNBCY v38 — Sleeper weathering visibility fix
+SLEEPERS Reworked the sleeper top colours as direct vertex-colour albedo: stronger rust transfer under both rail seats, distinct dark grease/oil residue, irregular dust and scattered concrete grime.
+MATERIAL Removed the old concrete albedo texture from sleeper material so it cannot wash out or multiply away the weathering. Applied the same material to the curved near and distance LOD sleeper meshes.
+GEOMETRY Curved sleeper profile, height, spacing, width, rail clips, rails, ballast, route, trains and gameplay remain unchanged.
+
 [v37] Realistic weathering on curved concrete sleepers
 SLEEPERS  Added restrained orange-brown rust transfer beneath both rail seats, dark grease/oil smudges around the fastening areas, and subtle dusty concrete variation on the exposed sleeper tops.
 SCOPE  Weathering is limited to sleeper top-face vertex colours. Curved sleeper shape, height, spacing, clips, rails, ballast, track geometry, route, trains and gameplay are unchanged.
