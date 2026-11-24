@@ -16,26 +16,22 @@ namespace TNBCY
             RTSleeperVertex(st, a, normal); RTSleeperVertex(st, c, normal); RTSleeperVertex(st, d, normal);
         }
 
-        static ArrayMesh RTMakeSleeperCurved()
+        static ArrayMesh RTMakeSleeperMesh(int segments, float sag, bool includeClips)
         {
             return BuildMesh(st =>
             {
-                const int segments = 31;
                 const float width = 1f, z0 = -.5f, z1 = .5f, bottom = -.5f;
                 for (int i = 0; i < segments; i++)
                 {
                     float x0 = -width * .5f + width * i / segments;
                     float x1 = -width * .5f + width * (i + 1) / segments;
                     float nx0 = x0 / (width * .5f), nx1 = x1 / (width * .5f);
-                    float y0 = .5f - .10f * (1f - nx0 * nx0);
-                    float y1 = .5f - .10f * (1f - nx1 * nx1);
+                    float y0 = .5f - sag * (1f - nx0 * nx0);
+                    float y1 = .5f - sag * (1f - nx1 * nx1);
 
-                    // One continuous top surface: adjacent strips share exact edges and never overlap.
-                    RTSleeperQuad(st,
-                        new Vector3(x0, y0, z0), new Vector3(x1, y1, z0),
+                    // Adjacent top strips share exact edges; no overlapping coplanar faces.
+                    RTSleeperQuad(st, new Vector3(x0, y0, z0), new Vector3(x1, y1, z0),
                         new Vector3(x1, y1, z1), new Vector3(x0, y0, z1), Vector3.Up);
-
-                    // Front and rear end faces, built as adjoining strips with no duplicate area.
                     RTSleeperQuad(st, new Vector3(x0, y0, z0), new Vector3(x1, y1, z0),
                         new Vector3(x1, bottom, z0), new Vector3(x0, bottom, z0), Vector3.Forward);
                     RTSleeperQuad(st, new Vector3(x1, y1, z1), new Vector3(x0, y0, z1),
@@ -51,13 +47,19 @@ namespace TNBCY
                 RTSleeperQuad(st, new Vector3(-.5f, bottom, z0), new Vector3(.5f, bottom, z0),
                     new Vector3(.5f, bottom, z1), new Vector3(-.5f, bottom, z1), Vector3.Down);
 
-                Color steel = new Color(.22f, .22f, .24f);
-                for (int side = -1; side <= 1; side += 2)
-                    for (int k = -1; k <= 1; k += 2)
-                        AddBoxC(st, new Vector3(side * .3175f + k * .0382f, .5f, 0f),
-                            new Vector3(.00655f, .14f, .38f), steel);
+                if (includeClips)
+                {
+                    Color steel = new Color(.22f, .22f, .24f);
+                    for (int side = -1; side <= 1; side += 2)
+                        for (int k = -1; k <= 1; k += 2)
+                            AddBoxC(st, new Vector3(side * .3175f + k * .0382f, .5f, 0f),
+                                new Vector3(.00655f, .14f, .38f), steel);
+                }
             });
         }
+
+        static ArrayMesh RTMakeSleeperCurved() => RTMakeSleeperMesh(31, .22f, true);
+        static ArrayMesh RTMakeSleeperLod() => RTMakeSleeperMesh(7, .22f, false);
 
         // New colour source, not a brightness remap of the old dark granite.
         // Neutral concrete-grey angular chips, pale mineral flecks and restrained warm mud.
@@ -89,10 +91,10 @@ namespace TNBCY
                         }
 
                     float stone = RTHash(bx, by, 921), tint = RTHash(bx, by, 922);
-                    Color c = stone < .56f ? new Color(.57f, .59f, .60f)
-                        : stone < .78f ? new Color(.66f, .67f, .66f)
-                        : stone < .91f ? new Color(.53f, .54f, .53f)
-                        : new Color(.61f, .55f, .47f);
+                    Color c = stone < .56f ? new Color(.61f, .63f, .64f)
+                        : stone < .78f ? new Color(.70f, .71f, .70f)
+                        : stone < .91f ? new Color(.57f, .59f, .59f)
+                        : new Color(.64f, .58f, .50f);
                     float facet = Mathf.Clamp(.88f + .20f * (fx * (tint - .5f) + fy * (RTHash(bx, by, 923) - .5f)), .76f, 1.08f);
                     c *= facet;
                     float seam = 1f - Mathf.SmoothStep(.018f, .075f, d2 - d1);
@@ -116,6 +118,7 @@ namespace TNBCY
         void RTV29Init()
         {
             rtSleeperN26 = RTMakeSleeperCurved();
+            rtSleeperLod = RTMakeSleeperLod();
 
             if (matGravel != null)
             {
