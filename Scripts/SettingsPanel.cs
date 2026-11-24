@@ -23,7 +23,7 @@ namespace TNBCY
         {
             AddThemeConstantOverride("separation", 6);
             var box = new HBoxContainer(); box.AddThemeConstantOverride("separation", 12);
-            sens = new HSlider { MinValue = .3, MaxValue = 2.5, Step = .05, Value = Settings.CamSens, CustomMinimumSize = new Vector2(260, 44), SizeFlagsVertical = SizeFlags.ShapeCenter, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            sens = new HSlider { MinValue = .3, MaxValue = 2.5, Step = .05, Value = Settings.CamSens, CustomMinimumSize = new Vector2(260, 44), SizeFlagsVertical = SizeFlags.ShrinkCenter, SizeFlagsHorizontal = SizeFlags.ExpandFill };
             var track = Ui.Panel(new Color(1f, 1f, 1f, .16f), Colors.Transparent, 6); track.ContentMarginTop = 5; track.ContentMarginBottom = 5;
             var fill = Ui.Panel(Ui.Gold, Colors.Transparent, 6); fill.ContentMarginTop = 5; fill.ContentMarginBottom = 5;
             sens.AddThemeStyleboxOverride("slider", track); sens.AddThemeStyleboxOverride("grabber_area", fill); sens.AddThemeStyleboxOverride("grabber_area_highlight", fill);
