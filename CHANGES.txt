@@ -1,3 +1,7 @@
+[v37] Realistic weathering on curved concrete sleepers
+SLEEPERS  Added restrained orange-brown rust transfer beneath both rail seats, dark grease/oil smudges around the fastening areas, and subtle dusty concrete variation on the exposed sleeper tops.
+SCOPE  Weathering is limited to sleeper top-face vertex colours. Curved sleeper shape, height, spacing, clips, rails, ballast, track geometry, route, trains and gameplay are unchanged.
+
 [v36] Curved sleepers visible above muddy concrete-grey ballast
 TRACK  Lowered the ballast crown and raised the curved sleeper placement slightly so the sleeper tops remain visible instead of being buried by the ballast surface.
 LOOK  Recoloured ballast to a muted muddy concrete-grey: mid-grey angular stones, darker grey joints, restrained earthy mud and subtle relief.
