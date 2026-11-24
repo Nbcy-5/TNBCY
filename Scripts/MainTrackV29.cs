@@ -5,6 +5,7 @@ namespace TNBCY
     // v34: stable continuous sleeper geometry and a dedicated light cement-granite ballast texture.
     public partial class Main
     {
+        Mesh rtSleeperLod;
         static void RTSleeperVertex(SurfaceTool st, Vector3 p, Vector3 normal)
         {
             st.SetColor(Colors.White); st.SetNormal(normal); st.AddVertex(p);
