@@ -453,7 +453,8 @@ void fragment() {
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
                     }
                     if (tl.Count == 0) continue;
-                    var slp = MM(rtSleeperN26, matConcrete, tl.Count, 112.5f, true); // Far() applies .8 scale: exact 90 m handover to sleeper LOD var fit = MM(fitMesh, matFit, fl.Count, 55f);
+                    var slp = MM(rtSleeperN26, matConcrete, tl.Count, 112.5f, true); // Far() applies .8 scale: exact 90 m handover to sleeper LOD
+                    var fit = MM(fitMesh, matFit, fl.Count, 55f);
                     for (int i = 0; i < tl.Count; i++) { slp.SetInstanceTransform(i, tl[i]); slp.SetInstanceColor(i, cl[i]); }
                     for (int i = 0; i < fl.Count; i++) fit.SetInstanceTransform(i, fl[i]);
                 }
