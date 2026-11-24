@@ -239,9 +239,6 @@ void fragment() {
                 var far1 = new SurfaceTool(); far1.Begin(Mesh.PrimitiveType.Triangles);
                 var far2 = new SurfaceTool(); far2.Begin(Mesh.PrimitiveType.Triangles);
                 var far3 = new SurfaceTool(); far3.Begin(Mesh.PrimitiveType.Triangles);
-                var sbedNear = new SurfaceTool(); sbedNear.Begin(Mesh.PrimitiveType.Triangles);
-                var sbedMid = new SurfaceTool(); sbedMid.Begin(Mesh.PrimitiveType.Triangles);
-                var sbedFar = new SurfaceTool(); sbedFar.Begin(Mesh.PrimitiveType.Triangles); bool anySbed = false;
                 for (int i = i0; i < i1; i++)
                 {
                     float sa = ss[i], sb = ss[i + 1];
@@ -265,11 +262,6 @@ void fragment() {
                         float sy = h + .015f;
                         Vector3 a0 = p0 - r0 * 1.375f + up * sy, b0 = p0 + r0 * 1.375f + up * sy;
                         Vector3 a1 = p1 - r1 * 1.375f + up * sy, b1 = p1 + r1 * 1.375f + up * sy;
-                        // Coarser sleeper cadence takes over with distance so mipmaps do not erase the cross-ties.
-                        Strip(sbedNear, a0, b0, a1, b1, up, 0f, 1f, sa / sStep, sb / sStep);
-                        Strip(sbedMid, a0, b0, a1, b1, up, 0f, 1f, sa / (sStep * 4f), sb / (sStep * 4f));
-                        Strip(sbedFar, a0, b0, a1, b1, up, 0f, 1f, sa / (sStep * 8f), sb / (sStep * 8f));
-                        anySbed = true;
                     }
                     for (int side = -1; side <= 1; side += 2)
                     {
@@ -285,12 +277,6 @@ void fragment() {
                 var m1 = new MeshInstance3D { Mesh = far1.Commit(), MaterialOverride = rtFarRail }; AddChild(m1); Lod(m1, 140f, 520f);
                 var m2 = new MeshInstance3D { Mesh = far2.Commit(), MaterialOverride = rtFarRail }; AddChild(m2); Lod(m2, 440f, 1150f);
                 var m3 = new MeshInstance3D { Mesh = far3.Commit(), MaterialOverride = rtFarRail }; AddChild(m3); Lod(m3, 1000f, 2600f);
-                if (anySbed)
-                {
-                    var msbNear = new MeshInstance3D { Mesh = sbedNear.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msbNear); Lod(msbNear, 90f, 480f);
-                    var msbMid = new MeshInstance3D { Mesh = sbedMid.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msbMid); Lod(msbMid, 480f, 1250f);
-                    var msbFar = new MeshInstance3D { Mesh = sbedFar.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msbFar); Lod(msbFar, 1250f, 2600f);
-                }
                 i0 = i1;
             }
         }
@@ -442,6 +428,7 @@ void fragment() {
                 {
                     int cn = Mathf.Min(220, cnt - c0);
                     var tl = new List<Transform3D>(); var cl = new List<Color>(); var fl = new List<Transform3D>();
+                var lodNear = new List<Transform3D>(); var lodMid = new List<Transform3D>(); var lodFar = new List<Transform3D>();
                     for (int k = 0; k < cn; k++)
                     {
                         float st = (c0 + k + .5f) * slStep; if (st > e.Length) break;
@@ -449,7 +436,12 @@ void fragment() {
                         min = min.Min(p); max = max.Max(p); if ((c0 + k) % 60 == 0) trackPts.Add(p);
                         float shade = .86f + .24f * RTHash(c0 + k, 11, 3);
                         Vector3 sp = p + Vector3.Up * .33f;
-                        tl.Add(Xf(q, sp, new Vector3(2.75f, .21f, .26f))); cl.Add(new Color(shade, shade * .99f, shade * .96f));
+                        var sleeperXf = Xf(q, sp, new Vector3(2.75f, .21f, .26f));
+                        tl.Add(sleeperXf); cl.Add(new Color(shade, shade * .99f, shade * .96f));
+                        int sleeperIndex = c0 + k;
+                        if (sleeperIndex % 2 == 0) lodNear.Add(sleeperXf);
+                        if (sleeperIndex % 4 == 0) lodMid.Add(sleeperXf);
+                        if (sleeperIndex % 8 == 0) lodFar.Add(sleeperXf);
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
                     }
                     if (tl.Count == 0) continue;
@@ -457,6 +449,15 @@ void fragment() {
                     var fit = MM(fitMesh, matFit, fl.Count, 55f);
                     for (int i = 0; i < tl.Count; i++) { slp.SetInstanceTransform(i, tl[i]); slp.SetInstanceColor(i, cl[i]); }
                     for (int i = 0; i < fl.Count; i++) fit.SetInstanceTransform(i, fl[i]);
+
+                    // Replace the old coplanar distance texture with actual low-poly curved sleepers.
+                    // This keeps cross-ties crisp and avoids a second textured plane shimmering over the ballast.
+                    var farNear = MM(rtSleeperLod, matConcrete, lodNear.Count); Lod(farNear.GetParent() as GeometryInstance3D, 82f, 480f);
+                    for (int i = 0; i < lodNear.Count; i++) farNear.SetInstanceTransform(i, lodNear[i]);
+                    var farMid = MM(rtSleeperLod, matConcrete, lodMid.Count); Lod(farMid.GetParent() as GeometryInstance3D, 480f, 1250f);
+                    for (int i = 0; i < lodMid.Count; i++) farMid.SetInstanceTransform(i, lodMid[i]);
+                    var farFar = MM(rtSleeperLod, matConcrete, lodFar.Count); Lod(farFar.GetParent() as GeometryInstance3D, 1250f, 2600f);
+                    for (int i = 0; i < lodFar.Count; i++) farFar.SetInstanceTransform(i, lodFar[i]);
                 }
                 RTBuildOHE(e);                                       // v23: realistic 25 kV overhead line
             }
