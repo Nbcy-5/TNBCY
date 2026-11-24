@@ -421,14 +421,8 @@ void fragment() {
             foreach (var e in sc.Graph.Edges.Values)
             {
                 RTRibbons(e); RTFormation(e);
-                // points area: where a loop line is closer than 3.2 m to its main line the sleepers are long and carry both tracks
-                TEdge mS = null, mE = null; float zS = 0f, zE = 0f;
-                if (e.Turnout)
-                {
-                    if (e.SkipStart > 0f) { mS = MainOf(e, true); if (mS != null) zS = RTZoneStart(e, mS); }
-                    if (e.SkipEnd > 0f) { mE = MainOf(e, false); if (mE != null) zE = RTZoneEnd(e, mE); }
-                }
-                var fanT = new List<Transform3D>(); var fanC = new List<Color>();
+                // Each track edge gets its own sleeper across its own rail pair.
+                // Do not create shared/fan sleepers between adjacent tracks at turnouts.
                 int cnt = Mathf.Max(1, Mathf.RoundToInt(e.Length / RTSleeperSpacing)); float slStep = e.Length / cnt;   // v23: even spacing, no odd gap at piece joints
                 for (int c0 = 0; c0 < cnt; c0 += 220)
                 {
@@ -440,17 +434,6 @@ void fragment() {
                         var p = e.PosAt(st); var q = Basis.LookingAt(e.DirAt(st), Vector3.Up);
                         min = min.Min(p); max = max.Max(p); if ((c0 + k) % 60 == 0) trackPts.Add(p);
                         float shade = .86f + .24f * RTHash(c0 + k, 11, 3);
-                        TEdge mm = null; float tm = 0f;
-                        if (mS != null && st < zS) { mm = mS; tm = Mathf.Min(st, mS.Length); }
-                        else if (mE != null && st > e.Length - zE) { mm = mE; tm = Mathf.Max(0f, mE.Length - (e.Length - st)); }
-                        if (mm != null)
-                        {
-                            var mq = Basis.LookingAt(mm.DirAt(tm), Vector3.Up); Vector3 pm = mm.PosAt(tm), pl = e.PosAt(st);
-                            float off = (pl - pm).Dot(mq.X);
-                            fanT.Add(Xf(mq, pm + mq.X * (off * .5f) + Vector3.Up * .335f, new Vector3(Mathf.Abs(off) + 2.75f, .21f, .26f)));
-                            fanC.Add(new Color(shade, shade * .99f, shade * .96f));
-                            continue;
-                        }
                         Vector3 sp = p + Vector3.Up * .33f;
                         tl.Add(Xf(q, sp, new Vector3(2.75f, .21f, .26f))); cl.Add(new Color(shade, shade * .99f, shade * .96f));
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
@@ -460,12 +443,6 @@ void fragment() {
                     for (int i = 0; i < tl.Count; i++) { slp.SetInstanceTransform(i, tl[i]); slp.SetInstanceColor(i, cl[i]); }
                     for (int i = 0; i < fl.Count; i++) fit.SetInstanceTransform(i, fl[i]);
                 }
-                if (fanT.Count > 0)
-                {
-                    var fan = MM(rtSleeperN26, matConcrete, fanT.Count, 160f, true);
-                    for (int i = 0; i < fanT.Count; i++) { fan.SetInstanceTransform(i, fanT[i]); fan.SetInstanceColor(i, fanC[i]); }
-                }
-
                 RTBuildOHE(e);                                       // v23: realistic 25 kV overhead line
             }
             foreach (var e in sc.Graph.Edges.Values) if (e.Turnout) BuildJoints(e);
