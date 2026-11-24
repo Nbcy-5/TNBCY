@@ -1,3 +1,18 @@
+[v23] Secunderabad station rebuilt, realistic track and overhead line
+ + Track: concrete sleepers now 0.65 m apart (was 0.60), spaced evenly so there is no odd gap where two track pieces meet.
+ + Ballast: granite / cement grey with dried-mud patches and black grease right under the rails, mud at the toe of the slope.
+ + Under and beside the ballast: muddy cement formation strip (2.95 m each side) instead of the green grass strip. World-space shader, no seams.
+ + Joints: track pieces met with 0.6 to 1.6 degree kinks (checked on all 22 joints) which left small wedge gaps. Both pieces now share one direction.
+ + Overhead line (25 kV AC): I-section steel masts on concrete blocks, cantilever with stay tube, registration arm, ribbed insulators,
+   messenger wire that sags between masts, contact wire at 5.75 m zig-zagging +-0.2 m, droppers. Wires join exactly at piece ends.
+ + Secunderabad: 7 m platforms (top 0.85 m above rail, edge 1.70 m from track centre), tiled paving, cream coping, red line, studded yellow tactile band,
+   railing, end ramps, blue-roof shelters with columns, benches, tube lights, hanging PLATFORM 1 / 2 boards, foot-over-bridge with 28 degree stairs.
+ ! P2 pack checked: platform edge 3.06 m from the track (real 1.70), platform only 0.18 m above rail (real 0.85), yellow strip floating off the platform,
+   stairs 55 degrees (real about 30), no materials (vertex colours only), Z-up axis. The new code uses the P2 look but corrected sizes.
+ ! NOT compiled or run in my sandbox (no Godot/.NET). If the build fails send the last 20 lines with "error CS".
+ ! No reference photos reached me in this chat, so the overhead line follows standard Indian 25 kV practice. Send the photos to match them exactly.
+ Android version 3.2 (code 23).
+
 [v22] Electric locos only
  - All diesel locomotives (WDM, WDG, WDP, WDAP: 38 models) removed from Data/locos.json and Assets/Locos (smaller APK).
  - The loco picker button/arrows are removed from the menu.

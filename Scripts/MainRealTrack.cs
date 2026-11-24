@@ -95,8 +95,8 @@ namespace TNBCY
                             if (d < d1) { d2 = d1; d1 = d; bx = wx; by = wy; fx = -dx / sz; fy = -dy / sz; } else if (d < d2) d2 = d;
                         }
                     float r1 = RTHash(bx, by, 3), r2 = RTHash(bx, by, 4), r3 = RTHash(bx, by, 5), r4 = RTHash(bx, by, 7);
-                    float bs = .15f + .26f * r1 * r1;
-                    float cr = bs, cg = bs * 1.03f, cb = bs * 1.10f;
+                    float bs = .30f + .30f * r1 * r1;                                       // v23: lighter granite / cement grey
+                    float cr = bs * 1.02f, cg = bs * 1.01f, cb = bs * .99f;
                     if (r2 > .94f) { cr = .28f + .1f * r1; cg = .19f + .05f * r1; cb = .14f; }                       // brown stone
                     else if (r2 < .16f) { cr = .40f + .15f * r1; cg = .41f + .15f * r1; cb = .42f + .15f * r1; }      // pale stone
                     float spk = RTHash(x * 5 + bx * 7, y * 5 + by * 3, 6), spk2 = RTHash(x, y, 9);
@@ -105,7 +105,13 @@ namespace TNBCY
                     float edge = Mathf.Clamp((d2 - d1) * 3.2f, 0f, 1f);
                     float k = facet * (.18f + .82f * Mathf.Pow(edge, .8f));
                     int o = (y * size + x) * 3;
-                    alb[o] = RTByte((cr + speck) * k); alb[o + 1] = RTByte((cg + speck) * k); alb[o + 2] = RTByte((cb + speck) * k);
+                    float uu = x / (float)size, vv = y / (float)size;
+                    float mud = Mathf.Clamp((RTFbm(uu, vv, 5, 3, 61) - .55f) * 4f, 0f, 1f) * .55f;            // v23: dried mud between the stones
+                    float grs = Mathf.Clamp((RTFbm(uu, vv, 3, 4, 71) - .60f) * 5f, 0f, 1f) * .65f;            // v23: black diesel grease / oil patches
+                    float fr = (cr + speck) * k, fg = (cg + speck) * k, fb = (cb + speck) * k;
+                    fr = Mathf.Lerp(fr, .33f * k + .05f, mud); fg = Mathf.Lerp(fg, .26f * k + .04f, mud); fb = Mathf.Lerp(fb, .18f * k + .03f, mud);
+                    fr *= 1f - grs * .85f; fg *= 1f - grs * .88f; fb *= 1f - grs * .9f;
+                    alb[o] = RTByte(fr); alb[o + 1] = RTByte(fg); alb[o + 2] = RTByte(fb);
                     hgt[y * size + x] = edge * (.55f + .45f * r1) + .04f * spk2;
                 }
             return new RTTex { Albedo = alb, Normal = RTNormals(hgt, size, 2.4f), Size = size };
@@ -175,7 +181,7 @@ namespace TNBCY
             var g = rtGraniteJob.Result; var c = rtConcreteJob.Result;
             matGravel = new StandardMaterial3D
             {
-                AlbedoTexture = RTTexture(g.Albedo, g.Size, false), NormalEnabled = true, NormalTexture = RTTexture(g.Normal, g.Size, true), NormalScale = 1.6f,
+                AlbedoTexture = RTTexture(g.Albedo, g.Size, false), VertexColorUseAsAlbedo = true, NormalEnabled = true, NormalTexture = RTTexture(g.Normal, g.Size, true), NormalScale = 1.6f,
                 Roughness = .97f, CullMode = BaseMaterial3D.CullModeEnum.Disabled, TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic
             };
             matConcrete = new StandardMaterial3D
@@ -229,11 +235,16 @@ void fragment() {
                     Vector3 p0 = e.PosAt(sa), p1 = e.PosAt(sb), r0 = Right(e.DirAt(sa)), r1 = Right(e.DirAt(sb)), up = Vector3.Up;
                     const float tw = 1.72f, bw = 2.15f, h = .40f, dp = -.18f;
                     Vector3 nl = (-r0 * h + up * (bw - tw)).Normalized(), nr = (r0 * h + up * (bw - tw)).Normalized();
-                    Strip(bed, p0 - r0 * (bw + .25f) + up * dp, p0 - r0 * bw, p1 - r1 * (bw + .25f) + up * dp, p1 - r1 * bw, nl, -(bw + .25f) * .5f, -bw * .5f, sa * .5f, sb * .5f);
-                    Strip(bed, p0 - r0 * bw, p0 - r0 * tw + up * h, p1 - r1 * bw, p1 - r1 * tw + up * h, nl, -bw * .5f, -tw * .5f, sa * .5f, sb * .5f);
-                    Strip(bed, p0 - r0 * tw + up * h, p0 + r0 * tw + up * h, p1 - r1 * tw + up * h, p1 + r1 * tw + up * h, up, -tw * .5f, tw * .5f, sa * .5f, sb * .5f);
-                    Strip(bed, p0 + r0 * tw + up * h, p0 + r0 * bw, p1 + r1 * tw + up * h, p1 + r1 * bw, nr, tw * .5f, bw * .5f, sa * .5f, sb * .5f);
-                    Strip(bed, p0 + r0 * bw, p0 + r0 * (bw + .25f) + up * dp, p1 + r1 * bw, p1 + r1 * (bw + .25f) + up * dp, nr, bw * .5f, (bw + .25f) * .5f, sa * .5f, sb * .5f);
+                    float ua = sa * .5f, ub = sb * .5f;
+                    Color cToe = new Color(.50f, .44f, .37f), cShl = new Color(.80f, .75f, .68f), cOut = new Color(.95f, .93f, .90f), cGrs = new Color(.46f, .43f, .40f), cMid = new Color(.68f, .65f, .60f);
+                    RTBand(bed, p0 - r0 * (bw + .25f) + up * dp, p0 - r0 * bw, p1 - r1 * (bw + .25f) + up * dp, p1 - r1 * bw, nl, -(bw + .25f) * .5f, -bw * .5f, ua, ub, cToe, cToe);
+                    RTBand(bed, p0 - r0 * bw, p0 - r0 * tw + up * h, p1 - r1 * bw, p1 - r1 * tw + up * h, nl, -bw * .5f, -tw * .5f, ua, ub, cToe, cShl);
+                    float[] la = { -tw, -1.30f, -RailG, -.45f, .45f, RailG, 1.30f, tw };
+                    Color[] lc = { cShl, cOut, cGrs, cMid, cMid, cGrs, cOut, cShl };            // grease and dark stone right under the rails
+                    for (int bi = 0; bi < la.Length - 1; bi++)
+                        RTBand(bed, p0 + r0 * la[bi] + up * h, p0 + r0 * la[bi + 1] + up * h, p1 + r1 * la[bi] + up * h, p1 + r1 * la[bi + 1] + up * h, up, la[bi] * .5f, la[bi + 1] * .5f, ua, ub, lc[bi], lc[bi + 1]);
+                    RTBand(bed, p0 + r0 * tw + up * h, p0 + r0 * bw, p1 + r1 * tw + up * h, p1 + r1 * bw, nr, tw * .5f, bw * .5f, ua, ub, cShl, cToe);
+                    RTBand(bed, p0 + r0 * bw, p0 + r0 * (bw + .25f) + up * dp, p1 + r1 * bw, p1 + r1 * (bw + .25f) + up * dp, nr, bw * .5f, (bw + .25f) * .5f, ua, ub, cToe, cToe);
                     for (int side = -1; side <= 1; side += 2)
                     {
                         if (e.Turnout && side > 0 && ((e.SkipStart > 0f && sb <= TongueLen) || (e.SkipEnd > 0f && sa >= e.Length - TongueLen))) continue;
@@ -372,11 +383,12 @@ void fragment() {
         {
             RTMaterials();
             MakeTrackMeshes();
+            RTFixJoints();                                          // v23: both pieces share one direction at every joint
             if (cam != null) cam.Near = .3f;                       // larger near plane = far better depth precision (less z-fighting / shaking)
             var min = new Vector3(1e9f, 0, 1e9f); var max = new Vector3(-1e9f, 0, -1e9f);
             foreach (var e in sc.Graph.Edges.Values)
             {
-                RTRibbons(e);
+                RTRibbons(e); RTFormation(e);
                 // points area: where a loop line is closer than 3.2 m to its main line the sleepers are long and carry both tracks
                 TEdge mS = null, mE = null; float zS = 0f, zE = 0f;
                 if (e.Turnout)
@@ -385,14 +397,14 @@ void fragment() {
                     if (e.SkipEnd > 0f) { mE = MainOf(e, false); if (mE != null) zE = RTZoneEnd(e, mE); }
                 }
                 var fanT = new List<Transform3D>(); var fanC = new List<Color>();
-                int cnt = Mathf.Max(1, Mathf.FloorToInt(e.Length / .6f));
+                int cnt = Mathf.Max(1, Mathf.RoundToInt(e.Length / RTSleeperSpacing)); float slStep = e.Length / cnt;   // v23: even spacing, no odd gap at piece joints
                 for (int c0 = 0; c0 < cnt; c0 += 220)
                 {
                     int cn = Mathf.Min(220, cnt - c0);
                     var tl = new List<Transform3D>(); var cl = new List<Color>(); var fl = new List<Transform3D>();
                     for (int k = 0; k < cn; k++)
                     {
-                        float st = .3f + (c0 + k) * .6f; if (st > e.Length) break;
+                        float st = (c0 + k + .5f) * slStep; if (st > e.Length) break;
                         var p = e.PosAt(st); var q = Basis.LookingAt(e.DirAt(st), Vector3.Up);
                         min = min.Min(p); max = max.Max(p); if ((c0 + k) % 60 == 0) trackPts.Add(p);
                         float shade = .86f + .24f * RTHash(c0 + k, 11, 3);
@@ -422,26 +434,7 @@ void fragment() {
                     for (int i = 0; i < fanT.Count; i++) { fan.SetInstanceTransform(i, fanT[i]); fan.SetInstanceColor(i, fanC[i]); }
                 }
 
-                // overhead line: contact and catenary wires every 6 m, masts every 54 m
-                int np = Mathf.Max(1, Mathf.CeilToInt(e.Length / 6f)); float step = e.Length / np;
-                for (int c0 = 0; c0 < np; c0 += 60)
-                {
-                    int cn = Mathf.Min(60, np - c0);
-                    var wires = MM(wireMesh, matWire, cn, 2000f);
-                    for (int k = 0; k < cn; k++)
-                    {
-                        float s = (c0 + k + .5f) * step;
-                        wires.SetInstanceTransform(k, Xf(Basis.LookingAt(e.DirAt(s), Vector3.Up), e.PosAt(s), new Vector3(1f, 1f, step / 6f)));
-                    }
-                    float s0 = c0 * step, s1 = (c0 + cn) * step; var mastS = new List<float>();
-                    for (int m = Mathf.CeilToInt(s0 / MastSpacing - .5f); (m + .5f) * MastSpacing < s1; m++) { float sm = (m + .5f) * MastSpacing; if (sm >= s0) { float sp = MastPlace(e, sm); if (sp >= 0f) mastS.Add(sp); } }
-                    if (mastS.Count > 0)
-                    {
-                        var masts = MM(mastMesh, matMast, mastS.Count, 2000f);
-                        for (int i = 0; i < mastS.Count; i++)
-                            masts.SetInstanceTransform(i, Xf(Basis.LookingAt(e.DirAt(mastS[i]), Vector3.Up), e.PosAt(mastS[i]), Vector3.One));
-                    }
-                }
+                RTBuildOHE(e);                                       // v23: realistic 25 kV overhead line
             }
             foreach (var e in sc.Graph.Edges.Values) if (e.Turnout) BuildJoints(e);
             RTTurnouts();
