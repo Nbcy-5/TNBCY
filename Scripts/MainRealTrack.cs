@@ -12,8 +12,8 @@ namespace TNBCY
     // What it does
     //  - Ballast: angular dark granite (like your photo) with a normal map, so the stones have real relief under the sun.
     //  - Sleepers: grey concrete with pits, dark aggregate and stains (like your photo), exactly 0.6 m apart, with rail pads and clips.
-    //  - No flicker: sleepers are real geometry only within 90 m (they were drawn out to 1700 m and shimmered). The ballast bed now reaches
-    //    below the ground and the camera near plane is larger, so ground and track no longer fight for the same pixels.
+    //  - Stable distance LOD: the far sleeper strip sits below the real sleeper tops (no coplanar z-fighting).
+    //    Coarser sleeper cadence preserves visible cross-ties at long range without forcing unstable high-frequency detail.
     //  - Points: the grey boxes are gone. The crossing now has a V-shaped cast frog with a polished top between the wing rails and check rails.
     //  - Grass tufts and small stones beside the track (not on platforms, not on the other track).
     public partial class Main
@@ -239,7 +239,9 @@ void fragment() {
                 var far1 = new SurfaceTool(); far1.Begin(Mesh.PrimitiveType.Triangles);
                 var far2 = new SurfaceTool(); far2.Begin(Mesh.PrimitiveType.Triangles);
                 var far3 = new SurfaceTool(); far3.Begin(Mesh.PrimitiveType.Triangles);
-                var sbed = new SurfaceTool(); sbed.Begin(Mesh.PrimitiveType.Triangles); bool anySbed = false;
+                var sbedNear = new SurfaceTool(); sbedNear.Begin(Mesh.PrimitiveType.Triangles);
+                var sbedMid = new SurfaceTool(); sbedMid.Begin(Mesh.PrimitiveType.Triangles);
+                var sbedFar = new SurfaceTool(); sbedFar.Begin(Mesh.PrimitiveType.Triangles); bool anySbed = false;
                 for (int i = i0; i < i1; i++)
                 {
                     float sa = ss[i], sb = ss[i + 1];
@@ -258,8 +260,15 @@ void fragment() {
                     RTBand(bed, p0 + r0 * bw, p0 + r0 * (bw + .25f) + up * dp, p1 + r1 * bw, p1 + r1 * (bw + .25f) + up * dp, nr, bw * .5f, (bw + .25f) * .5f, ua, ub, cToe, cToe);
                     if (!(e.Turnout && (sb <= e.SkipStart + 20f || sa >= e.Length - e.SkipEnd - 20f)))      // v26: distant sleepers are a texture on a strip over the ballast
                     {
-                        float sy = h + .035f;
-                        Strip(sbed, p0 - r0 * 1.375f + up * sy, p0 + r0 * 1.375f + up * sy, p1 - r1 * 1.375f + up * sy, p1 + r1 * 1.375f + up * sy, up, 0f, 1f, sa / sStep, sb / sStep);
+                        // Keep this distance-only sleeper surface below the real sleeper tops and rail feet.
+                        // This removes the coplanar overlap that caused shimmer while stopped or moving.
+                        float sy = h + .015f;
+                        Vector3 a0 = p0 - r0 * 1.375f + up * sy, b0 = p0 + r0 * 1.375f + up * sy;
+                        Vector3 a1 = p1 - r1 * 1.375f + up * sy, b1 = p1 + r1 * 1.375f + up * sy;
+                        // Coarser sleeper cadence takes over with distance so mipmaps do not erase the cross-ties.
+                        Strip(sbedNear, a0, b0, a1, b1, up, 0f, 1f, sa / sStep, sb / sStep);
+                        Strip(sbedMid, a0, b0, a1, b1, up, 0f, 1f, sa / (sStep * 4f), sb / (sStep * 4f));
+                        Strip(sbedFar, a0, b0, a1, b1, up, 0f, 1f, sa / (sStep * 8f), sb / (sStep * 8f));
                         anySbed = true;
                     }
                     for (int side = -1; side <= 1; side += 2)
@@ -276,7 +285,12 @@ void fragment() {
                 var m1 = new MeshInstance3D { Mesh = far1.Commit(), MaterialOverride = rtFarRail }; AddChild(m1); Lod(m1, 140f, 520f);
                 var m2 = new MeshInstance3D { Mesh = far2.Commit(), MaterialOverride = rtFarRail }; AddChild(m2); Lod(m2, 440f, 1150f);
                 var m3 = new MeshInstance3D { Mesh = far3.Commit(), MaterialOverride = rtFarRail }; AddChild(m3); Lod(m3, 1000f, 2600f);
-                if (anySbed) { var msb = new MeshInstance3D { Mesh = sbed.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msb); Lod(msb, 90f, 450f); }
+                if (anySbed)
+                {
+                    var msbNear = new MeshInstance3D { Mesh = sbedNear.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msbNear); Lod(msbNear, 90f, 480f);
+                    var msbMid = new MeshInstance3D { Mesh = sbedMid.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msbMid); Lod(msbMid, 480f, 1250f);
+                    var msbFar = new MeshInstance3D { Mesh = sbedFar.Commit(), MaterialOverride = rtSleeperBedMat }; AddChild(msbFar); Lod(msbFar, 1250f, 2600f);
+                }
                 i0 = i1;
             }
         }

@@ -1,3 +1,8 @@
+[v30] Stable track rendering and visible distant sleepers
+ FIX  Move the distance sleeper surface below the real sleeper tops and rail feet to remove coplanar flicker.
+ FIX  Add progressively coarser sleeper-distance LODs so cross-ties remain visible farther down the track.
+ KEEP Train behaviour, controls, routes, scenery, ballast appearance, rail profile and all other gameplay unchanged.
+
 [v29] Natural rail profile and weathered track bed
  LOOK Rail-head top shoulders reshaped into smooth rounded curves, keeping a broad, flat running surface.
  LOOK Ballast stays cement-grey with restrained irregular muddy patches and occasional dark greasy areas.
