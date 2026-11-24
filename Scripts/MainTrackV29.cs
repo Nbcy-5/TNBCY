@@ -9,14 +9,14 @@ namespace TNBCY
         {
             return BuildMesh(st =>
             {
-                // Eleven adjoining sections create a subtle downward bow at both ends.
+                // Eleven adjoining sections create a subtle subtle downward dip at the centre.
                 const int segments = 11;
                 const float width = 2.75f;
                 for (int i = 0; i < segments; i++)
                 {
                     float x = -width * .5f + width * (i + .5f) / segments;
                     float nx = x / (width * .5f);
-                    float drop = -.025f * nx * nx;
+                    float drop = -.025f * (1f - nx * nx);
                     float sx = width / segments + .002f;
                     AddBoxC(st, new Vector3(x, drop, 0f),
                         new Vector3(sx, 1f, 1f), Colors.White);
@@ -63,7 +63,7 @@ namespace TNBCY
 
         void RTV29Init()
         {
-            // Keep the V28 full sleeper profile, adding only a very slight downward bow at its ends.
+            // Keep the V28 full sleeper profile, adding only a very slight downward dip at its centre.
             rtSleeperN26 = RTMakeSleeperCurved();
 
             // Neutral cement-grey ballast with restrained muddy and occasional dark greasy patches.
