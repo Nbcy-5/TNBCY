@@ -1,3 +1,10 @@
+[v33] Expandable two-train service list and natural track-bed appearance
+ UI  Show only Simhapuri Express and Deccan Express in a vertical list. Tap a train name to expand its service details and DRIVE button.
+ DATA  Deccan Express runs Kakinada Jn to Secunderabad Jn; Simhapuri Express remains Secunderabad Jn to Gudur Jn. Train numbers remain randomly assigned five-digit numbers.
+ LOOK  Lift ballast out of the green-black range into visible concrete-grey granite with earthy muddy patches; reduce near-black oil staining.
+ FIX  Slightly brighten distant sleeper-bed texture and separate overlapping formation strips by a tiny deterministic height offset to prevent black z-fighting lines.
+ KEEP  No changes to train physics, controls, route geometry, scenery placement, rail profile or unrelated gameplay.
+
 [v32] Named train-service selection and accurate service briefing\n NEW  After choosing a route, show named train services instead of generic consist categories. Each service card shows its five-digit train number, origin, destination, departure platform, locomotive type and coach count.\n NEW  The selected service name, number, route, locomotive, coach formation and crew carry through to the pre-journey details screen.\n FIX  Removed caste-based surnames from generated crew names; crew names use first names only.\n NOTE  Simhapuri Express and the other listed service names are in-game services; Gudur is the displayed service destination where configured, while the playable route still ends at Ghatkesar.\n\n[v31] Simhapuri Express service briefing before driving
  NEW  Show a train-service information screen after selecting DRIVE: random five-digit train number, Secunderabad departure platform 1, Gudur service destination, current playable section, actual selected locomotive, coach count and randomly assigned crew.
  NOTE  Gudur is shown as the service destination beyond the currently simulated Secunderabad–Ghatkesar section; the existing route and track network are unchanged.
