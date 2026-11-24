@@ -72,10 +72,10 @@ namespace TNBCY
                 {
                     float u = x / (float)size, v = y / (float)size;
                     float n1 = RTFbm(u, v, 4, 5, 81), n2 = RTFbm(u + .37f, v + .11f, 9, 3, 82), n3 = RTFbm(u, v, 3, 4, 83);
-                    float b = .40f + .22f * (n1 - .5f) + .10f * (n2 - .5f);                        // cement grey
-                    float mud = Mathf.Clamp((n3 - .48f) * 3.2f, 0f, 1f);                            // mud patches
-                    float cr = Mathf.Lerp(b, .34f, mud * .8f), cg = Mathf.Lerp(b * .98f, .27f, mud * .8f), cb = Mathf.Lerp(b * .94f, .19f, mud * .8f);
-                    float grs = Mathf.Clamp((RTFbm(u + .6f, v + .3f, 5, 3, 84) - .66f) * 6f, 0f, 1f) * .55f;   // oil
+                    float b = .54f + .12f * (n1 - .5f) + .07f * (n2 - .5f);                        // light concrete-grey formation
+                    float mud = Mathf.Clamp((n3 - .52f) * 2.8f, 0f, .75f);                            // visible earthy mud patches
+                    float cr = Mathf.Lerp(b, .43f, mud * .62f), cg = Mathf.Lerp(b * .99f, .35f, mud * .62f), cb = Mathf.Lerp(b * .96f, .27f, mud * .62f);
+                    float grs = Mathf.Clamp((RTFbm(u + .6f, v + .3f, 5, 3, 84) - .74f) * 2.0f, 0f, 1f) * .10f;   // tiny restrained damp patches
                     cr *= 1f - grs; cg *= 1f - grs; cb *= 1f - grs * .95f;
                     float f = .92f + .16f * RTHash(x, y, 85);
                     int o = (y * size + x) * 3;
@@ -97,7 +97,7 @@ void fragment() {
     vec3 t2 = texture(mud_tex, uv * 0.045).rgb;
     vec3 m = texture(macro_tex, uv * 0.011).rgb;
     float wet = smoothstep(0.35, 0.72, m.g);
-    ALBEDO = t1 * (0.65 + 0.7 * t2) * mix(vec3(1.0), vec3(0.62, 0.55, 0.46), wet);
+    ALBEDO = t1 * (0.65 + 0.7 * t2) * mix(vec3(1.0), vec3(0.86, 0.80, 0.72), wet);
     ROUGHNESS = mix(0.95, 0.65, wet * 0.5);
 }";
 
@@ -112,8 +112,8 @@ void fragment() {
             }
             // Tiny deterministic height separation prevents coplanar formation strips from z-fighting
             // where neighbouring track beds overlap. The offset is visually negligible.
-            float y = .05f + (int)((uint)e.Id.GetHashCode() % 9u) * .001f;
-            const float hw = 2.95f; // muddy cement formation each side of the track centre line
+            float y = .05f + (int)((uint)e.Id.GetHashCode() % 4u) * .006f;
+            const float hw = 2.18f; // just beyond the 2.15 m ballast shoulder; avoids wide overlapping strips between tracks
             int n = Mathf.Max(1, Mathf.CeilToInt(e.Length / 5f)); float ds = e.Length / n;
             for (int c0 = 0; c0 < n; c0 += 60)
             {
