@@ -9,15 +9,18 @@ namespace TNBCY
         {
             return BuildMesh(st =>
             {
-                // Eleven adjoining sections create a subtle subtle downward dip at the centre.
-                const int segments = 11;
-                const float width = 2.75f;
+                // Unit-width local mesh: BuildRealTrack scales it to 2.75 m exactly once.
+                // The earlier 2.75 m local width was multiplied by the placement scale again,
+                // making sleepers about 7.56 m wide and allowing them to reach the adjacent track.
+                const int segments = 31;
+                const float width = 1f;
                 for (int i = 0; i < segments; i++)
                 {
                     float x = -width * .5f + width * (i + .5f) / segments;
                     float nx = x / (width * .5f);
-                    float drop = -.025f * (1f - nx * nx);
-                    float sx = width / segments + .002f;
+                    // About 2 cm of smooth centre dip after the .21 m placement scale.
+                    float drop = -.10f * (1f - nx * nx);
+                    float sx = width / segments + .001f;
                     AddBoxC(st, new Vector3(x, drop, 0f),
                         new Vector3(sx, 1f, 1f), Colors.White);
                 }
@@ -26,7 +29,7 @@ namespace TNBCY
                 for (int side = -1; side <= 1; side += 2)
                     for (int k = -1; k <= 1; k += 2)
                         AddBoxC(st, new Vector3(side * .3175f + k * .0382f, .5f, 0f),
-                            new Vector3(.018f, .14f, .38f), steel);
+                            new Vector3(.00655f, .14f, .38f), steel);
             });
         }
 
