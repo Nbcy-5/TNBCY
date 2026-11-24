@@ -460,7 +460,7 @@ void fragment() {
 
                     // Replace the old coplanar distance texture with actual low-poly curved sleepers.
                     // This keeps cross-ties crisp and avoids a second textured plane shimmering over the ballast.
-                    var farNear = RTMultiMeshLod(rtSleeperLod, matConcrete, lodNear.Count, 82f, 480f);
+                    var farNear = RTMultiMeshLod(rtSleeperLod, matConcrete, lodNear.Count, 90f, 480f);
                     for (int i = 0; i < lodNear.Count; i++) farNear.SetInstanceTransform(i, lodNear[i]);
                     var farMid = RTMultiMeshLod(rtSleeperLod, matConcrete, lodMid.Count, 480f, 1250f);
                     for (int i = 0; i < lodMid.Count; i++) farMid.SetInstanceTransform(i, lodMid[i]);
