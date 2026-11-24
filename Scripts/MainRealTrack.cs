@@ -449,7 +449,7 @@ void fragment() {
                         int sleeperIndex = c0 + k;
                         if (sleeperIndex % 2 == 0) lodNear.Add(sleeperXf);
                         if (sleeperIndex % 4 == 0) lodMid.Add(sleeperXf);
-                        if (sleeperIndex % 8 == 0) lodFar.Add(sleeperXf);
+                        if (sleeperIndex % 4 == 0) lodFar.Add(sleeperXf);
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
                     }
                     if (tl.Count == 0) continue;
