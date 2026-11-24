@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v31";
+        public const string Version = "v32";
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
 
         FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
@@ -139,7 +139,7 @@ namespace TNBCY
                 if (resumed) Toast("Session resumed", true, 4f);
                 else
                 {
-                    briefingDetails.Text = BuildServiceBriefing(route, consist);
+                    briefingDetails.Text = BuildServiceBriefing(route, train, consist);
                     briefingOverlay.Visible = true;
                     if (resume != null) Toast("Saved session could not be restored - starting a new run", false, 5f);
                 }
@@ -236,10 +236,10 @@ namespace TNBCY
             BuildBriefing(root);
         }
 
-        string BuildServiceBriefing(RouteInfo route, ConsistSpec consist)
+        string BuildServiceBriefing(RouteInfo route, TrainOption train, ConsistSpec consist)
         {
-            string[] drivers = { "Arjun Reddy", "Ravi Kumar", "Suresh Naidu", "Kiran Rao", "Vijay Sharma", "Manoj Varma" };
-            string[] assistants = { "Rahul", "Prakash", "Naveen", "Ajay", "Srinivas", "Mahesh" };
+            string[] drivers = { "Arjun", "Ravi", "Suresh", "Kiran", "Vijay", "Manoj", "Anil", "Deepak" };
+            string[] assistants = { "Rahul", "Prakash", "Naveen", "Ajay", "Srinivas", "Mahesh", "Rohan", "Karthik" };
             string engine = "Locomotive";
             string coachType = "Passenger coach";
             int coachCount = 0;
@@ -257,15 +257,18 @@ namespace TNBCY
             string driver = drivers[(int)(GD.Randi() % (uint)drivers.Length)];
             string assistant = assistants[(int)(GD.Randi() % (uint)assistants.Length)];
             int number = (int)GD.RandRange(10000, 99999);
-            return "SIMHAPURI EXPRESS  |  TRAIN NO. " + number.ToString("D5")
-                + "\n\nFROM: " + from + "     DEPARTURE PLATFORM: 1"
-                + "\nSERVICE DESTINATION: Gudur Jn"
-                + "\nCURRENT PLAYABLE SECTION: " + from + "  →  " + sectionEnd
-                + "\nGudur is beyond the currently available section; this build's route ends at " + sectionEnd + "."
-                + "\n\nLOCOMOTIVE: " + engine
-                + "\nCOACH FORMATION: " + coachCount + " × " + coachType + " (simulated passenger rake)"
-                + "\nLOCO PILOT: " + driver
-                + "\nASSISTANT LOCO PILOT: " + assistant;
+            int serviceNumber = train.trainNumber >= 10000 && train.trainNumber <= 99999 ? train.trainNumber : number;
+            string serviceFrom = string.IsNullOrWhiteSpace(train.origin) ? from : train.origin;
+            string serviceTo = string.IsNullOrWhiteSpace(train.destination) ? sectionEnd : train.destination;
+            return train.name.ToUpperInvariant() + "  |  TRAIN NO. " + serviceNumber.ToString("D5")
+                + "\\n\\nFROM: " + serviceFrom + "     DEPARTURE PLATFORM: " + train.platform
+                + "\\nSERVICE DESTINATION: " + serviceTo
+                + "\\nCURRENT PLAYABLE SECTION: " + from + "  →  " + sectionEnd
+                + "\\nThe currently available route ends at " + sectionEnd + "."
+                + "\\n\\nLOCOMOTIVE: " + engine
+                + "\\nCOACH FORMATION: " + coachCount + " × " + coachType
+                + "\\nLOCO PILOT: " + driver
+                + "\\nASSISTANT LOCO PILOT: " + assistant;
         }
 
         void BuildBriefing(Control root)

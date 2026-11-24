@@ -11,7 +11,7 @@ namespace TNBCY
         public bool available = true;
     }
     public class RouteList { public List<RouteInfo> routes = new List<RouteInfo>(); }
-    public class TrainOption { public string name = "", file = "", desc = "", kind = ""; public int coaches = 8; }
+    public class TrainOption { public string name = "", file = "", desc = "", kind = "", origin = "Secunderabad Jn", destination = "Gudur Jn", locomotive = "WAP electric locomotive"; public int coaches = 8, trainNumber = 0, platform = 1; }
     public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
 
     // Home screen with animated railway backdrop, route and train selection, settings.
@@ -184,13 +184,18 @@ namespace TNBCY
             trainsSub.Text = chosen != null ? chosen.name : "";
             foreach (var tr in trains)
             {
-                var to = tr; VBoxContainer v; var card = Card(new Vector2(330, 400), out v);
-                v.AddChild(Ui.MakeLabel((string.IsNullOrEmpty(to.kind) ? "TRAIN" : to.kind).ToUpperInvariant(), 15, Ui.Gold, true));
-                var name = Ui.MakeLabel(to.name, 26, Colors.White, true); name.AutowrapMode = TextServer.AutowrapMode.WordSmart; name.CustomMinimumSize = new Vector2(286, 0); v.AddChild(name);
-                v.AddChild(new TrainGlyph { Coaches = to.coaches, CustomMinimumSize = new Vector2(286, 90) });
-                var d = Ui.MakeLabel(to.desc, 17, Ui.Dim); d.AutowrapMode = TextServer.AutowrapMode.WordSmart; d.CustomMinimumSize = new Vector2(286, 0); v.AddChild(d);
+                var to = tr;
+                if (to.trainNumber < 10000 || to.trainNumber > 99999) to.trainNumber = (int)GD.RandRange(10000, 99999);
+                if (chosen != null && chosen.stations.Count > 0) to.origin = chosen.stations[0];
+                VBoxContainer v; var card = Card(new Vector2(390, 470), out v);
+                v.AddChild(Ui.MakeLabel((string.IsNullOrEmpty(to.kind) ? "PASSENGER SERVICE" : to.kind.ToUpperInvariant() + " SERVICE"), 15, Ui.Gold, true));
+                var name = Ui.MakeLabel(to.name, 27, Colors.White, true); name.AutowrapMode = TextServer.AutowrapMode.WordSmart; name.CustomMinimumSize = new Vector2(344, 0); v.AddChild(name);
+                v.AddChild(Ui.MakeLabel("TRAIN NO.  " + to.trainNumber.ToString("D5"), 21, Ui.GoldHi, true));
+                v.AddChild(Ui.MakeLabel("FROM  " + to.origin + "\nTO  " + to.destination + "\nDEPARTURE PLATFORM  " + to.platform, 18, Colors.White));
+                v.AddChild(new TrainGlyph { Coaches = to.coaches, CustomMinimumSize = new Vector2(344, 82) });
+                var d = Ui.MakeLabel(to.locomotive + "\n" + to.coaches + " coaches  ·  " + to.desc, 16, Ui.Dim); d.AutowrapMode = TextServer.AutowrapMode.WordSmart; d.CustomMinimumSize = new Vector2(344, 0); v.AddChild(d);
                 v.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-                var go = Ui.MakeButton("DRIVE", 26, true, new Vector2(286, 62)); v.AddChild(go); go.Pressed += () => { if (OnStart != null) OnStart(chosen, to); };
+                var go = Ui.MakeButton("DRIVE THIS TRAIN", 24, true, new Vector2(344, 58)); v.AddChild(go); go.Pressed += () => { if (OnStart != null) OnStart(chosen, to); };
                 trainRow.AddChild(card);
             }
         }
