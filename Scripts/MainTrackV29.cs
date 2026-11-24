@@ -2,10 +2,43 @@ using Godot;
 
 namespace TNBCY
 {
-    // v36: keep the curved sleeper crown visible above a muted muddy concrete-grey ballast bed.
+    // v37: preserve the curved sleeper design and add realistic weathering to sleeper tops only.
     public partial class Main
     {
         Mesh rtSleeperLod;
+        // Weathering is applied to sleeper top faces only: rust at rail seats, grease near pads, and light dust.
+        static Color RTSleeperTopColor(float x, float z)
+        {
+            float broad = RTNoise((x + .5f) * 5f, (z + .5f) * 4f, 16, 1601);
+            float fine = RTNoise((x + .5f) * 17f, (z + .5f) * 13f, 32, 1602);
+            Color c = new Color(.91f, .92f, .91f) * (.93f + .10f * broad + .035f * fine);
+            float dust = Mathf.Clamp((broad - .48f) * .42f, 0f, .18f);
+            c = c.Lerp(new Color(.98f, .95f, .87f), dust);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float dx = (x - side * .3175f) / .052f;
+                float railSeat = Mathf.Exp(-dx * dx);
+                float rustNoise = RTNoise((z + .5f) * 10f + side * 3f, (x + .5f) * 6f, 16, 1603 + side);
+                c = c.Lerp(new Color(.58f, .30f, .16f), railSeat * (.22f + .18f * rustNoise));
+                float oilNoise = RTNoise((z + .5f) * 14f + side, (x + .5f) * 10f, 16, 1610 + side);
+                c = c.Lerp(new Color(.24f, .25f, .24f), railSeat * (.08f + .12f * oilNoise));
+            }
+            if (RTNoise((x + .5f) * 29f, (z + .5f) * 23f, 32, 1621) > .88f)
+                c = c.Lerp(new Color(.98f, .96f, .89f), .10f);
+            return c;
+        }
+
+        static void RTSleeperTopVertex(SurfaceTool st, Vector3 p, Vector3 normal)
+        {
+            st.SetColor(RTSleeperTopColor(p.X, p.Z)); st.SetNormal(normal); st.AddVertex(p);
+        }
+
+        static void RTSleeperTopQuad(SurfaceTool st, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal)
+        {
+            RTSleeperTopVertex(st, a, normal); RTSleeperTopVertex(st, b, normal); RTSleeperTopVertex(st, c, normal);
+            RTSleeperTopVertex(st, a, normal); RTSleeperTopVertex(st, c, normal); RTSleeperTopVertex(st, d, normal);
+        }
+
         static void RTSleeperVertex(SurfaceTool st, Vector3 p, Vector3 normal)
         {
             st.SetColor(Colors.White); st.SetNormal(normal); st.AddVertex(p);
@@ -30,9 +63,16 @@ namespace TNBCY
                     float y0 = .5f - sag * (1f - nx0 * nx0);
                     float y1 = .5f - sag * (1f - nx1 * nx1);
 
-                    // Adjacent top strips share exact edges; no overlapping coplanar faces.
-                    RTSleeperQuad(st, new Vector3(x0, y0, z0), new Vector3(x1, y1, z0),
-                        new Vector3(x1, y1, z1), new Vector3(x0, y0, z1), Vector3.Up);
+                    // Subdivide only the existing top surface for weathering colour interpolation.
+                    // Vertex positions retain the exact curved sleeper profile from v36.
+                    const int zSegments = 12;
+                    for (int j = 0; j < zSegments; j++)
+                    {
+                        float za = Mathf.Lerp(z0, z1, j / (float)zSegments);
+                        float zb = Mathf.Lerp(z0, z1, (j + 1) / (float)zSegments);
+                        RTSleeperTopQuad(st, new Vector3(x0, y0, za), new Vector3(x1, y1, za),
+                            new Vector3(x1, y1, zb), new Vector3(x0, y0, zb), Vector3.Up);
+                    }
                     RTSleeperQuad(st, new Vector3(x0, y0, z0), new Vector3(x1, y1, z0),
                         new Vector3(x1, bottom, z0), new Vector3(x0, bottom, z0), Vector3.Forward);
                     RTSleeperQuad(st, new Vector3(x1, y1, z1), new Vector3(x0, y0, z1),
