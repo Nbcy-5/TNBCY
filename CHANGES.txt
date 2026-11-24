@@ -1,3 +1,11 @@
+[v34] Stable sleepers and true concrete-grey granite track bed
+ TRACK  Rebuilt each curved sleeper as one continuous mesh with shared edges instead of 31 overlapping boxes, removing internal coplanar faces that can shimmer.
+ LOD  Matched the detailed sleeper visibility end to the 90 m start of the distant sleeper texture, removing the previous 18 m handover gap.
+ BALLAST  Replaced the old dark-texture brightness remap with a newly generated light cement-grey granite texture: pale mineral chips, restrained darker stone joints, and visible warm muddy patches.
+ DISTANCE  Brightened distant sleeper texture and far rail strips so the track does not collapse into a black-looking line at range.
+ FORMATION  Lightened the muddy concrete under-track material, restrained near-black wet/oil shading, and narrowed the formation strip to the ballast shoulder to reduce overlapping black seams between adjacent tracks.
+ SCOPE  No changes to train selection, train physics, controls, route geometry, scenery placement, or unrelated gameplay.
+
 [v33] Expandable two-train service list and natural track-bed appearance
  UI  Show only Simhapuri Express and Deccan Express in a vertical list. Tap a train name to expand its service details and DRIVE button.
  DATA  Deccan Express runs Kakinada Jn to Secunderabad Jn; Simhapuri Express remains Secunderabad Jn to Gudur Jn. Train numbers remain randomly assigned five-digit numbers.
