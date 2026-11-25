@@ -73,7 +73,7 @@
     {
       "id": "DMLY",
       "x": 247.09,
-      "z": 7672.025,
+      "z": 7672.125,
       "type": "plain"
     },
     {
@@ -1773,7 +1773,7 @@
     {
       "id": "DM1",
       "edge": "d7_after",
-      "offsetM": 25.09999999999991,
+      "offsetM": 25,
       "held": true,
       "holdSeconds": 40
     },
@@ -1839,7 +1839,7 @@
     {
       "name": "Moula Ali (MLY)",
       "edge": "d7",
-      "offsetM": 1274.9,
+      "offsetM": 1275,
       "stop": true,
       "side": "L",
       "dwellS": 30
