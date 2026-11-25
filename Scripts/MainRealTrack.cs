@@ -423,6 +423,139 @@ void fragment() {
             return false;
         }
 
+
+        // A turnout's shared zone uses one long bearer supporting both tracks.
+        // The two ordinary sleeper rows are suppressed in this zone, so no sleepers overlap.
+        sealed class RTFanZone
+        {
+            public TEdge Turnout, Main;
+            public float Length;
+            public bool AtStart;
+        }
+
+        List<RTFanZone> RTFindFanZones()
+        {
+            var zones = new List<RTFanZone>();
+            foreach (var e in sc.Graph.Edges.Values)
+            {
+                if (!e.Turnout) continue;
+                var startMain = MainOf(e, true);
+                if (startMain != null)
+                {
+                    float len = RTZoneStart(e, startMain);
+                    if (len > RTSleeperSpacing)
+                        zones.Add(new RTFanZone { Turnout = e, Main = startMain, Length = len, AtStart = true });
+                }
+                var endMain = MainOf(e, false);
+                if (endMain != null)
+                {
+                    float len = RTZoneEnd(e, endMain);
+                    if (len > RTSleeperSpacing)
+                        zones.Add(new RTFanZone { Turnout = e, Main = endMain, Length = len, AtStart = false });
+                }
+            }
+            return zones;
+        }
+
+        bool RTInFanZone(TEdge edge, float s, List<RTFanZone> zones)
+        {
+            foreach (var z in zones)
+            {
+                if (edge != z.Turnout && edge != z.Main) continue;
+                float edgeLength = edge.Length;
+                if (z.AtStart && s <= z.Length + RTSleeperSpacing * .5f) return true;
+                if (!z.AtStart && s >= edgeLength - z.Length - RTSleeperSpacing * .5f) return true;
+            }
+            return false;
+        }
+
+        void RTBuildFanSleepers(RTFanZone zone)
+        {
+            var bodies = new List<Transform3D>();
+            var fittings = new List<Transform3D>();
+            int count = Mathf.Max(1, Mathf.RoundToInt(zone.Length / RTSleeperSpacing));
+            float step = zone.Length / count;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (i + .5f) * step;
+                float es = zone.AtStart ? t : zone.Turnout.Length - t;
+                float ms = zone.AtStart ? t : zone.Main.Length - t;
+                Vector3 ep = zone.Turnout.PosAt(es), mp = zone.Main.PosAt(ms);
+                Vector3 ed = zone.Turnout.DirAt(es), md = zone.Main.DirAt(ms);
+                Vector3 averageDir = md + ed;
+                averageDir.Y = 0f;
+                if (averageDir.LengthSquared() < 1e-5f) averageDir = md;
+                averageDir = averageDir.Normalized();
+                Basis bearerBasis = Basis.LookingAt(averageDir, Vector3.Up);
+                Vector3 axis = bearerBasis.X;
+                Vector3[] railSeats =
+                {
+                    mp - Right(md) * RailG, mp + Right(md) * RailG,
+                    ep - Right(ed) * RailG, ep + Right(ed) * RailG
+                };
+                float min = float.MaxValue, max = float.MinValue;
+                foreach (var seat in railSeats)
+                {
+                    float projection = seat.Dot(axis);
+                    min = Mathf.Min(min, projection);
+                    max = Mathf.Max(max, projection);
+                }
+                float bearerWidth = Mathf.Max(2.75f, max - min + .55f);
+                Vector3 center = (mp + ep) * .5f;
+                center += axis * ((min + max) * .5f - center.Dot(axis));
+                center += Vector3.Up * .345f;
+                bodies.Add(Xf(bearerBasis, center, new Vector3(bearerWidth, .21f, .26f)));
+
+                // A shared bearer has a fitting at each distinct rail seat; coincident rails get one fitting only.
+                var usedSeats = new List<Vector3>();
+                Basis mainBasis = Basis.LookingAt(md, Vector3.Up);
+                Basis loopBasis = Basis.LookingAt(ed, Vector3.Up);
+                for (int rail = 0; rail < 4; rail++)
+                {
+                    Vector3 seat = railSeats[rail];
+                    bool duplicate = false;
+                    foreach (var used in usedSeats)
+                        if (used.DistanceTo(seat) < .22f) { duplicate = true; break; }
+                    if (duplicate) continue;
+                    usedSeats.Add(seat);
+                    Basis seatBasis = rail < 2 ? mainBasis : loopBasis;
+                    fittings.Add(Xf(seatBasis, seat + Vector3.Up * .445f, Vector3.One));
+                }
+            }
+
+            if (bodies.Count == 0) return;
+            var close = RTMultiMeshLod(rtSleeperLod, matConcrete, bodies.Count, 0f, 18f);
+            var middle = RTMultiMeshLod(rtSleeperLod, matConcrete, bodies.Count, 18f, 150f);
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                close.SetInstanceTransform(i, bodies[i]);
+                middle.SetInstanceTransform(i, bodies[i]);
+            }
+
+            var farNear = new List<Transform3D>();
+            var farMid = new List<Transform3D>();
+            var farFar = new List<Transform3D>();
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                var low = new Transform3D(bodies[i].Basis, bodies[i].Origin - Vector3.Up * .015f);
+                if (i % 2 == 0) farNear.Add(low);
+                if (i % 4 == 0) farMid.Add(low);
+                if (i % 8 == 0) farFar.Add(low);
+            }
+            var fn = RTMultiMeshLod(rtSleeperLod, matConcrete, farNear.Count, 90f, 480f);
+            for (int i = 0; i < farNear.Count; i++) fn.SetInstanceTransform(i, farNear[i]);
+            var fm = RTMultiMeshLod(rtSleeperLod, matConcrete, farMid.Count, 480f, 1250f);
+            for (int i = 0; i < farMid.Count; i++) fm.SetInstanceTransform(i, farMid[i]);
+            var ff = RTMultiMeshLod(rtSleeperLod, matConcrete, farFar.Count, 1250f, 2600f);
+            for (int i = 0; i < farFar.Count; i++) ff.SetInstanceTransform(i, farFar[i]);
+
+            if (fittings.Count > 0)
+            {
+                var fit = RTMultiMeshLod(fitMesh, matFit, fittings.Count, 0f, 55f);
+                for (int i = 0; i < fittings.Count; i++) fit.SetInstanceTransform(i, fittings[i]);
+            }
+        }
+
         void BuildRealTrack()
         {
             RTMaterials();
@@ -432,6 +565,7 @@ void fragment() {
             RTV29Init();                                            // v29: rounded rail profile, muddy ballast, gently bowed sleepers
             RTFixJoints();                                          // v23: both pieces share one direction at every joint
             var min = new Vector3(1e9f, 0, 1e9f); var max = new Vector3(-1e9f, 0, -1e9f);
+            var fanZones = RTFindFanZones();
             foreach (var e in sc.Graph.Edges.Values)
             {
                 RTRibbons(e); RTFormation(e);
@@ -447,6 +581,7 @@ void fragment() {
                     for (int k = 0; k < cn; k++)
                     {
                         float st = (c0 + k + .5f) * slStep; if (st > e.Length) break;
+                        if (RTInFanZone(e, st, fanZones)) continue;
                         var p = e.PosAt(st); var q = Basis.LookingAt(e.DirAt(st), Vector3.Up);
                         min = min.Min(p); max = max.Max(p); if ((c0 + k) % 60 == 0) trackPts.Add(p);
                         float shade = .86f + .24f * RTHash(c0 + k, 11, 3);
@@ -507,6 +642,7 @@ void fragment() {
                 }
                 RTBuildOHE(e);                                       // v23: realistic 25 kV overhead line
             }
+            foreach (var zone in fanZones) RTBuildFanSleepers(zone);
             foreach (var e in sc.Graph.Edges.Values) if (e.Turnout) BuildJoints(e);
             RTTurnouts();
             var c = (min + max) * .5f;
