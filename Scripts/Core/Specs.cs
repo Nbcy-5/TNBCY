@@ -86,6 +86,7 @@ namespace TNBCY
         public string id = "", startEdge = "", destinationEdge = "";
         public float startOffsetM, departureAfterS;
         public List<string> viaEdges = new List<string>();
+        public List<string> viaStations = new List<string>();
         public ConsistSpec consist;
     }
 
