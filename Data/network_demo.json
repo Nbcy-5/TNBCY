@@ -255,6 +255,18 @@
       "x": -6.75,
       "z": 250,
       "type": "plain"
+    },
+    {
+      "id": "SCY_C",
+      "x": -17.15,
+      "z": 1800,
+      "type": "plain"
+    },
+    {
+      "id": "SCY_D",
+      "x": -17.15,
+      "z": 400,
+      "type": "plain"
     }
   ],
   "edges": [
@@ -1726,8 +1738,43 @@
       "speedLimitKmh": 25
     },
     {
-      "id": "sc_yard_b",
+      "id": "sc_yard_b_entry",
       "from": "SCY_A",
+      "to": "SCY_C",
+      "turnout": "L",
+      "gradientPermil": 0,
+      "curveRadiusM": 250,
+      "speedLimitKmh": 25,
+      "via": [
+        [
+          -8,
+          1910
+        ],
+        [
+          -10.2,
+          1870
+        ],
+        [
+          -13,
+          1835
+        ],
+        [
+          -15.5,
+          1810
+        ]
+      ]
+    },
+    {
+      "id": "sc_yard_b",
+      "from": "SCY_C",
+      "to": "SCY_D",
+      "gradientPermil": 0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 25
+    },
+    {
+      "id": "sc_yard_b_merge",
+      "from": "SCY_D",
       "to": "SCY_B",
       "turnout": "L",
       "gradientPermil": 0,
@@ -1735,52 +1782,20 @@
       "speedLimitKmh": 25,
       "via": [
         [
-          -7.1,
-          1875
+          -15.5,
+          355
         ],
         [
-          -8.6,
-          1785
+          -13,
+          315
         ],
         [
-          -11,
-          1690
-        ],
-        [
-          -14.3,
-          1600
-        ],
-        [
-          -17.15,
-          1500
-        ],
-        [
-          -17.15,
-          1200
-        ],
-        [
-          -17.15,
-          900
-        ],
-        [
-          -17.15,
-          600
-        ],
-        [
-          -16.4,
-          500
-        ],
-        [
-          -14,
-          400
-        ],
-        [
-          -10.5,
-          320
-        ],
-        [
-          -7.8,
+          -10.2,
           280
+        ],
+        [
+          -8,
+          260
         ]
       ]
     },
@@ -1986,7 +2001,7 @@
     {
       "name": "Secunderabad Jn (SC) Platform 3",
       "edge": "sc_yard_b",
-      "offsetM": 950,
+      "offsetM": 800,
       "stop": true,
       "side": "R",
       "dwellS": 30
