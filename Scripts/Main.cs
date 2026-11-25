@@ -12,7 +12,7 @@ namespace TNBCY
 
         FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
         List<RouteInfo> routesList = new List<RouteInfo>(); List<TrainOption> trainsList = new List<TrainOption>();
-        bool paused; float saveT; string curRoute = "", curConsist = "", curConsistName = "", curRouteName = "";
+        bool paused; float saveT; string curRoute = "", curConsist = "", curServiceId = "", curConsistName = "", curRouteName = "";
         Scenario sc; Camera3D cam; TrainVis playerVis, aiVis;
         readonly List<TrainVis> aiVisList = new List<TrainVis>();
         readonly Dictionary<TSignal, StandardMaterial3D[]> sigMats = new Dictionary<TSignal, StandardMaterial3D[]>();
@@ -87,7 +87,9 @@ namespace TNBCY
         void ResumeSession()
         {
             var s = Session.Load(); if (s == null) return;
-            RouteInfo r = routesList.Find(x => x.id == s.route); TrainOption t = trainsList.Find(x => x.file == s.consist);
+            RouteInfo r = routesList.Find(x => x.id == s.route);
+            TrainOption t = !string.IsNullOrEmpty(s.serviceId) ? trainsList.Find(x => x.id == s.serviceId) : null;
+            if (t == null) t = trainsList.Find(x => x.file == s.consist);
             if (r == null) r = new RouteInfo { id = s.route, name = s.sub, network = "network_demo" };
             if (t == null) t = new TrainOption { file = s.consist, name = s.title };
             StartGame(r, t, s);
@@ -98,7 +100,7 @@ namespace TNBCY
             try
             {
                 frontEnd.Visible = false; loadL.Text = "Loading..."; loadL.Visible = true;
-                curRoute = route.id; curConsist = train.file; curConsistName = train.name; curRouteName = route.name;
+                curRoute = route.id; curConsist = train.file; curServiceId = train.id; curConsistName = train.name; curRouteName = route.name;
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
                 var net = LoadJson<NetworkSpec>("res://Data/" + route.network + ".json");
                 var consist = LoadJson<ConsistSpec>("res://Data/" + train.file + ".json");
@@ -357,7 +359,7 @@ namespace TNBCY
         void SaveSession()
         {
             if (sc == null || sc.Ended || touch == null) return;
-            Session.Save(Session.Capture(sc, touch, curRoute, curConsist, curConsistName, curRouteName));
+            Session.Save(Session.Capture(sc, touch, curRoute, curConsist, curConsistName, curRouteName, curServiceId));
         }
 
         // the eye button hides / shows every on-screen control so the view is clear
