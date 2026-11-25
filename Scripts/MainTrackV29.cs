@@ -2,10 +2,11 @@ using Godot;
 
 namespace TNBCY
 {
-    // v42: ballast colour matched to the reference photo: clean, bright grey crushed stone with light grey, pale and warm tan chips.
-    //  - Ballast: no black grease and almost no mud any more (v41 still looked dark in game). Stones are brighter, gaps between
-    //    stones are a light warm grey instead of dark brown, and the overall brightness knob is raised.
-    //    Neutral-to-warm tint only (blue channel never above red, green never above red), so no green/black cast.
+    // v43: real granite ballast like the component photo: chunky angular blue-grey / light grey / slate / pink granite stones
+    // with salt-and-pepper mineral speckle, deep dark crevices between the stones and strong relief under the sun.
+    //  - Stones are about 14 cm across in the texture (v42: 8 cm), so they stay visible as separate stones from the cab instead of
+    //    blurring into one flat grey when the texture is mip-mapped.
+    //  - Almost no mud or grease; the dark parts are the real shadow between the stones.
     //  - Sleepers: warm weathered concrete. Fine grain, pits, dark aggregate and dirt blotches come from a
     //    WORLD-SPACE texture, so every sleeper looks different. Rust and oil at the rail seats, dust, dirty long edges.
     //    The bowed (curved) sleeper shape is unchanged from v40.
@@ -17,11 +18,11 @@ namespace TNBCY
         // ---- tuning knobs ----
         static readonly Color RTSleeperBase = new Color(.64f, .605f, .545f);   // warm concrete; lower = darker sleepers
         const float RTSleeperTexTilesPerMeter = .85f;                           // grain size on sleepers (higher = finer)
-        const int RTBallastCells = 24;                                          // stones per 2 m tile (higher = smaller stones)
-        const float RTBallastNormalScale = 1.5f;                                // stone relief strength
-        const float RTBallastMud = .08f;                                        // 0..1  amount of dried brown mud on the ballast (v41: .55)
-        const float RTBallastGrease = .03f;                                     // 0..1  amount of dark grease / oil patches (v41: .60)
-        const float RTBallastBright = 1.12f;                                    // overall ballast brightness (1 = plain, lower = darker) (v41: 1.0)
+        const int RTBallastCells = 14;                                          // stones per 2 m tile (higher = smaller stones) (v42: 24)
+        const float RTBallastNormalScale = 2.2f;                                // stone relief strength (v42: 1.5)
+        const float RTBallastMud = .05f;                                        // 0..1  amount of dried brown mud on the ballast
+        const float RTBallastGrease = .0f;                                      // 0..1  amount of dark grease / oil patches
+        const float RTBallastBright = 1.15f;                                    // overall ballast brightness (1 = plain, lower = darker)
 
         // Weathering is applied to sleeper top faces: rust at rail seats, grease near pads, dust, dirty long edges.
         static Color RTSleeperTopColor(float x, float z)
@@ -191,9 +192,9 @@ namespace TNBCY
             return new RTTex { Albedo = alb, Normal = null, Size = size };
         }
 
-        // Bright grey crushed-stone ballast like the reference photo.
-        // Stones: mid grey, light grey, pale chips, some warm tan and brown-tan, very few dark ones.
-        // Light dirt only: pale dust film, a light warm grey in the gaps between stones, a little dried mud and a trace of grease.
+        // Real crushed granite ballast (see the component photo): chunky angular stones in blue-grey granite, light grey,
+        // dark slate, salt-and-pepper granite, pink granite, a few warm brown and white quartz stones.
+        // Every stone has mineral speckle. The gaps between stones are deep and dark, so the stones read as separate 3D chunks.
         static RTTex RTMakeCementBallast(int size)
         {
             const int cells = RTBallastCells;
@@ -223,39 +224,40 @@ namespace TNBCY
                         }
 
                     float r1 = RTHash(bx, by, 921), r2 = RTHash(bx, by, 922), r3 = RTHash(bx, by, 923), r4 = RTHash(bx, by, 924);
-                    float cr, cg, cb;
-                    if (r2 < .30f) { float v = .50f + .12f * r1; cr = v * 1.01f; cg = v; cb = v * .98f; }                   // mid grey
-                    else if (r2 < .64f) { float v = .62f + .14f * r1; cr = v * 1.01f; cg = v; cb = v * .98f; }             // light grey
-                    else if (r2 < .84f) { float v = .74f + .12f * r1; cr = v * 1.01f; cg = v; cb = v * .98f; }             // pale chips
-                    else if (r2 < .93f) { cr = .70f + .08f * r1; cg = .62f + .07f * r1; cb = .50f + .05f * r1; }            // warm tan
-                    else if (r2 < .97f) { cr = .60f + .10f * r1; cg = .46f + .07f * r1; cb = .34f + .04f * r1; }            // brown-tan
-                    else { float v = .40f + .08f * r1; cr = v * 1.01f; cg = v; cb = v * .98f; }                              // rare darker stone
+                    float cr, cg, cb, sp = .45f;          // sp = how strongly this stone is speckled
+                    if (r2 < .22f) { float v = .50f + .14f * r1; cr = v * .93f; cg = v * .97f; cb = v * 1.08f; }                // blue-grey granite
+                    else if (r2 < .42f) { float v = .66f + .14f * r1; cr = v * .99f; cg = v; cb = v * 1.03f; }                  // light grey
+                    else if (r2 < .58f) { float v = .34f + .10f * r1; cr = v * .94f; cg = v * .98f; cb = v * 1.08f; }           // dark slate
+                    else if (r2 < .72f) { float v = .58f + .12f * r1; cr = v; cg = v; cb = v * 1.02f; sp = 1f; }               // salt-and-pepper granite
+                    else if (r2 < .84f) { cr = .62f + .10f * r1; cg = .48f + .07f * r1; cb = .46f + .06f * r1; sp = .8f; }      // pink granite
+                    else if (r2 < .93f) { cr = .52f + .08f * r1; cg = .46f + .07f * r1; cb = .40f + .05f * r1; }               // warm grey-brown
+                    else { float v = .80f + .10f * r1; cr = v; cg = v * .99f; cb = v * .97f; }                                  // pale quartz
 
-                    float facet = Mathf.Clamp(.70f + .80f * (.5f + (fx * (r3 - .5f) + fy * (r4 - .5f)) * 1.1f), .50f, 1.30f);
+                    float facet = Mathf.Clamp(.70f + .80f * (.5f + (fx * (r3 - .5f) + fy * (r4 - .5f)) * 1.1f), .60f, 1.35f);
                     float edge = Mathf.Clamp((d2 - d1) * 3.2f, 0f, 1f);
-                    float k = facet * (.55f + .45f * Mathf.Pow(edge, .8f)) * RTBallastBright;      // soft shadow between stones, never black
+                    float k = facet * (.26f + .74f * Mathf.Pow(edge, .7f)) * RTBallastBright;      // deep shadow in the crevices between stones
 
                     float uu = x / (float)size, vv = y / (float)size;
                     float spk = RTHash(x * 5 + bx * 7, y * 5 + by * 3, 6), spk2 = RTHash(x, y, 9);
-                    float speck = spk > .93f ? .12f + .10f * spk2 : (spk < .06f ? -.03f : 0f);     // bright mineral flecks
+                    float speck = spk > .86f ? (.16f + .14f * spk2) * (.5f + .5f * sp) : (spk < .10f ? -.15f * (.5f + .5f * sp) : 0f);   // white and black mineral flecks
 
                     float fr = (cr + speck) * k, fg = (cg + speck) * k, fb = (cb + speck) * k;
 
-                    // Pale dust film on the stone faces.
-                    float dust = Mathf.Clamp((RTFbm(uu, vv, 4, 3, 931) - .45f) * 2.2f, 0f, 1f) * .25f * edge;
-                    fr = Mathf.Lerp(fr, .72f * k, dust); fg = Mathf.Lerp(fg, .69f * k, dust); fb = Mathf.Lerp(fb, .64f * k, dust);
+                    // Faint pale dust on the stone faces.
+                    float dust = Mathf.Clamp((RTFbm(uu, vv, 4, 3, 931) - .45f) * 2.2f, 0f, 1f) * .15f * edge;
+                    fr = Mathf.Lerp(fr, .72f * k, dust); fg = Mathf.Lerp(fg, .70f * k, dust); fb = Mathf.Lerp(fb, .68f * k, dust);
 
-                    // Light warm grey in the gaps between stones (v41 used dark brown here).
-                    float gap = (1f - edge) * .20f;
-                    fr = Mathf.Lerp(fr, .40f, gap); fg = Mathf.Lerp(fg, .35f, gap); fb = Mathf.Lerp(fb, .29f, gap);
+                    // Cool dark crevices.
+                    float gap = (1f - edge) * .35f;
+                    fr = Mathf.Lerp(fr, .17f, gap); fg = Mathf.Lerp(fg, .17f, gap); fb = Mathf.Lerp(fb, .19f, gap);
 
                     // A little dried mud, thicker in the low gaps.
                     float mud = Mathf.Clamp((RTFbm(uu, vv, 5, 3, 941) - .50f) * 3.5f, 0f, 1f) * RTBallastMud * (.60f + .60f * (1f - edge));
-                    mud = Mathf.Clamp(mud, 0f, .40f);
+                    mud = Mathf.Clamp(mud, 0f, .30f);
                     float mk = .70f + .30f * k;
-                    fr = Mathf.Lerp(fr, .52f * mk, mud); fg = Mathf.Lerp(fg, .42f * mk, mud); fb = Mathf.Lerp(fb, .32f * mk, mud);
+                    fr = Mathf.Lerp(fr, .48f * mk, mud); fg = Mathf.Lerp(fg, .40f * mk, mud); fb = Mathf.Lerp(fb, .32f * mk, mud);
 
-                    // A trace of grease: broad blotches plus smaller drips, dark grey (not black).
+                    // Grease (off by default).
                     float gBig = Mathf.Clamp((RTFbm(uu, vv, 3, 4, 951) - .58f) * 5f, 0f, 1f);
                     float gSmall = Mathf.Clamp((RTFbm(uu, vv, 11, 2, 961) - .66f) * 6f, 0f, 1f) * .75f;
                     float grease = Mathf.Max(gBig, gSmall) * RTBallastGrease;
@@ -265,7 +267,7 @@ namespace TNBCY
                     alb[o] = RTByte(fr); alb[o + 1] = RTByte(fg); alb[o + 2] = RTByte(fb);
                     hgt[y * size + x] = edge * (.55f + .45f * r1) + .04f * spk2;
                 }
-            return new RTTex { Albedo = alb, Normal = RTNormals(hgt, size, 3.0f), Size = size };
+            return new RTTex { Albedo = alb, Normal = RTNormals(hgt, size, 5.0f), Size = size };
         }
 
         void RTV29Init()
