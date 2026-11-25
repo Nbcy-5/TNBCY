@@ -91,6 +91,14 @@ namespace TNBCY
             return d;
         }
 
+        // Validate a saved train's complete path before mutating any live simulation state.
+        static bool TrainFits(Scenario sc, SessTrain s)
+        {
+            if (s == null || s.edges == null || s.starts == null || s.edges.Count == 0 || s.edges.Count != s.starts.Count) return false;
+            foreach (var id in s.edges) if (!sc.Graph.Edges.ContainsKey(id)) return false;
+            return true;
+        }
+
         static bool RestoreTrain(Scenario sc, Train T, SessTrain s)
         {
             if (s == null || s.edges.Count == 0 || s.edges.Count != s.starts.Count) return false;
@@ -111,14 +119,30 @@ namespace TNBCY
         {
             try
             {
-                if (d.signals.Count != sc.Graph.Signals.Count || d.stDone.Count != sc.Graph.Stations.Count || d.stServed.Count != sc.Graph.Stations.Count) return false;
+                if (d.signals == null || d.stDone == null || d.stServed == null ||
+                    d.signals.Count != sc.Graph.Signals.Count || d.stDone.Count != sc.Graph.Stations.Count ||
+                    d.stServed.Count != sc.Graph.Stations.Count) return false;
+
+                // Preflight every train and signal before changing the player, AI, points or signals.
+                if (!TrainFits(sc, d.player)) return false;
+                if (d.version >= 2)
+                {
+                    if (d.aiTrains == null || d.aiDwells == null || d.aiServiceIds == null ||
+                        d.aiTrains.Count != sc.AiTrains.Count || d.aiDwells.Count != sc.AiDrivers.Count ||
+                        d.aiServiceIds.Count != sc.AiServiceIds.Count) return false;
+                    for (int i = 0; i < d.aiServiceIds.Count; i++)
+                        if (d.aiServiceIds[i] != sc.AiServiceIds[i] || !TrainFits(sc, d.aiTrains[i])) return false;
+                }
+                else if (sc.AiTrains.Count > 0)
+                {
+                    if (sc.AiTrains.Count > 1 || d.ai == null || !TrainFits(sc, d.ai)) return false;
+                }
+                for (int i = 0; i < d.signals.Count; i++)
+                    if (sc.Graph.Signals[i].Id != d.signals[i].id) return false;
+
                 if (!RestoreTrain(sc, sc.Train, d.player)) return false;
                 if (d.version >= 2)
                 {
-                    if (d.aiTrains.Count != sc.AiTrains.Count || d.aiDwells.Count != sc.AiDrivers.Count ||
-                        d.aiServiceIds.Count != sc.AiServiceIds.Count) return false;
-                    for (int i = 0; i < d.aiServiceIds.Count; i++)
-                        if (d.aiServiceIds[i] != sc.AiServiceIds[i]) return false;
                     for (int i = 0; i < sc.AiTrains.Count; i++)
                     {
                         if (!RestoreTrain(sc, sc.AiTrains[i], d.aiTrains[i])) return false;
@@ -127,9 +151,8 @@ namespace TNBCY
                 }
                 else if (sc.AiTrains.Count > 0)
                 {
-                    if (d.ai == null || !RestoreTrain(sc, sc.AiTrains[0], d.ai)) return false;
+                    if (!RestoreTrain(sc, sc.AiTrains[0], d.ai)) return false;
                     sc.AiDrivers[0].Dwell = d.aiDwell;
-                    if (sc.AiTrains.Count > 1) return false;
                 }
                 foreach (var n in sc.Graph.Switches) { int v; if (d.switches.TryGetValue(n.Id, out v) && v >= 0 && v < n.Outs.Count) n.Sel = v; }
                 for (int i = 0; i < d.signals.Count; i++)
