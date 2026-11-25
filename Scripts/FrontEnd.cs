@@ -17,7 +17,7 @@ namespace TNBCY
             destination = "Ghatkesar", locomotive = "WAP electric locomotive";
         public string startEdge = "", destinationEdge = "";
         public float startOffsetM, departureAfterS;
-        public List<string> viaEdges = new List<string>();
+        public List<string> viaEdges = new List<string>(), viaStations = new List<string>();
         public int coaches = 8, trainNumber = 0, platform = 1;
     }
     public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
