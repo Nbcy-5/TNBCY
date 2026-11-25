@@ -9,6 +9,7 @@ namespace TNBCY
         public readonly NetworkSpec Net; public readonly TrackGraph Graph; public readonly Train Train;
         public readonly List<AiDriver> AiDrivers = new List<AiDriver>();
         public readonly List<Train> AiTrains = new List<Train>();
+        public readonly List<string> AiServiceIds = new List<string>();
         public AiDriver Ai { get { return AiDrivers.Count == 0 ? null : AiDrivers[0]; } }
         public Train AiTrain { get { return AiTrains.Count == 0 ? null : AiTrains[0]; } }
         public readonly RailwayDispatcher Dispatcher;
@@ -44,7 +45,7 @@ namespace TNBCY
                     { GD.PrintErr("Skipping invalid AI service " + (service == null ? "(null)" : service.id)); continue; }
                     var aiTrain = new Train(service.consist, Graph.Edges[service.startEdge], service.startOffsetM);
                     var driver = new AiDriver(aiTrain, Graph, service.departureAfterS, net.defaultLimitKmh);
-                    AiTrains.Add(aiTrain); AiDrivers.Add(driver);
+                    AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add("AI-1"); AiServiceIds.Add(service.id);
                     if (!Dispatcher.TryPlanRoute(service.id, aiTrain, service.destinationEdge, service.viaEdges, false, out dispatchReason))
                         GD.PrintErr("AI route planning (" + service.id + "): " + dispatchReason);
                 }
