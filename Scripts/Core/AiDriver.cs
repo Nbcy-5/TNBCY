@@ -57,7 +57,7 @@ namespace TNBCY
                 }
                 var n = e.To; acc += e.Length;
                 if (n.Outs.Count == 0) { target = Mathf.Min(target, StopSpeed(acc - 8f - v * 1.5f)); break; }
-                e = n.Outs[n.Sel];
+                e = T.NextEdge(e);
             }
 
             if (arriving != null && arriveD < 25f && v < 0.4f)
