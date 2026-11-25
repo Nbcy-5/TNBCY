@@ -47,6 +47,24 @@
         "Charlapalli (CHZ)",
         "Moula Ali (MLY)"
       ]
+    },
+    {
+      "id": "SC-MLY-03",
+      "name": "Moula Ali Passenger",
+      "file": "consist_passenger16",
+      "desc": "Secunderabad to Moula Ali passenger service",
+      "kind": "Passenger",
+      "coaches": 16,
+      "origin": "Secunderabad Jn",
+      "destination": "Moula Ali",
+      "locomotive": "Random WAP electric locomotive",
+      "platform": 3,
+      "startEdge": "s0",
+      "startOffsetM": 765,
+      "destinationEdge": "d7",
+      "viaEdges": [],
+      "viaStations": [],
+      "departureAfterS": 90
     }
   ]
 }
