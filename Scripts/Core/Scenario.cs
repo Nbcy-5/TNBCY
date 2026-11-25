@@ -41,10 +41,11 @@ namespace TNBCY
         }
 
         public Scenario(NetworkSpec net, ConsistSpec consist, ConsistSpec aiConsist = null)
-            : this(net, consist, "", null, null, aiConsist) { }
+            : this(net, consist, "", null, null, null, aiConsist) { }
 
         public Scenario(NetworkSpec net, ConsistSpec consist, string playerDestinationEdge,
-            IList<string> playerViaEdges, List<AiServiceRuntime> aiServices, ConsistSpec fallbackAiConsist = null)
+            IList<string> playerViaEdges, IList<string> playerViaStations,
+            List<AiServiceRuntime> aiServices, ConsistSpec fallbackAiConsist = null)
         {
             Net = net; Graph = TrackGraph.Build(net);
             Train = new Train(consist, Graph.Edges[net.start.edge], net.start.offsetM);
@@ -54,7 +55,7 @@ namespace TNBCY
 
             if (!string.IsNullOrEmpty(playerDestinationEdge))
             {
-                var resolvedPlayerVia = ResolveViaEdges(Train.FrontSeg.Edge.Id, playerViaEdges, null);
+                var resolvedPlayerVia = ResolveViaEdges(Train.FrontSeg.Edge.Id, playerViaEdges, playerViaStations);
                 if (!Dispatcher.TryPlanRoute("PLAYER", Train, playerDestinationEdge, resolvedPlayerVia, true, out dispatchReason))
                     GD.PrintErr("Player route planning: " + dispatchReason);
             }
