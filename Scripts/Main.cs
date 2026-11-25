@@ -355,7 +355,7 @@ namespace TNBCY
                     if (d >= -40f && d < best) { best = d; bs = stn; }
                 }
                 if (bs != null) { name = bs.Name; dist = Mathf.Max(0f, best); return; }
-                var n = e.To; acc += e.Length; e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
+                var n = e.To; acc += e.Length; e = T.NextEdge(e);
             }
         }
 
