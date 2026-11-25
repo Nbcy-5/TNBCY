@@ -49,7 +49,8 @@ namespace TNBCY
                 TEdge next;
                 return plannedNext.TryGetValue(edge, out next) ? next : null;
             }
-            return edge != null && edge.To.Outs.Count > 0 ? edge.To.Outs[edge.To.Sel] : null;
+            // An unplanned train must never fall back to a shared turnout selection.
+            return null;
         }
 
         public void Restore(List<PathSeg> trail, float odo) { Trail = trail; Phys.Position = odo; Finished = false; }
@@ -69,6 +70,11 @@ namespace TNBCY
         {
             if (Finished) return;
             var mid = SegAt(Odo - Length * .5f);
+            if (!HasPlannedRoute)
+            {
+                Phys.Throttle = 0f;
+                Phys.BrakeHandle = 1f;
+            }
             Phys.Step(dt, mid.Edge.Gradient / 1000f, mid.Edge.CurveR);
             Advance();
             while (Trail.Count > 2 && Trail[1].StartOdo < Odo - Length - 30f) Trail.RemoveAt(0);
