@@ -20,6 +20,8 @@ WHAT NEEDS A NEW APP VERSION
   playing a one-shot sound from a new event, choosing between several routes.
 
 HOW IT WORKS
-- Each GitHub build publishes a release (TNBCY.apk, content.pck, version.json) to the PUBLIC repository Nbcy-5/tnbcy-updates (the main repository stays private).
+- Each GitHub build publishes a release (TNBCY.apk, content.pck, version.json) to the PUBLIC repository Nbcy-5/tnbcy-updates.
+- NOTE: the main repository (Nbcy-5/TNBCY) is currently public too, so do not commit secrets. The signing key lives only in GitHub Actions secrets.
+- Every push to main creates a new release, so batch your changes into one commit to avoid many duplicate releases.
 - The game reads https://github.com/Nbcy-5/tnbcy-updates/releases/latest/download/version.json (Data/update_config.json).
 - The build refuses to publish if version/code and ApkVersion differ. No internet or nothing new: the game just starts.
