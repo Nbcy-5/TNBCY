@@ -490,13 +490,14 @@ void fragment() {
                     if (lo > 0f) break;
                     e = PredOf(e); if (e != null) hi = e.Length;
                 }
-                if (secVisual && (st.Edge.Id == "d0" || st.Edge.Id == "u17" || st.Edge.Id == "sc_yard_a" || st.Edge.Id == "sc_yard_c"))
+                if (secVisual && st.Edge.Id == "d0")
                 {
-                float cs = Mathf.Max(0f, st.Offset - 150f);          // station building and name board sit behind the stop mark
-                var p = st.Edge.PosAt(cs); var d = st.Edge.DirAt(cs); var q = Basis.LookingAt(d, Vector3.Up); var r = Right(d) * sm;
-                Box(this, p + r * 17f + Vector3.Up * 3f, q, new Vector3(9f, 6f, 70f), brick);
-                Box(this, p + r * 17f + Vector3.Up * 6.3f, q, new Vector3(10f, .6f, 72f), rf2);
-                if (st.Stop || st.Name.StartsWith("Sec")) Tag(st.Name, p + r * 3.5f + Vector3.Up * 8f, Colors.Yellow);
+                    // Keep one main station building attached to Platform 1 only.
+                    float cs = Mathf.Max(0f, st.Offset - 150f);
+                    var p = st.Edge.PosAt(cs); var d = st.Edge.DirAt(cs); var q = Basis.LookingAt(d, Vector3.Up); var r = Right(d) * sm;
+                    Box(this, p + r * 9.8f + Vector3.Up * 3f, q, new Vector3(9f, 6f, 70f), brick);
+                    Box(this, p + r * 9.8f + Vector3.Up * 6.3f, q, new Vector3(10f, .6f, 72f), rf2);
+                    if (st.Stop || st.Name.StartsWith("Sec")) Tag(st.Name, p + r * 3.5f + Vector3.Up * 8f, Colors.Yellow);
                 }
             }
             FillMM(slabs, matConcrete); FillMM(lines, yellow); FillMM(roofs, roof); FillMM(poles, pole);

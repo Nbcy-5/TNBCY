@@ -1,8 +1,4 @@
-TNBCY v5.13 / APK 58
-- Rebuilt the Secunderabad station ladder so the four yard tracks form an ordered, parallel six-track station throat alongside the two existing main lines.
-- Extended both tracks of Platform 3 and both tracks of Platform 4 through the complete 620 m platform span; each island sits between its own continuous pair of rails.
-- Aligned both island platforms to the same stationing and stop zone.
-- Replaced short diagonal joins with long, tangent-aligned transition curves for the entrance ladder and sequential departure merges.
-- Kept platform track sections straight and parallel; entry and exit transitions are outside the platform area.
-- Preserved existing train assets, track materials, sleepers, ballast, scenery and other route content.
-- Deccan Express number remains 87623.
+TNBCY v5.14 / APK 59
+- Removed duplicate brown station-building blocks from Secunderabad's secondary and yard platforms.
+- Kept one main station building attached beside Platform 1 only.
+- Left platform slabs, roofs, shelters, track geometry, trains, sleepers, ballast and scenery unchanged.
