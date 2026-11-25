@@ -45,7 +45,7 @@ namespace TNBCY
                     { GD.PrintErr("Skipping invalid AI service " + (service == null ? "(null)" : service.id)); continue; }
                     var aiTrain = new Train(service.consist, Graph.Edges[service.startEdge], service.startOffsetM);
                     var driver = new AiDriver(aiTrain, Graph, service.departureAfterS, net.defaultLimitKmh);
-                    AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add("AI-1"); AiServiceIds.Add(service.id);
+                    AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add(service.id);
                     if (!Dispatcher.TryPlanRoute(service.id, aiTrain, service.destinationEdge, service.viaEdges, false, out dispatchReason))
                         GD.PrintErr("AI route planning (" + service.id + "): " + dispatchReason);
                 }
@@ -54,7 +54,7 @@ namespace TNBCY
             {
                 var aiTrain = new Train(fallbackAiConsist ?? consist, Graph.Edges[net.ai.edge], net.ai.offsetM);
                 var driver = new AiDriver(aiTrain, Graph, net.ai.departAfterS, net.defaultLimitKmh);
-                AiTrains.Add(aiTrain); AiDrivers.Add(driver);
+                AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add("AI-1");
                 if (!Dispatcher.TryPlanToFarthestStop("AI-1", aiTrain, false, out dispatchReason))
                     GD.PrintErr("AI route planning: " + dispatchReason);
             }
