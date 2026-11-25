@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v48";
+        public const string Version = "v49";
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
 
         FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
@@ -231,7 +231,7 @@ namespace TNBCY
             var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 12); vb2.AddChild(row);
             var dl = Btn("Download", new Color(.94f, .63f, .19f)); var later = Btn("Later", new Color(.24f, .36f, .44f)); row.AddChild(dl); row.AddChild(later);
             dl.Pressed += () => OS.ShellOpen(apkUrl);
-            later.Pressed += () => { updPanel.Visible = false; touch.Enabled = true; };
+            later.Pressed += () => { updPanel.Visible = false; touch.Enabled = sc != null && !sc.Ended && !paused && !briefingOverlay.Visible; };
             root.AddChild(updPanel);
             BuildBriefing(root);
         }
@@ -324,7 +324,7 @@ namespace TNBCY
 
         void SaveSession()
         {
-            if (sc == null || sc.Ended || touch == null) return;
+            if (!IsInstanceValid(this) || !IsInsideTree() || sc == null || sc.Ended || touch == null) return;
             Session.Save(Session.Capture(sc, touch, curRoute, curConsist, curConsistName, curRouteName));
         }
 

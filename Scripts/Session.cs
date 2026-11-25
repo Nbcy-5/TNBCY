@@ -82,6 +82,14 @@ namespace TNBCY
             return d;
         }
 
+        // true when every edge the saved train used still exists in this route (checked before anything is changed)
+        static bool TrainFits(Scenario sc, SessTrain s)
+        {
+            if (s == null || s.edges.Count == 0 || s.edges.Count != s.starts.Count) return false;
+            foreach (var id in s.edges) if (!sc.Graph.Edges.ContainsKey(id)) return false;
+            return true;
+        }
+
         static bool RestoreTrain(Scenario sc, Train T, SessTrain s)
         {
             if (s == null || s.edges.Count == 0 || s.edges.Count != s.starts.Count) return false;
@@ -103,6 +111,10 @@ namespace TNBCY
             try
             {
                 if (d.signals.Count != sc.Graph.Signals.Count || d.stDone.Count != sc.Graph.Stations.Count || d.stServed.Count != sc.Graph.Stations.Count) return false;
+                // check that everything fits BEFORE changing the running game, so a failed restore leaves a clean new run
+                if (!TrainFits(sc, d.player)) return false;
+                if (sc.Ai != null && d.ai != null && !TrainFits(sc, d.ai)) return false;
+                for (int i = 0; i < d.signals.Count; i++) if (sc.Graph.Signals[i].Id != d.signals[i].id) return false;
                 if (!RestoreTrain(sc, sc.Train, d.player)) return false;
                 if (sc.Ai != null && d.ai != null) { if (!RestoreTrain(sc, sc.Ai.T, d.ai)) return false; sc.Ai.Dwell = d.aiDwell; }
                 foreach (var n in sc.Graph.Switches) { int v; if (d.switches.TryGetValue(n.Id, out v) && v >= 0 && v < n.Outs.Count) n.Sel = v; }
