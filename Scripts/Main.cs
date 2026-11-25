@@ -207,7 +207,6 @@ namespace TNBCY
             loadL = Lbl("", 40, HorizontalAlignment.Center); Place(loadL, 0, .5f, 1, .5f, 0, -30, 0, 30); loadL.Visible = false; root.AddChild(loadL);
 
             touch = new TouchControls(); touch.SetAnchorsPreset(Control.LayoutPreset.FullRect); root.AddChild(touch);
-            touch.OnSwitch = () => sc.ToggleSwitch();
             touch.OnMenu = OpenPause; touch.OnHudToggle = ApplyHudVisible;
             touch.OnPantoToggle = TogglePanto; touch.OnBreakerToggle = ToggleBreaker;
             touch.OnPrevCoach = () => wantFocus = Mathf.Max(0, focusCar - 1);
@@ -379,7 +378,7 @@ namespace TNBCY
                 }
                 var n = e.To; float dn = acc + e.Length;
                 if (n.IsSwitch && dn < best) { best = dn; txt = "Switch " + n.Name + " set " + (n.Sel == 0 ? "main" : "loop"); }
-                acc += e.Length; e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
+                acc += e.Length; e = T.NextEdge(e);
             }
             return best > 1e8f ? "Next: end of line" : "Next: " + txt + " in " + Mathf.RoundToInt(best) + " m";
         }
@@ -483,8 +482,6 @@ namespace TNBCY
                 T.PointAt(T.Odo, out var pp, out _); sc.AiTrain.PointAt(sc.AiTrain.Odo, out var pa, out _);
                 aiL.Text = "Opposing train: " + sc.Ai.Status + "  " + (pp.DistanceTo(pa) / 1000f).ToString("0.0") + " km";
             }
-            var sw = sc.NextSwitch(out float sd);
-            touch.SwitchLabel = sw == null ? "none ahead" : sw.Name + (sw.Sel == 0 ? " main" : " loop") + " " + Mathf.RoundToInt(sd) + "m";
             if (sc.Ended && !endPanel.Visible) { endL.Text = sc.EndMessage; endPanel.Visible = true; touch.Enabled = false; Session.Delete(); }
         }
     }
