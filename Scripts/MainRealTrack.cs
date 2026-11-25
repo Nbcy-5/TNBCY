@@ -437,7 +437,7 @@ void fragment() {
                 {
                     int cn = Mathf.Min(220, cnt - c0);
                     var tl = new List<Transform3D>(); var cl = new List<Color>(); var fl = new List<Transform3D>();
-                    var sleeperRockTransforms = new List<Transform3D>(); var sleeperRockColors = new List<Color>();
+                    // Sleeper-top granite chips are supplied by the camera-streamed angular-chip system in MainBallastRocks.cs.
                 var lodNear = new List<Transform3D>(); var lodMid = new List<Transform3D>(); var lodFar = new List<Transform3D>();
                     for (int k = 0; k < cn; k++)
                     {
@@ -448,36 +448,10 @@ void fragment() {
                         Vector3 sp = p + Vector3.Up * .345f;
                         var sleeperXf = Xf(q, sp, new Vector3(2.75f, .21f, .26f));
                         tl.Add(sleeperXf); cl.Add(new Color(shade, shade * .99f, shade * .96f));
-                        // A sparse scatter of loose angular granite chips rests ON sleeper tops,
-                        // matching real track where ballast stones occasionally spill onto concrete.
-                        int rockCount = RTHash(c0 + k, 77, 3031) > .70f ? 1 : 0;
-                        if (RTHash(c0 + k, 78, 3032) > .965f) rockCount++;
-                        for (int ri = 0; ri < rockCount; ri++)
-                        {
-                            float hx = RTHash(c0 + k, 80 + ri, 3041);
-                            float lx = (hx - .5f) * 2.48f;
-                            if (Mathf.Abs(Mathf.Abs(lx) - .3175f) < .19f) lx += lx < 0f ? -.22f : .22f;
-                            lx = Mathf.Clamp(lx, -1.27f, 1.27f);
-                            float lz = (RTHash(c0 + k, 90 + ri, 3042) - .5f) * .17f;
-                            float nx = lx / 1.375f;
-                            float size = .035f + .045f * RTHash(c0 + k, 100 + ri, 3043);
-                            float top = .5f - .22f * (1f - nx * nx);
-                            Vector3 rockPos = sp + q.X * lx + q.Z * lz + q.Y * (.21f * top + size * .16f);
-                            float sx = size * (1.15f + .65f * RTHash(c0 + k, 110 + ri, 3044));
-                            float sy = size * (.55f + .30f * RTHash(c0 + k, 120 + ri, 3045));
-                            float sz = size * (1.0f + .55f * RTHash(c0 + k, 130 + ri, 3046));
-                            Basis rockBasis = q * Basis.FromScale(new Vector3(sx, sy, sz));
-                            sleeperRockTransforms.Add(new Transform3D(rockBasis, rockPos));
-                            float tint = RTHash(c0 + k, 140 + ri, 3047);
-                            Color stone = tint > .88f ? new Color(.39f, .31f, .24f)
-                                : tint > .55f ? new Color(.34f, .36f, .37f)
-                                : new Color(.48f, .49f, .48f);
-                            sleeperRockColors.Add(stone);
-                        }
                         int sleeperIndex = c0 + k;
                         if (sleeperIndex % 2 == 0) lodNear.Add(sleeperXf);
                         if (sleeperIndex % 4 == 0) lodMid.Add(sleeperXf);
-                        if (sleeperIndex % 4 == 0) lodFar.Add(sleeperXf);
+                        if (sleeperIndex % 8 == 0) lodFar.Add(sleeperXf);
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
                     }
                     if (tl.Count == 0) continue;
@@ -485,25 +459,13 @@ void fragment() {
                     var fit = MM(fitMesh, matFit, fl.Count, 55f);
                     for (int i = 0; i < tl.Count; i++) { slp.SetInstanceTransform(i, tl[i]); slp.SetInstanceColor(i, cl[i]); }
                     for (int i = 0; i < fl.Count; i++) fit.SetInstanceTransform(i, fl[i]);
-                    if (sleeperRockTransforms.Count > 0)
-                    {
-                        var sleeperRockMesh = new SphereMesh { Radius = .5f, Height = 1f, RadialSegments = 6, Rings = 3 };
-                        var sleeperRockMat = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = 1f };
-                        var sleeperRocks = MM(sleeperRockMesh, sleeperRockMat, sleeperRockTransforms.Count, 112.5f, true);
-                        for (int i = 0; i < sleeperRockTransforms.Count; i++)
-                        {
-                            sleeperRocks.SetInstanceTransform(i, sleeperRockTransforms[i]);
-                            sleeperRocks.SetInstanceColor(i, sleeperRockColors[i]);
-                        }
-                    }
-
                     // Replace the old coplanar distance texture with actual low-poly curved sleepers.
                     // This keeps cross-ties crisp and avoids a second textured plane shimmering over the ballast.
-                    var farNear = RTMultiMeshLod(rtSleeperLod, matConcrete, lodNear.Count, 90f, 480f);
+                    var farNear = RTMultiMeshLod(rtSleeperMid, matConcrete, lodNear.Count, 90f, 480f);
                     for (int i = 0; i < lodNear.Count; i++) farNear.SetInstanceTransform(i, lodNear[i]);
-                    var farMid = RTMultiMeshLod(rtSleeperLod, matConcrete, lodMid.Count, 480f, 1250f);
+                    var farMid = RTMultiMeshLod(rtSleeperFar1, matConcrete, lodMid.Count, 480f, 1250f);
                     for (int i = 0; i < lodMid.Count; i++) farMid.SetInstanceTransform(i, lodMid[i]);
-                    var farFar = RTMultiMeshLod(rtSleeperLod, matConcrete, lodFar.Count, 1250f, 2600f);
+                    var farFar = RTMultiMeshLod(rtSleeperFar2, matConcrete, lodFar.Count, 1250f, 2600f);
                     for (int i = 0; i < lodFar.Count; i++) farFar.SetInstanceTransform(i, lodFar[i]);
                 }
                 RTBuildOHE(e);                                       // v23: realistic 25 kV overhead line
