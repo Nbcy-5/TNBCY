@@ -383,6 +383,27 @@ namespace TNBCY
             return best > 1e8f ? "Next: end of line" : "Next: " + txt + " in " + Mathf.RoundToInt(best) + " m";
         }
 
+        // Find the first red signal on this train's own reserved route.
+        float DistanceToRedSignal(Train train)
+        {
+            if (train == null || !train.HasPlannedRoute) return -1f;
+            var edge = train.FrontSeg.Edge;
+            float distance = -train.FrontOffset;
+            float best = float.MaxValue;
+            for (int hop = 0; hop < 16 && edge != null; hop++)
+            {
+                if (sc.Graph.SigByEdge.TryGetValue(edge, out var signals))
+                    foreach (var signal in signals)
+                    {
+                        float d = distance + signal.Offset;
+                        if (!signal.Passed && signal.Aspect == 2 && d >= 0f && d < best) best = d;
+                    }
+                distance += edge.Length;
+                edge = train.NextEdge(edge);
+            }
+            return best == float.MaxValue ? -1f : best;
+        }
+
         // -------------------------------------------------------------- cameras
         // ------------------------------------------------------------ driver controls
         void TogglePanto()
@@ -424,6 +445,18 @@ namespace TNBCY
             P.BrakeHandle = Mathf.MoveToward(P.BrakeHandle, touch.BrakeValue, 1.8f * dt);
             float tgt = (power && touch.Reverser == 1) ? touch.Throttle : 0f;
             P.Throttle = Mathf.MoveToward(P.Throttle, tgt, (tgt > P.Throttle ? .4f : 1.2f) * dt);      // traction builds up and drops off gradually
+
+            // Interlocking protection: the player's controls cannot power through a red signal.
+            float redDistance = DistanceToRedSignal(T);
+            if (redDistance >= 0f)
+            {
+                float stoppingMargin = P.BrakingDistance(0f) + 18f + P.Speed * 2f;
+                if (redDistance <= stoppingMargin)
+                {
+                    P.Throttle = 0f;
+                    P.BrakeHandle = 1f;
+                }
+            }
             pantK = Mathf.MoveToward(pantK, touch.PantoUp ? 1f : 0f, dt / 2f);
         }
 
