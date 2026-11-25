@@ -4,9 +4,15 @@ using Godot;
 namespace TNBCY
 {
     // Central route planner and interlocking reservation owner. Each train receives an
-    // independent path; occupied sections and conflicting point settings are protected.
+    // independent path. Track sections and points are reserved only inside a look-ahead
+    // window in front of the train and are released once the train's rear has cleared them,
+    // so following services can share a route at a safe distance.
     public class RailwayDispatcher
     {
+        // How far ahead of a train's front sections are reserved (must exceed braking distance).
+        public const float LookaheadM = 2500f;
+        const float RearClearanceM = 30f;
+
         sealed class Plan
         {
             public string Id;
@@ -14,6 +20,8 @@ namespace TNBCY
             public bool IsPlayer;
             public List<TEdge> Route = new List<TEdge>();
             public List<float> Starts = new List<float>();
+            public int Reserved;   // route[Released..Reserved-1] are currently reserved
+            public int Released;   // route[0..Released-1] are behind the train's rear
         }
 
         readonly TrackGraph graph;
@@ -111,48 +119,100 @@ namespace TNBCY
                 }
             }
 
-            // Validate the replacement first; keep the train's existing reservations if it fails.
+            // A route may not ask for two different settings of the same point.
             var requestedSwitches = new Dictionary<TNode, TEdge>();
             for (int i = 0; i + 1 < route.Count; i++)
             {
                 TNode node = route[i].To;
                 TEdge next = route[i + 1];
                 if (node.Outs.Count <= 1) continue;
-
                 TEdge existing;
                 if (requestedSwitches.TryGetValue(node, out existing) && existing != next)
                 { reason = "Route requires conflicting settings at " + node.Name; return false; }
                 requestedSwitches[node] = next;
-
-                string owner;
-                if (switchOwners.TryGetValue(node, out owner) && owner != id)
-                { reason = "Switch " + node.Name + " is reserved by " + owner + "."; return false; }
             }
 
-            foreach (var edge in route)
-            {
-                string owner;
-                if (edgeOwners.TryGetValue(edge, out owner) && owner != id)
-                { reason = "Track section " + edge.Id + " is already reserved by " + owner + "."; return false; }
-            }
-
-            if (plans.ContainsKey(id)) ReleaseTrain(id);
-            var plan = new Plan { Id = id, Train = train, IsPlayer = isPlayer, Route = new List<TEdge>(route) };
+            var starts = new List<float>();
             float start = 0f;
-            foreach (var edge in route) { plan.Starts.Add(start); start += edge.Length; }
-            plans[id] = plan;
-            foreach (var edge in route) edgeOwners[edge] = id;
-            foreach (var pair in requestedSwitches)
+            foreach (var edge in route) { starts.Add(start); start += edge.Length; }
+
+            // Work out which part of the route can be reserved now (dry run). The train's own
+            // section must be available; anything further ahead is reserved later as it advances.
+            float horizon = train.FrontOffset + LookaheadM;
+            int window = 0;
+            while (window < route.Count && starts[window] <= horizon && ReserveConflict(route, window, id) == null)
+                window++;
+            if (window == 0)
             {
-                switchRoutes[pair.Key] = pair.Value;
-                switchOwners[pair.Key] = id;
+                reason = ReserveConflict(route, 0, id) ?? "The train's current track cannot be reserved.";
+                return false;
             }
+
+            // The replacement is valid: only now give up the train's previous reservations.
+            if (plans.ContainsKey(id)) ReleaseTrain(id);
+            var plan = new Plan { Id = id, Train = train, IsPlayer = isPlayer, Route = new List<TEdge>(route), Starts = starts };
+            plans[id] = plan;
+            for (int i = 0; i < window; i++) ReserveIndex(plan, i);
+            plan.Reserved = window;
             train.SetPlannedRoute(route);
             UpdatePoints();
             return true;
         }
 
-        // Dijkstra over directed track edges. Reserved sections cannot be used by another train.
+        // Returns null when route[i] (and the point at its far end) can be reserved by this train.
+        string ReserveConflict(IList<TEdge> route, int i, string id)
+        {
+            string owner;
+            if (edgeOwners.TryGetValue(route[i], out owner) && owner != id)
+                return "Track section " + route[i].Id + " is already reserved by " + owner + ".";
+            if (i + 1 < route.Count)
+            {
+                TNode node = route[i].To;
+                if (node.Outs.Count > 1 && switchOwners.TryGetValue(node, out owner) && owner != id)
+                    return "Switch " + node.Name + " is reserved by " + owner + ".";
+            }
+            return null;
+        }
+
+        void ReserveIndex(Plan plan, int i)
+        {
+            edgeOwners[plan.Route[i]] = plan.Id;
+            if (i + 1 < plan.Route.Count)
+            {
+                TNode node = plan.Route[i].To;
+                if (node.Outs.Count > 1)
+                {
+                    switchRoutes[node] = plan.Route[i + 1];
+                    switchOwners[node] = plan.Id;
+                }
+            }
+        }
+
+        void ReleaseIndex(Plan plan, int i)
+        {
+            string owner;
+            if (edgeOwners.TryGetValue(plan.Route[i], out owner) && owner == plan.Id)
+                edgeOwners.Remove(plan.Route[i]);
+            TNode node = plan.Route[i].To;
+            if (switchOwners.TryGetValue(node, out owner) && owner == plan.Id)
+            {
+                switchOwners.Remove(node);
+                switchRoutes.Remove(node);
+            }
+        }
+
+        // Distance travelled along the plan by the train's front, measured from the start of route[0].
+        bool TryFrontDistance(Plan plan, out float front)
+        {
+            front = 0f;
+            if (plan.Train == null || plan.Train.FrontSeg == null) return false;
+            int index = plan.Route.IndexOf(plan.Train.FrontSeg.Edge);
+            if (index < 0) return false;
+            front = plan.Starts[index] + plan.Train.FrontOffset;
+            return true;
+        }
+
+        // Dijkstra over directed track edges. Sections currently reserved by another train cannot be used.
         bool BuildRoute(TEdge from, TEdge to, string owner, out List<TEdge> route)
         {
             route = null;
@@ -217,33 +277,55 @@ namespace TNBCY
 
         public void Update()
         {
-            ReleaseClearedReservations();
+            foreach (var plan in plans.Values)
+            {
+                ReleaseClearedReservations(plan);
+                ExtendReservationWindow(plan);
+            }
             UpdatePoints();
         }
 
-        void ReleaseClearedReservations()
+        // Release every section whose far end is behind the train's rear.
+        void ReleaseClearedReservations(Plan plan)
         {
-            foreach (var plan in plans.Values)
+            float front;
+            if (!TryFrontDistance(plan, out front)) return;
+            float rear = front - plan.Train.Length - RearClearanceM;
+            while (plan.Released < plan.Route.Count &&
+                   plan.Starts[plan.Released] + plan.Route[plan.Released].Length < rear)
             {
-                float rearOdo = plan.Train.Odo - plan.Train.Length - 30f;
-                for (int i = 0; i < plan.Route.Count; i++)
-                {
-                    float endOdo = plan.Starts[i] + plan.Route[i].Length;
-                    if (endOdo >= rearOdo) continue;
-
-                    string edgeOwner;
-                    if (edgeOwners.TryGetValue(plan.Route[i], out edgeOwner) && edgeOwner == plan.Id)
-                        edgeOwners.Remove(plan.Route[i]);
-
-                    TNode node = plan.Route[i].To;
-                    string switchOwner;
-                    if (node.IsSwitch && switchOwners.TryGetValue(node, out switchOwner) && switchOwner == plan.Id)
-                    {
-                        switchOwners.Remove(node);
-                        switchRoutes.Remove(node);
-                    }
-                }
+                if (plan.Released < plan.Reserved) ReleaseIndex(plan, plan.Released);
+                plan.Released++;
+                if (plan.Reserved < plan.Released) plan.Reserved = plan.Released;
             }
+        }
+
+        // Reserve sections ahead of the train, in order, up to the look-ahead horizon.
+        // If a section is held by another train, reservation stops there and the train's
+        // movement authority ends at the start of that section.
+        void ExtendReservationWindow(Plan plan)
+        {
+            float front;
+            if (!TryFrontDistance(plan, out front)) return;
+            float horizon = front + LookaheadM;
+            while (plan.Reserved < plan.Route.Count && plan.Starts[plan.Reserved] <= horizon)
+            {
+                if (ReserveConflict(plan.Route, plan.Reserved, plan.Id) != null) break;
+                ReserveIndex(plan, plan.Reserved);
+                plan.Reserved++;
+            }
+        }
+
+        // Distance from the train's front to the end of the track it has been cleared to use.
+        // float.MaxValue means the whole remaining route is reserved (or the train is unplanned).
+        public float AuthorityDistance(string trainId)
+        {
+            Plan plan;
+            if (!plans.TryGetValue(trainId, out plan)) return float.MaxValue;
+            if (plan.Reserved >= plan.Route.Count) return float.MaxValue;
+            float front;
+            if (!TryFrontDistance(plan, out front)) return 0f;
+            return Mathf.Max(0f, plan.Starts[plan.Reserved] - front);
         }
 
         void UpdatePoints()
