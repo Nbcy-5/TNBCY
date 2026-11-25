@@ -1,6 +1,7 @@
-TNBCY v5.10 / APK 55
-- Deccan Express now uses fixed train number 87623.
-- Added Secunderabad Jn Platform 3 as an island platform shared by two parallel tracks on the same side of the existing line.
-- Added connected ladder-style turnouts at the yard entrance, an intermediate turnout between the two parallel tracks, and a merging throat back to the main line.
-- Added track-graph station stops for both Platform 3 track faces while rendering the shared platform only once.
-- Kept existing routes, trains, sleepers, ballast, scenery, and graphics unchanged outside the Secunderabad yard addition.
+TNBCY v5.11 / APK 56
+- Rebuilt the Secunderabad yard geometry to match the reference: two straight, parallel platform tracks on the same side of the main line.
+- Moved the yard tracks farther from the existing main-line platforms so the island platform fits between the two yard tracks without overlapping other platforms.
+- Reworked the entrance, intermediate ladder turnout, and exit merge geometry to connect the parallel tracks cleanly to the main line.
+- Aligned the Secunderabad main-line and yard platform stop positions along the same station length.
+- Deccan Express train number remains 87623.
+- Existing sleeper, ballast, scenery, and graphics assets remain unchanged.
