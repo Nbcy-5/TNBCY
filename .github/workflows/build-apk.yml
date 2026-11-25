@@ -126,7 +126,22 @@ jobs:
           json.dump(v, open("rel/version.json", "w"), indent=2)
           PY
           TAG="v${CODE}-build-${GITHUB_RUN_ID}"
-          gh release create "$TAG" rel/TNBCY.apk $( [ -f rel/content.pck ] && echo rel/content.pck ) rel/version.json -R "$UPD_REPO" --title "TNBCY $NAME (Build $CODE)" --notes "Build $CODE; workflow run $GITHUB_RUN_ID" --latest
+          PUBLISHED=0
+          for ATTEMPT in 1 2 3 4 5; do
+            if gh release view "$TAG" -R "$UPD_REPO" >/dev/null 2>&1; then
+              echo "Release $TAG already exists; not creating a duplicate."
+              PUBLISHED=1
+              break
+            fi
+            if gh release create "$TAG" rel/TNBCY.apk $( [ -f rel/content.pck ] && echo rel/content.pck ) rel/version.json -R "$UPD_REPO" --title "TNBCY $NAME (Build $CODE)" --notes "Build $CODE; workflow run $GITHUB_RUN_ID" --latest; then
+              PUBLISHED=1
+              break
+            fi
+            echo "Release publishing attempt $ATTEMPT failed; retrying after a short delay."
+            sleep $((ATTEMPT * 10))
+          done
+          if [ "$PUBLISHED" -ne 1 ]; then
+            echo "Could not publish release after 5 attempts."
+            exit 1
+          fi
           cat rel/version.json
-
-
