@@ -1,3 +1,7 @@
+TNBCY v51 — Fix intermittent missing sleepers at every viewing distance
+SLEEPERS Split the far and distant sleeper LOD MultiMeshes into the same small batches as the close and middle tiers. This prevents long sections from being hidden together when their visibility-range bounds cross the camera distance. Sleeper meshes, spacing, shape, colours, materials and LOD distance windows are unchanged.
+SCOPE Only sleeper visibility batching and version metadata changed. Rails, ballast, granite, track geometry, scenery, lighting, shadows, textures, graphics quality and gameplay are untouched.
+
 TNBCY v46 — Premium-quality track performance and natural sleeper granite scatter
 PERFORMANCE Replaced the expensive distant sleeper meshes with progressively lighter geometry tiers: detailed curved sleepers remain close to the camera, with denser mid-range and sparse far-distance sleepers. Close-up texture, concrete weathering, curved profile, rails, ballast materials, lighting and graphics quality settings are preserved.
 SLEEPERS Removed the duplicate per-chunk round-sphere sleeper stones. Small angular granite chips now come from the deterministic, camera-streamed chip system, scattered naturally on selected sleeper tops while keeping clear of rail seats.
