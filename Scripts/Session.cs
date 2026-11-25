@@ -13,10 +13,12 @@ namespace TNBCY
 
     public class SessionData
     {
-        public int version = 1;
+        public int version = 2;
         public string route = "", consist = "", title = "", sub = "", clock = "", saved = "";
         public float simTime, aiDwell;
         public SessTrain player = new SessTrain(), ai;
+        public List<SessTrain> aiTrains = new List<SessTrain>();
+        public List<float> aiDwells = new List<float>();
         public Dictionary<string, int> switches = new Dictionary<string, int>();
         public List<SessSignal> signals = new List<SessSignal>();
         public List<bool> stDone = new List<bool>(), stServed = new List<bool>();
@@ -57,7 +59,7 @@ namespace TNBCY
                 using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Read);
                 if (f == null) return null;
                 var d = JsonSerializer.Deserialize<SessionData>(f.GetAsText(), Opt);
-                return (d != null && d.version == 1 && d.player != null && d.player.edges.Count > 0) ? d : null;
+                return (d != null && (d.version == 1 || d.version == 2) && d.player != null && d.player.edges.Count > 0) ? d : null;
             }
             catch (System.Exception ex) { GD.PrintErr("Session load failed: " + ex.Message); return null; }
         }
@@ -73,7 +75,12 @@ namespace TNBCY
         {
             var d = new SessionData { route = route, consist = consist, simTime = sc.SimTime, title = consistName, sub = routeName, clock = sc.ClockText(), saved = Time.GetDatetimeStringFromSystem(false, true) };
             d.player = CaptureTrain(sc.Train);
-            if (sc.Ai != null) { d.ai = CaptureTrain(sc.Ai.T); d.aiDwell = sc.Ai.Dwell; }
+            for (int i = 0; i < sc.AiTrains.Count; i++)
+            {
+                d.aiTrains.Add(CaptureTrain(sc.AiTrains[i]));
+                d.aiDwells.Add(sc.AiDrivers[i].Dwell);
+            }
+            if (sc.AiTrains.Count > 0) { d.ai = d.aiTrains[0]; d.aiDwell = d.aiDwells[0]; }
             foreach (var n in sc.Graph.Switches) d.switches[n.Id] = n.Sel;
             foreach (var s in sc.Graph.Signals) d.signals.Add(new SessSignal { id = s.Id, red = s.Red, started = s.Started, passed = s.Passed, timer = s.Timer });
             foreach (var st in sc.Graph.Stations) { d.stDone.Add(st.Done); d.stServed.Add(st.Served); }
@@ -104,7 +111,21 @@ namespace TNBCY
             {
                 if (d.signals.Count != sc.Graph.Signals.Count || d.stDone.Count != sc.Graph.Stations.Count || d.stServed.Count != sc.Graph.Stations.Count) return false;
                 if (!RestoreTrain(sc, sc.Train, d.player)) return false;
-                if (sc.Ai != null && d.ai != null) { if (!RestoreTrain(sc, sc.Ai.T, d.ai)) return false; sc.Ai.Dwell = d.aiDwell; }
+                if (d.version >= 2)
+                {
+                    if (d.aiTrains.Count != sc.AiTrains.Count || d.aiDwells.Count != sc.AiDrivers.Count) return false;
+                    for (int i = 0; i < sc.AiTrains.Count; i++)
+                    {
+                        if (!RestoreTrain(sc, sc.AiTrains[i], d.aiTrains[i])) return false;
+                        sc.AiDrivers[i].Dwell = d.aiDwells[i];
+                    }
+                }
+                else if (sc.AiTrains.Count > 0)
+                {
+                    if (d.ai == null || !RestoreTrain(sc, sc.AiTrains[0], d.ai)) return false;
+                    sc.AiDrivers[0].Dwell = d.aiDwell;
+                    if (sc.AiTrains.Count > 1) return false;
+                }
                 foreach (var n in sc.Graph.Switches) { int v; if (d.switches.TryGetValue(n.Id, out v) && v >= 0 && v < n.Outs.Count) n.Sel = v; }
                 for (int i = 0; i < d.signals.Count; i++)
                 {
