@@ -14,6 +14,7 @@ namespace TNBCY
         List<RouteInfo> routesList = new List<RouteInfo>(); List<TrainOption> trainsList = new List<TrainOption>();
         bool paused; float saveT; string curRoute = "", curConsist = "", curConsistName = "", curRouteName = "";
         Scenario sc; Camera3D cam; TrainVis playerVis, aiVis;
+        readonly List<TrainVis> aiVisList = new List<TrainVis>();
         readonly Dictionary<TSignal, StandardMaterial3D[]> sigMats = new Dictionary<TSignal, StandardMaterial3D[]>();
         readonly Dictionary<TNode, Label3D> swTags = new Dictionary<TNode, Label3D>();
         readonly List<Vector3> trackPts = new List<Vector3>();
@@ -102,17 +103,32 @@ namespace TNBCY
                 var net = LoadJson<NetworkSpec>("res://Data/" + route.network + ".json");
                 var consist = LoadJson<ConsistSpec>("res://Data/" + train.file + ".json");
                 LoadLocoCatalog();
-                if (consist.randomElectricLoco && locoList.Count > 0)    // passenger / express / superfast: any electric (WAP) loco
+                PrepareRandomLoco(consist);
+                if (!string.IsNullOrEmpty(train.startEdge) && net.start != null)
+                    net.start = new StartSpec { edge = train.startEdge, offsetM = train.startOffsetM };
+
+                var aiServices = new List<AiServiceRuntime>();
+                foreach (var service in trainsList)
                 {
-                    var chosen = locoList[(int)(GD.Randi() % (uint)locoList.Count)];
-                    int li = consist.vehicles.FindIndex(x => x.powered); if (li < 0) li = 0;
-                    var old = consist.vehicles[li];
-                    var lv = LocoVehicle(chosen); lv.davisA = old.davisA; lv.davisB = old.davisB; lv.davisC = old.davisC;
-                    consist.vehicles[li] = lv; consist.name = chosen.name + " + " + consist.name.Substring(0, consist.name.IndexOf(" (") > 0 ? consist.name.IndexOf(" (") : consist.name.Length);
+                    if (ReferenceEquals(service, train) || (!string.IsNullOrEmpty(train.id) && service.id == train.id)) continue;
+                    if (string.IsNullOrEmpty(service.startEdge) || string.IsNullOrEmpty(service.destinationEdge)) continue;
+                    var serviceConsist = LoadJson<ConsistSpec>("res://Data/" + service.file + ".json");
+                    PrepareRandomLoco(serviceConsist);
+                    aiServices.Add(new AiServiceRuntime
+                    {
+                        id = string.IsNullOrEmpty(service.id) ? service.file : service.id,
+                        startEdge = service.startEdge, startOffsetM = service.startOffsetM,
+                        destinationEdge = service.destinationEdge, departureAfterS = service.departureAfterS,
+                        viaEdges = service.viaEdges, consist = serviceConsist
+                    });
                 }
+
                 ConsistSpec aiConsist = null;
-                try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); } catch { }
-                sc = new Scenario(net, consist, aiConsist) { OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); } };
+                if (aiServices.Count == 0) { try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); } catch { } }
+                sc = aiServices.Count > 0
+                    ? new Scenario(net, consist, train.destinationEdge, train.viaEdges, aiServices)
+                    : new Scenario(net, consist, aiConsist);
+                sc.OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); };
 
                 BuildSky();
                 cam = new Camera3D { Near = .5f, Far = 2600f, Fov = 72f }; AddChild(cam); cam.MakeCurrent();
@@ -123,7 +139,10 @@ namespace TNBCY
                 matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
                 BuildRealTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildLineSigns(); BuildWaterPipes(); BuildSwitchTags();
                 playerVis = BuildTrain(sc.Train, null, null);
-                if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
+                aiVisList.Clear();
+                foreach (var aiTrain in sc.AiTrains)
+                    aiVisList.Add(BuildTrain(aiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f)));
+                aiVis = aiVisList.Count > 0 ? aiVisList[0] : null;
                 BuildCab(); BuildHorn();
                 if (sounds == null) { sounds = new TrainSounds(); AddChild(sounds); }
 
@@ -145,6 +164,20 @@ namespace TNBCY
                 }
             }
             catch (System.Exception ex) { GD.PrintErr(ex.ToString()); if (loadL != null) { loadL.Text = "Error: " + ex.Message; loadL.Visible = true; } }
+        }
+
+        void PrepareRandomLoco(ConsistSpec consist)
+        {
+            if (consist == null || !consist.randomElectricLoco || locoList.Count == 0) return;
+            var chosen = locoList[(int)(GD.Randi() % (uint)locoList.Count)];
+            int li = consist.vehicles.FindIndex(x => x.powered); if (li < 0) li = 0;
+            if (li < 0 || li >= consist.vehicles.Count) return;
+            var old = consist.vehicles[li];
+            var lv = LocoVehicle(chosen); lv.davisA = old.davisA; lv.davisB = old.davisB; lv.davisC = old.davisC;
+            consist.vehicles[li] = lv;
+            string baseName = consist.name ?? "Train";
+            int cut = baseName.IndexOf(" (");
+            consist.name = chosen.name + " + " + baseName.Substring(0, cut > 0 ? cut : baseName.Length);
         }
 
         void OnApk(string notes, string url) { apkUrl = url; updL.Text = "New version available\n" + notes; updPanel.Visible = true; touch.Enabled = false; }
@@ -486,7 +519,7 @@ namespace TNBCY
             sc.Update(dt); toastT -= dt; if (toastT <= 0f) toastL.Text = "";
 
             UpdateTrain(playerVis, activeMode == 0, pantK);
-            if (aiVis != null) UpdateTrain(aiVis, false, 1f);
+            foreach (var trainVis in aiVisList) UpdateTrain(trainVis, false, 1f);
             var cols = new[] { Colors.Red, new Color(1f, .8f, .1f), new Color(.2f, 1f, .3f) };
             foreach (var kv in sigMats)
             {
@@ -513,7 +546,7 @@ namespace TNBCY
             if (sc.AiTrain != null)
             {
                 T.PointAt(T.Odo, out var pp, out _); sc.AiTrain.PointAt(sc.AiTrain.Odo, out var pa, out _);
-                aiL.Text = "Opposing train: " + sc.Ai.Status + "  " + (pp.DistanceTo(pa) / 1000f).ToString("0.0") + " km";
+                aiL.Text = "AI trains: " + sc.AiDrivers.Count + "  " + sc.Ai.Status + "  " + (pp.DistanceTo(pa) / 1000f).ToString("0.0") + " km";
             }
             if (sc.Ended && !endPanel.Visible) { endL.Text = sc.EndMessage; endPanel.Visible = true; touch.Enabled = false; Session.Delete(); }
         }
