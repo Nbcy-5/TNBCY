@@ -80,6 +80,15 @@ namespace TNBCY
     public class StartSpec { public string edge = ""; public float offsetM; }
     public class AiSpec { public bool enabled = true; public string edge = ""; public float offsetM; public float departAfterS = 20f; }
 
+    // Runtime definition for a non-player service instantiated as an AI train.
+    public class AiServiceRuntime
+    {
+        public string id = "", startEdge = "", destinationEdge = "";
+        public float startOffsetM, departureAfterS;
+        public List<string> viaEdges = new List<string>();
+        public ConsistSpec consist;
+    }
+
     public class NetworkSpec
     {
         public string name = "";
