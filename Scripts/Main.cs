@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v53";
+        public const string Version = "v54";
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
 
         FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
@@ -122,13 +122,27 @@ namespace TNBCY
                 // Keep the legacy AI consist only as a safe fallback if the catalogue has no second train.
                 ConsistSpec aiConsist = null;
                 TrainOption aiOption = trainsList.Find(x => x != null && !string.IsNullOrEmpty(x.file) && x.file != train.file);
+                // Each service carries its own playable start point. The selected service is manual;
+                // the other service starts at its own end and runs in the opposite direction as AI.
+                if (!string.IsNullOrEmpty(train.routeStartEdge) && net.edges.Exists(x => x.id == train.routeStartEdge))
+                {
+                    net.start.edge = train.routeStartEdge;
+                    net.start.offsetM = train.routeStartOffsetM;
+                }
                 if (aiOption != null)
                 {
                     try
                     {
                         aiConsist = LoadJson<ConsistSpec>("res://Data/" + aiOption.file + ".json");
                         PrepareRandomElectricLoco(aiConsist);
-                        GD.Print("AI service: " + aiOption.name + " (" + aiOption.file + ")");
+                        if (!string.IsNullOrEmpty(aiOption.routeStartEdge) && net.edges.Exists(x => x.id == aiOption.routeStartEdge))
+                        {
+                            net.ai.enabled = true;
+                            net.ai.edge = aiOption.routeStartEdge;
+                            net.ai.offsetM = aiOption.routeStartOffsetM;
+                            net.ai.departAfterS = 60f;
+                        }
+                        GD.Print("AI service: " + aiOption.name + " (" + aiOption.file + ") from " + aiOption.routeSection);
                     }
                     catch (System.Exception ex) { GD.PrintErr("AI service load failed: " + ex.Message); }
                 }

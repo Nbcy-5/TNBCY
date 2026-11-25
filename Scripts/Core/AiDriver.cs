@@ -26,7 +26,7 @@ namespace TNBCY
         {
             var P = T.Phys;
             if (T.Finished) { Hold(); Status = "finished"; return; }
-            if (simTime < departAt) { Hold(); Status = "waiting at Ghatkesar"; return; }
+            if (simTime < departAt) { Hold(); Status = "waiting at origin"; return; }
             if (dwell > 0f) { dwell -= dt; Hold(); Status = "at platform"; return; }
 
             float v = P.Speed;

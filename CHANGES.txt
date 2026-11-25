@@ -1,5 +1,6 @@
-TNBCY v5.8 / APK 53
-- The train selected in Play > Route > Train Names remains the only manually driven train.
-- The other listed train now spawns as the opposing AI service and is driven by the AI driver.
-- Retain the existing opposing AI consist as a fallback if a second train option is unavailable.
+TNBCY v5.9 / APK 54
+- Simhapuri Express is tagged Superfast Express with fixed train number 56718; playable service runs Secunderabad Jn to Ghatkesar.
+- Deccan Express remains an Express; its full origin is Kakinada Jn, but its current playable section starts at Ghatkesar and runs to Secunderabad Jn until Kakinada is built.
+- Selected train now starts at its configured playable origin; the other train starts at its own configured origin and runs as AI in the opposite direction.
+- Removed random train-number generation. Duplicate assigned train numbers now produce a warning; unassigned numbers are shown as not assigned.
 - No track geometry, sleeper, ballast, scenery, or graphics changes.

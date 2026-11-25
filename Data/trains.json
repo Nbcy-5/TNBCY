@@ -4,12 +4,16 @@
       "name": "Simhapuri Express",
       "file": "consist_express20",
       "desc": "Long-distance express passenger service",
-      "kind": "Express",
+      "kind": "Superfast Express",
       "coaches": 20,
       "origin": "Secunderabad Jn",
       "destination": "Gudur Jn",
       "locomotive": "Random WAP electric locomotive",
-      "platform": 1
+      "platform": 1,
+      "trainNumber": 56718,
+      "routeStartEdge": "d0",
+      "routeStartOffsetM": 765,
+      "routeSection": "Secunderabad Jn → Ghatkesar (playable section)"
     },
     {
       "name": "Deccan Express",
@@ -20,7 +24,11 @@
       "origin": "Kakinada Jn",
       "destination": "Secunderabad Jn",
       "locomotive": "Random WAP electric locomotive",
-      "platform": 2
+      "platform": 2,
+      "trainNumber": 0,
+      "routeStartEdge": "u0",
+      "routeStartOffsetM": 670,
+      "routeSection": "Ghatkesar → Secunderabad Jn (Kakinada section not built yet)"
     }
   ]
 }

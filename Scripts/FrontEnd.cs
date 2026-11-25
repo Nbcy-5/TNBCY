@@ -11,7 +11,7 @@ namespace TNBCY
         public bool available = true;
     }
     public class RouteList { public List<RouteInfo> routes = new List<RouteInfo>(); }
-    public class TrainOption { public string name = "", file = "", desc = "", kind = "", origin = "Secunderabad Jn", destination = "Gudur Jn", locomotive = "WAP electric locomotive"; public int coaches = 8, trainNumber = 0, platform = 1; }
+    public class TrainOption { public string name = "", file = "", desc = "", kind = "", origin = "Secunderabad Jn", destination = "Gudur Jn", locomotive = "WAP electric locomotive", routeStartEdge = "", routeSection = ""; public float routeStartOffsetM; public int coaches = 8, trainNumber = 0, platform = 1; }
     public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
 
     // Home screen with animated railway backdrop, route and train selection, settings.
@@ -185,10 +185,12 @@ namespace TNBCY
         {
             foreach (var c in trainRow.GetChildren()) c.QueueFree();
             trainsSub.Text = chosen != null ? chosen.name : "";
+            var seenNumbers = new HashSet<int>();
             foreach (var tr in trains)
             {
                 var to = tr;
-                if (to.trainNumber < 10000 || to.trainNumber > 99999) to.trainNumber = (int)GD.RandRange(10000, 99999);
+                if (to.trainNumber > 0 && !seenNumbers.Add(to.trainNumber))
+                    GD.PushWarning("Duplicate train number " + to.trainNumber + " found for " + to.name + ". Train numbers must be unique.");
                 VBoxContainer v; var card = Card(new Vector2(0, 0), out v);
                 card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
                 var title = Ui.MakeButton(to.name + "   +", 26, false, new Vector2(0, 64));
@@ -203,8 +205,8 @@ namespace TNBCY
                     title.Text = to.name + (details.Visible ? "   −" : "   +");
                 };
                 details.AddChild(Ui.MakeLabel((string.IsNullOrEmpty(to.kind) ? "PASSENGER SERVICE" : to.kind.ToUpperInvariant() + " SERVICE"), 15, Ui.Gold, true));
-                details.AddChild(Ui.MakeLabel("TRAIN NO.  " + to.trainNumber.ToString("D5"), 21, Ui.GoldHi, true));
-                details.AddChild(Ui.MakeLabel("FROM  " + to.origin + "\nTO  " + to.destination + "\nDEPARTURE PLATFORM  " + to.platform, 18, Colors.White));
+                details.AddChild(Ui.MakeLabel("TRAIN NO.  " + (to.trainNumber > 0 ? to.trainNumber.ToString("D5") : "NOT ASSIGNED"), 21, Ui.GoldHi, true));
+                details.AddChild(Ui.MakeLabel("FROM  " + to.origin + "\nTO  " + to.destination + (string.IsNullOrEmpty(to.routeSection) ? "" : "\nPLAYABLE SECTION  " + to.routeSection) + "\nDEPARTURE PLATFORM  " + to.platform, 18, Colors.White));
                 details.AddChild(new TrainGlyph { Coaches = to.coaches, CustomMinimumSize = new Vector2(344, 82) });
                 var d = Ui.MakeLabel(to.locomotive + "\n" + to.coaches + " coaches  ·  " + to.desc, 16, Ui.Dim);
                 d.AutowrapMode = TextServer.AutowrapMode.WordSmart; d.CustomMinimumSize = new Vector2(344, 0); details.AddChild(d);
