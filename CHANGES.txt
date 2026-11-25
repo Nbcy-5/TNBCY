@@ -1,3 +1,8 @@
+TNBCY v5.6 / APK 50
+- Added a separate Secunderabad Platform 3 departure track and an AI-operated 16-coach passenger service to Moula Ali.
+- Split the main line at Moula Ali so the new service terminates at the station; retained the through route and moved the existing signal to its matching position.
+- Kept the existing train services, train models, track appearance and physics unchanged.
+
 TNBCY v5.4 / APK 48
 - Fixed turnout intersection sleeper placement: one shared fan-shaped bearer layout supports both tracks without overlapping duplicate sleepers.
 
