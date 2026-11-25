@@ -8,6 +8,7 @@ namespace TNBCY
         public readonly Train T;
         readonly TrackGraph g;
         readonly float departAt, defaultLimit;
+        readonly System.Collections.Generic.HashSet<TStation> served = new System.Collections.Generic.HashSet<TStation>();
         float dwell;
         public float Dwell { get { return dwell; } set { dwell = value; } }
         public string Status = "waiting";
@@ -25,6 +26,7 @@ namespace TNBCY
         public void Update(float dt, float simTime)
         {
             var P = T.Phys;
+            if (!T.HasPlannedRoute) { Hold(); Status = "route unavailable"; return; }
             if (T.Finished) { Hold(); Status = "finished"; return; }
             if (simTime < departAt) { Hold(); Status = "waiting at Ghatkesar"; return; }
             if (dwell > 0f) { dwell -= dt; Hold(); Status = "at platform"; return; }
@@ -49,9 +51,9 @@ namespace TNBCY
                 }
                 foreach (var st in g.Stations)
                 {
-                    if (st.Edge != e || !st.Stop || st.Served) continue;
+                    if (st.Edge != e || !st.Stop || served.Contains(st)) continue;
                     float d = acc + st.Offset;
-                    if (d < -8f) { st.Served = true; continue; }
+                    if (d < -8f) { served.Add(st); continue; }
                     target = Mathf.Min(target, StopSpeed(d - 4f - v * 1.5f));
                     if (arriving == null || d < arriveD) { arriving = st; arriveD = d; }
                 }
@@ -62,7 +64,7 @@ namespace TNBCY
 
             if (arriving != null && arriveD < 25f && v < 0.4f)
             {
-                arriving.Served = true; dwell = arriving.Dwell; Hold(); Status = "at " + arriving.Name; return;
+                served.Add(arriving); dwell = arriving.Dwell; Hold(); Status = "at " + arriving.Name; return;
             }
 
             float err = target - v;
