@@ -492,6 +492,19 @@ namespace TNBCY
                     P.BrakeHandle = 1f;
                 }
             }
+
+            // The player must obey the same dispatcher movement authority as AI trains.
+            // This prevents entering a merge or block section reserved by another service.
+            float authorityDistance = sc.Dispatcher.AuthorityDistance("PLAYER");
+            if (authorityDistance < 1e8f)
+            {
+                float authorityStoppingMargin = P.BrakingDistance(0f) + 18f + P.Speed * 2f;
+                if (authorityDistance <= authorityStoppingMargin)
+                {
+                    P.Throttle = 0f;
+                    P.BrakeHandle = 1f;
+                }
+            }
             pantK = Mathf.MoveToward(pantK, touch.PantoUp ? 1f : 0f, dt / 2f);
         }
 
