@@ -12,7 +12,7 @@ namespace TNBCY
         public string SwitchLabel = "No switch";
         public bool HudVisible = true;                      // false = only the small eye button is shown
         public System.Action OnMenu, OnHudToggle;
-        public System.Action OnHorn, OnSwitch, OnPrevCoach, OnNextCoach, OnPantoToggle, OnBreakerToggle;
+        public System.Action OnHorn, OnPrevCoach, OnNextCoach, OnPantoToggle, OnBreakerToggle;
 
         public static readonly string[] CamNames = { "Cab", "Chase", "Nose", "Side", "Top", "Free" };
         static readonly string[] BrakeNames = { "REL", "RUN", "MIN", "50%", "75%", "FULL", "EMG" };
@@ -30,7 +30,7 @@ namespace TNBCY
         float u, topY, bottomY, brakeX, powerX;
         Rect2 brakeZone, powerZone, reverserZone, coachLeft, coachRight, eyeBtn, menuBtn;
         readonly Rect2[] reverserButtons = new Rect2[3];
-        readonly Rect2[] actionButtons = new Rect2[6];
+        readonly Rect2[] actionButtons = new Rect2[5];
         readonly Dictionary<int, int> pointerOwners = new Dictionary<int, int>();
         static readonly StyleBoxFlat style = new StyleBoxFlat();
 
@@ -53,10 +53,12 @@ namespace TNBCY
             float x0 = centre - total * .5f;
             float row1 = h - 166f * u;
             float row2 = h - 110f * u;
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 5; i++)
             {
                 int row = i / 3, col = i % 3;
-                actionButtons[i] = new Rect2(x0 + col * (bw + gap), row == 0 ? row1 : row2, bw, bh);
+                float x = x0 + col * (bw + gap);
+                if (row == 1) x += (bw + gap) * .5f;
+                actionButtons[i] = new Rect2(x, row == 0 ? row1 : row2, bw, bh);
             }
 
             float rw = 76f * u, rh = 40f * u;
@@ -205,9 +207,8 @@ namespace TNBCY
             if (i == 0) OnPantoToggle?.Invoke();
             else if (i == 1) { if (!Diesel) OnBreakerToggle?.Invoke(); }
             else if (i == 2) OnHorn?.Invoke();
-            else if (i == 3) OnSwitch?.Invoke();
-            else if (i == 4) CamMode = (CamMode + 1) % CamNames.Length;
-            else
+            else if (i == 3) CamMode = (CamMode + 1) % CamNames.Length;
+            else if (i == 4)
             {
                 if (Emergency) { Emergency = false; BrakeStep = 5; }
                 else ForceEmergency();
