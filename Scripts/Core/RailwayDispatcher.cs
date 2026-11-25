@@ -86,8 +86,7 @@ namespace TNBCY
             reason = "";
             if (string.IsNullOrEmpty(id) || route == null || route.Count == 0)
             { reason = "Invalid train route."; return false; }
-            if (plans.ContainsKey(id)) ReleaseTrain(id);
-
+            // Validate the replacement first; keep the train's existing reservations if it fails.
             var requestedSwitches = new Dictionary<TNode, TEdge>();
             for (int i = 0; i + 1 < route.Count; i++)
             {
@@ -112,6 +111,7 @@ namespace TNBCY
                 { reason = "Track section " + edge.Id + " is already reserved by " + owner + "."; return false; }
             }
 
+            if (plans.ContainsKey(id)) ReleaseTrain(id);
             var plan = new Plan { Id = id, Train = train, IsPlayer = isPlayer, Route = new List<TEdge>(route) };
             float start = 0f;
             foreach (var edge in route) { plan.Starts.Add(start); start += edge.Length; }
@@ -154,6 +154,12 @@ namespace TNBCY
 
                 foreach (var edge in node.Outs)
                 {
+                    string pointOwner;
+                    TEdge pointRoute;
+                    if (node.IsSwitch && switchOwners.TryGetValue(node, out pointOwner) &&
+                        pointOwner != owner && switchRoutes.TryGetValue(node, out pointRoute) && pointRoute != edge)
+                        continue;
+
                     string reservedBy;
                     if (edgeOwners.TryGetValue(edge, out reservedBy) && reservedBy != owner) continue;
                     TNode next = edge.To;
