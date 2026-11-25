@@ -121,14 +121,14 @@ namespace TNBCY
                         id = string.IsNullOrEmpty(service.id) ? service.file : service.id,
                         startEdge = service.startEdge, startOffsetM = service.startOffsetM,
                         destinationEdge = service.destinationEdge, departureAfterS = service.departureAfterS,
-                        viaEdges = service.viaEdges, consist = serviceConsist
+                        viaEdges = service.viaEdges, viaStations = service.viaStations, consist = serviceConsist
                     });
                 }
 
                 ConsistSpec aiConsist = null;
                 if (aiServices.Count == 0) { try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); } catch { } }
                 sc = aiServices.Count > 0
-                    ? new Scenario(net, consist, train.destinationEdge, train.viaEdges, aiServices)
+                    ? new Scenario(net, consist, train.destinationEdge, train.viaEdges, train.viaStations, aiServices)
                     : new Scenario(net, consist, aiConsist);
                 sc.OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); };
 
