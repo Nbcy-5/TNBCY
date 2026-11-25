@@ -2247,7 +2247,7 @@
     {
       "name": "Secunderabad Jn (SC)",
       "edge": "d0",
-      "offsetM": 1000,
+      "offsetM": 1275,
       "stop": false,
       "side": "L",
       "dwellS": 25
@@ -2303,7 +2303,7 @@
     {
       "name": "Secunderabad Jn (SC)",
       "edge": "u17",
-      "offsetM": 1250,
+      "offsetM": 1575,
       "stop": true,
       "side": "L",
       "dwellS": 30

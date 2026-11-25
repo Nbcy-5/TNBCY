@@ -1,4 +1,4 @@
-TNBCY v5.14 / APK 59
-- Removed duplicate brown station-building blocks from Secunderabad's secondary and yard platforms.
-- Kept one main station building attached beside Platform 1 only.
-- Left platform slabs, roofs, shelters, track geometry, trains, sleepers, ballast and scenery unchanged.
+TNBCY v5.15 / APK 60
+- Corrected Secunderabad platform alignment by setting the two main-line platform stop offsets to the same world-space 620 m span as Platforms 3 and 4.
+- All four platform groups now target the same station length and longitudinal position.
+- Kept the six-track layout, existing track geometry, single Platform 1 station building, trains, sleepers, ballast, shelters and scenery unchanged.
