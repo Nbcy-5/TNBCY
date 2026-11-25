@@ -1,5 +1,5 @@
-TNBCY v5.7 / APK 52
-- Increase Android version code to support installing over earlier APK builds.
-- No station-layout, track, or gameplay changes in this compatibility rebuild.
-
-[object Object]
+TNBCY v5.8 / APK 53
+- The train selected in Play > Route > Train Names remains the only manually driven train.
+- The other listed train now spawns as the opposing AI service and is driven by the AI driver.
+- Retain the existing opposing AI consist as a fallback if a second train option is unavailable.
+- No track geometry, sleeper, ballast, scenery, or graphics changes.

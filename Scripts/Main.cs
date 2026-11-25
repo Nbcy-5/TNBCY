@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v52";
+        public const string Version = "v53";
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
 
         FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
@@ -92,6 +92,19 @@ namespace TNBCY
             StartGame(r, t, s);
         }
 
+        void PrepareRandomElectricLoco(ConsistSpec consist)
+        {
+            if (consist == null || !consist.randomElectricLoco || locoList.Count == 0 || consist.vehicles == null || consist.vehicles.Count == 0) return;
+            var chosen = locoList[(int)(GD.Randi() % (uint)locoList.Count)];
+            int li = consist.vehicles.FindIndex(x => x != null && x.powered); if (li < 0) li = 0;
+            var old = consist.vehicles[li];
+            var lv = LocoVehicle(chosen); lv.davisA = old.davisA; lv.davisB = old.davisB; lv.davisC = old.davisC;
+            consist.vehicles[li] = lv;
+            string baseName = consist.name ?? "Train";
+            int cut = baseName.IndexOf(" (");
+            consist.name = chosen.name + " + " + baseName.Substring(0, cut > 0 ? cut : baseName.Length);
+        }
+
         async void StartGame(RouteInfo route, TrainOption train, SessionData resume)
         {
             try
@@ -102,16 +115,28 @@ namespace TNBCY
                 var net = LoadJson<NetworkSpec>("res://Data/" + route.network + ".json");
                 var consist = LoadJson<ConsistSpec>("res://Data/" + train.file + ".json");
                 LoadLocoCatalog();
-                if (consist.randomElectricLoco && locoList.Count > 0)    // passenger / express / superfast: any electric (WAP) loco
-                {
-                    var chosen = locoList[(int)(GD.Randi() % (uint)locoList.Count)];
-                    int li = consist.vehicles.FindIndex(x => x.powered); if (li < 0) li = 0;
-                    var old = consist.vehicles[li];
-                    var lv = LocoVehicle(chosen); lv.davisA = old.davisA; lv.davisB = old.davisB; lv.davisC = old.davisC;
-                    consist.vehicles[li] = lv; consist.name = chosen.name + " + " + consist.name.Substring(0, consist.name.IndexOf(" (") > 0 ? consist.name.IndexOf(" (") : consist.name.Length);
-                }
+                // The selected train is the player's manual-drive service.
+                PrepareRandomElectricLoco(consist);
+
+                // The other train in Play > Route > Train Names becomes the opposing AI service.
+                // Keep the legacy AI consist only as a safe fallback if the catalogue has no second train.
                 ConsistSpec aiConsist = null;
-                try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); } catch { }
+                TrainOption aiOption = trainsList.Find(x => x != null && !string.IsNullOrEmpty(x.file) && x.file != train.file);
+                if (aiOption != null)
+                {
+                    try
+                    {
+                        aiConsist = LoadJson<ConsistSpec>("res://Data/" + aiOption.file + ".json");
+                        PrepareRandomElectricLoco(aiConsist);
+                        GD.Print("AI service: " + aiOption.name + " (" + aiOption.file + ")");
+                    }
+                    catch (System.Exception ex) { GD.PrintErr("AI service load failed: " + ex.Message); }
+                }
+                if (aiConsist == null)
+                {
+                    try { aiConsist = LoadJson<ConsistSpec>("res://Data/consist_ai.json"); }
+                    catch (System.Exception ex) { GD.PrintErr("Fallback AI consist load failed: " + ex.Message); }
+                }
                 sc = new Scenario(net, consist, aiConsist) { OnEvent = (m, k) => { Toast(m, k == "ok"); RefreshSwitchTags(); } };
 
                 BuildSky();
