@@ -120,7 +120,7 @@ namespace TNBCY
                 System.Action<Vector3, float, float, float, float, float, Color> put = (pos, sx, sy, sz, tilt, yaw, col) =>
                 {
                     int variant = (int)(rng.Randi() % 4u);
-                    int key = ((int)(pos.X * .0033f + pos.Z * .0071f) * 4 + variant);       // coarse spatial chunk (about 300 m)
+                    int key = Mathf.FloorToInt((pos.X + pos.Z) * .0083f) * 4 + variant;       // coarse spatial chunk (about 120 m), so the distance culling works per chunk
                     RTChunk ch; if (!chunks.TryGetValue(key, out ch)) { ch = new RTChunk(); chunks[key] = ch; }
                     var bs = new Basis(Vector3.Up, yaw) * new Basis(Vector3.Right, rng.RandfRange(-tilt, tilt)) * new Basis(Vector3.Forward, rng.RandfRange(-tilt, tilt)) * Basis.FromScale(new Vector3(sx, sy, sz));
                     ch.T.Add(new Transform3D(bs, pos)); ch.C.Add(col);
