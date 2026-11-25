@@ -18,7 +18,11 @@
         "d7",
         "d12"
       ],
-      "departureAfterS": 0
+      "departureAfterS": 0,
+      "viaStations": [
+        "Moula Ali (MLY)",
+        "Charlapalli (CHZ)"
+      ]
     },
     {
       "id": "GT-SC-02",
@@ -38,7 +42,11 @@
         "u5",
         "u10"
       ],
-      "departureAfterS": 60
+      "departureAfterS": 60,
+      "viaStations": [
+        "Charlapalli (CHZ)",
+        "Moula Ali (MLY)"
+      ]
     }
   ]
 }
