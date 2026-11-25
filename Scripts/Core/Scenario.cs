@@ -33,7 +33,7 @@ namespace TNBCY
                 if (match == null)
                 {
                     GD.PrintErr("Via station not found in this direction: " + stationName);
-                    return new List<string>();
+                    return null;
                 }
                 result.Add(match.Edge.Id);
             }
@@ -56,7 +56,9 @@ namespace TNBCY
             if (!string.IsNullOrEmpty(playerDestinationEdge))
             {
                 var resolvedPlayerVia = ResolveViaEdges(Train.FrontSeg.Edge.Id, playerViaEdges, playerViaStations);
-                if (!Dispatcher.TryPlanRoute("PLAYER", Train, playerDestinationEdge, resolvedPlayerVia, true, out dispatchReason))
+                if (resolvedPlayerVia == null)
+                    GD.PrintErr("Player route planning cancelled: one or more via stations could not be resolved.");
+                else if (!Dispatcher.TryPlanRoute("PLAYER", Train, playerDestinationEdge, resolvedPlayerVia, true, out dispatchReason))
                     GD.PrintErr("Player route planning: " + dispatchReason);
             }
             else if (!Dispatcher.TryPlanToFarthestStop("PLAYER", Train, true, out dispatchReason))
@@ -72,7 +74,9 @@ namespace TNBCY
                     var driver = new AiDriver(aiTrain, Graph, service.departureAfterS, net.defaultLimitKmh);
                     AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add(service.id);
                     var resolvedVia = ResolveViaEdges(service.startEdge, service.viaEdges, service.viaStations);
-                    if (!Dispatcher.TryPlanRoute(service.id, aiTrain, service.destinationEdge, resolvedVia, false, out dispatchReason))
+                    if (resolvedVia == null)
+                        GD.PrintErr("AI route planning cancelled (" + service.id + "): a via station could not be resolved.");
+                    else if (!Dispatcher.TryPlanRoute(service.id, aiTrain, service.destinationEdge, resolvedVia, false, out dispatchReason))
                         GD.PrintErr("AI route planning (" + service.id + "): " + dispatchReason);
                 }
             }
