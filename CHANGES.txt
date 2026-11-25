@@ -1,4 +1,5 @@
-TNBCY v5.6 / APK 50
-- Rebuilt the current repository baseline as APK 50. No station-layout or gameplay changes are included in this build.
+TNBCY v5.7 / APK 52
+- Increase Android version code to support installing over earlier APK builds.
+- No station-layout, track, or gameplay changes in this compatibility rebuild.
 
 [object Object]
