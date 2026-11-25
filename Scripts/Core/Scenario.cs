@@ -19,6 +19,12 @@ namespace TNBCY
             TimeScale = Mathf.Max(0.1f, net.timeScale);
             if (net.ai != null && net.ai.enabled && Graph.Edges.ContainsKey(net.ai.edge))
                 Ai = new AiDriver(new Train(aiConsist ?? consist, Graph.Edges[net.ai.edge], net.ai.offsetM), Graph, net.ai.departAfterS, net.defaultLimitKmh);
+            Dispatcher = new RailwayDispatcher(Graph);
+            string dispatchReason;
+            if (!Dispatcher.TryPlanToFarthestStop("PLAYER", Train, true, out dispatchReason))
+                GD.PrintErr("Player route planning: " + dispatchReason);
+            if (Ai != null && !Dispatcher.TryPlanToFarthestStop("AI-1", Ai.T, false, out dispatchReason))
+                GD.PrintErr("AI route planning: " + dispatchReason);
             // Long trains start further along the platform: move the start platforms to where the fronts really are.
             foreach (var st in Graph.Stations)
             {
@@ -53,6 +59,7 @@ namespace TNBCY
         void Step(float h)
         {
             SimTime += h;
+            Dispatcher.Update();
             Train.Update(h);
             if (Ai != null) Ai.Update(h, SimTime);
             if (Ai != null) Ai.T.Update(h);
