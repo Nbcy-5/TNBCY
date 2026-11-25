@@ -89,6 +89,13 @@ namespace TNBCY
                     GD.PrintErr("AI route planning: " + dispatchReason);
             }
 
+            // Movement authority: each AI driver stops short of track the dispatcher has not reserved for its train.
+            for (int i = 0; i < AiDrivers.Count; i++)
+            {
+                string serviceId = AiServiceIds[i];
+                AiDrivers[i].Authority = () => Dispatcher.AuthorityDistance(serviceId);
+            }
+
             // Long trains start further along the platform: move the start markers to where the fronts really are.
             foreach (var st in Graph.Stations)
             {
