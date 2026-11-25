@@ -468,7 +468,7 @@ void fragment() {
             var slabs = new List<Transform3D>(); var lines = new List<Transform3D>(); var roofs = new List<Transform3D>(); var poles = new List<Transform3D>();
             foreach (var st in sc.Graph.Stations)
             {
-                float sm = st.Side == "L" ? -1f : 1f; bool sec = RTIsSec(st); bool secVisual = sec && st.Edge.Id != "sc_yard_b";     // Platform 3 shares one island platform across both yard tracks.
+                float sm = st.Side == "L" ? -1f : 1f; bool sec = RTIsSec(st); bool secVisual = sec && st.Edge.Id != "sc_yard_b" && st.Edge.Id != "sc_yard_d";     // Render one island per paired track set; the partner track supplies the opposite platform face.
                 var e = st.Edge; float hi = Mathf.Min(e.Length, st.Offset + 10f), remain = PlatLen;
                 for (int guard = 0; remain > 1f && e != null && guard < 6; guard++)
                 {
@@ -490,7 +490,7 @@ void fragment() {
                     if (lo > 0f) break;
                     e = PredOf(e); if (e != null) hi = e.Length;
                 }
-                if (secVisual)
+                if (secVisual && (st.Edge.Id == "d0" || st.Edge.Id == "u17" || st.Edge.Id == "sc_yard_a" || st.Edge.Id == "sc_yard_c"))
                 {
                 float cs = Mathf.Max(0f, st.Offset - 150f);          // station building and name board sit behind the stop mark
                 var p = st.Edge.PosAt(cs); var d = st.Edge.DirAt(cs); var q = Basis.LookingAt(d, Vector3.Up); var r = Right(d) * sm;

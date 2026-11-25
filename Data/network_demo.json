@@ -259,12 +259,48 @@
     {
       "id": "SCY_C",
       "x": -24.65,
-      "z": 1800,
+      "z": 1850,
       "type": "plain"
     },
     {
       "id": "SCY_D",
       "x": -24.65,
+      "z": 1000,
+      "type": "plain"
+    },
+    {
+      "id": "SCY_E",
+      "x": -35.05,
+      "z": 1750,
+      "type": "plain"
+    },
+    {
+      "id": "SCY_F",
+      "x": -35.05,
+      "z": 700,
+      "type": "plain"
+    },
+    {
+      "id": "SCY_G",
+      "x": -45.45,
+      "z": 1650,
+      "type": "plain"
+    },
+    {
+      "id": "SCY_H",
+      "x": -45.45,
+      "z": 400,
+      "type": "plain"
+    },
+    {
+      "id": "SCY_A750",
+      "x": -14.25,
+      "z": 700,
+      "type": "plain"
+    },
+    {
+      "id": "SCY_A400",
+      "x": -14.25,
       "z": 400,
       "type": "plain"
     }
@@ -1732,7 +1768,7 @@
     {
       "id": "sc_yard_a",
       "from": "SCY_A",
-      "to": "SCY_B",
+      "to": "SCY_A750",
       "gradientPermil": 0,
       "curveRadiusM": 0,
       "speedLimitKmh": 25
@@ -1743,24 +1779,20 @@
       "to": "SCY_C",
       "turnout": "L",
       "gradientPermil": 0,
-      "curveRadiusM": 250,
+      "curveRadiusM": 300,
       "speedLimitKmh": 25,
       "via": [
         [
-          -16,
-          1910
+          -16.5,
+          1925
         ],
         [
-          -18.2,
-          1870
+          -19,
+          1900
         ],
         [
-          -21,
-          1835
-        ],
-        [
-          -23,
-          1810
+          -22,
+          1875
         ]
       ]
     },
@@ -1773,31 +1805,163 @@
       "speedLimitKmh": 25
     },
     {
-      "id": "sc_yard_b_merge",
-      "from": "SCY_D",
-      "to": "SCY_B",
+      "id": "sc_yard_c_entry",
+      "from": "SCY_C",
+      "to": "SCY_E",
       "turnout": "L",
       "gradientPermil": 0,
-      "curveRadiusM": 250,
+      "curveRadiusM": 300,
       "speedLimitKmh": 25,
       "via": [
         [
-          -23,
-          355
+          -26.9,
+          1825
         ],
         [
-          -21,
-          315
+          -29.4,
+          1800
         ],
         [
-          -18.2,
-          280
-        ],
-        [
-          -16,
-          260
+          -32,
+          1775
         ]
       ]
+    },
+    {
+      "id": "sc_yard_c",
+      "from": "SCY_E",
+      "to": "SCY_F",
+      "gradientPermil": 0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 25
+    },
+    {
+      "id": "sc_yard_d_entry",
+      "from": "SCY_E",
+      "to": "SCY_G",
+      "turnout": "L",
+      "gradientPermil": 0,
+      "curveRadiusM": 300,
+      "speedLimitKmh": 25,
+      "via": [
+        [
+          -37.3,
+          1725
+        ],
+        [
+          -39.8,
+          1700
+        ],
+        [
+          -42.4,
+          1675
+        ]
+      ]
+    },
+    {
+      "id": "sc_yard_d",
+      "from": "SCY_G",
+      "to": "SCY_H",
+      "gradientPermil": 0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 25
+    },
+    {
+      "id": "sc_yard_b_merge",
+      "from": "SCY_D",
+      "to": "SCY_A750",
+      "turnout": "L",
+      "gradientPermil": 0,
+      "curveRadiusM": 350,
+      "speedLimitKmh": 25,
+      "via": [
+        [
+          -24.65,
+          925
+        ],
+        [
+          -22,
+          850
+        ],
+        [
+          -18,
+          775
+        ],
+        [
+          -14.25,
+          700
+        ]
+      ]
+    },
+    {
+      "id": "sc_yard_d_merge",
+      "from": "SCY_H",
+      "to": "SCY_F",
+      "turnout": "L",
+      "gradientPermil": 0,
+      "curveRadiusM": 350,
+      "speedLimitKmh": 25,
+      "via": [
+        [
+          -45.45,
+          475
+        ],
+        [
+          -42.8,
+          550
+        ],
+        [
+          -38.8,
+          625
+        ],
+        [
+          -35.05,
+          700
+        ]
+      ]
+    },
+    {
+      "id": "sc_yard_c_merge",
+      "from": "SCY_F",
+      "to": "SCY_A400",
+      "turnout": "L",
+      "gradientPermil": 0,
+      "curveRadiusM": 350,
+      "speedLimitKmh": 25,
+      "via": [
+        [
+          -35.05,
+          625
+        ],
+        [
+          -32.4,
+          550
+        ],
+        [
+          -28.4,
+          475
+        ],
+        [
+          -24.65,
+          400
+        ]
+      ]
+    },
+    {
+      "id": "sc_yard_a_exit1",
+      "from": "SCY_A750",
+      "to": "SCY_A400",
+      "gradientPermil": 0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 25
+    },
+    {
+      "id": "sc_yard_a_exit2",
+      "from": "SCY_A400",
+      "to": "SCY_B",
+      "gradientPermil": 0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 25
     },
     {
       "id": "sc_yard_exit",
@@ -2001,7 +2165,23 @@
     {
       "name": "Secunderabad Jn (SC) Platform 3",
       "edge": "sc_yard_b",
-      "offsetM": 800,
+      "offsetM": 850,
+      "stop": true,
+      "side": "R",
+      "dwellS": 30
+    },
+    {
+      "name": "Secunderabad Jn (SC) Platform 4",
+      "edge": "sc_yard_c",
+      "offsetM": 750,
+      "stop": true,
+      "side": "L",
+      "dwellS": 30
+    },
+    {
+      "name": "Secunderabad Jn (SC) Platform 4",
+      "edge": "sc_yard_d",
+      "offsetM": 650,
       "stop": true,
       "side": "R",
       "dwellS": 30
