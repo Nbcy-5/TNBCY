@@ -7,7 +7,7 @@ namespace TNBCY
     public class Scenario
     {
         public readonly NetworkSpec Net; public readonly TrackGraph Graph; public readonly Train Train;
-        public readonly AiDriver Ai;
+        public readonly AiDriver Ai; public readonly RailwayDispatcher Dispatcher;
         public float SimTime, TimeScale = 1f; public bool Ended; public string EndMessage = "";
         public System.Action<string, string> OnEvent;   // (message, "ok" | "bad")
         readonly HashSet<string> served = new HashSet<string>();
@@ -136,7 +136,7 @@ namespace TNBCY
             {
                 acc += e.Length; var n = e.To;
                 if (n.IsSwitch) { dist = acc; return n; }
-                e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
+                e = Train.NextEdge(e);
             }
             return null;
         }
