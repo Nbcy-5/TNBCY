@@ -478,14 +478,32 @@ void fragment() {
                             pFit.SetInstanceTransform(pk * 2, fl[(pb + pk) * 2]); pFit.SetInstanceTransform(pk * 2 + 1, fl[(pb + pk) * 2 + 1]);
                         }
                     }
-                    // Replace the old coplanar distance texture with actual low-poly curved sleepers.
-                    // This keeps cross-ties crisp and avoids a second textured plane shimmering over the ballast.
-                    var farNear = RTMultiMeshLod(rtSleeperFar1, matConcrete, lodNear.Count, 90f, 480f);
-                    for (int i = 0; i < lodNear.Count; i++) farNear.SetInstanceTransform(i, lodNear[i]);
-                    var farMid = RTMultiMeshLod(rtSleeperFar1, matConcrete, lodMid.Count, 480f, 1250f);
-                    for (int i = 0; i < lodMid.Count; i++) farMid.SetInstanceTransform(i, lodMid[i]);
-                    var farFar = RTMultiMeshLod(rtSleeperFar2, matConcrete, lodFar.Count, 1250f, 2600f);
-                    for (int i = 0; i < lodFar.Count; i++) farFar.SetInstanceTransform(i, lodFar[i]);
+                    // v51: keep distant LOD batches small too. Large far-tier MultiMeshes used to span
+                    // the entire 220-sleeper section, so their visibility-range AABB could cross the
+                    // camera range in one jump and hide a long run of sleepers at once.
+                    // Partition every far tier by the same small sleeper pieces; geometry, spacing,
+                    // materials and distance windows remain unchanged.
+                    for (int pb = 0; pb < tl.Count; pb += RTSleeperPiece)
+                    {
+                        int pn = Mathf.Min(RTSleeperPiece, tl.Count - pb);
+                        var pFarNear = new List<Transform3D>();
+                        var pFarMid = new List<Transform3D>();
+                        var pFarFar = new List<Transform3D>();
+                        for (int pk = 0; pk < pn; pk++)
+                        {
+                            int sleeperIndex = c0 + pb + pk;
+                            var sleeper = tl[pb + pk];
+                            if (sleeperIndex % 2 == 0) pFarNear.Add(sleeper);
+                            if (sleeperIndex % 4 == 0) pFarMid.Add(sleeper);
+                            if (sleeperIndex % 8 == 0) pFarFar.Add(sleeper);
+                        }
+                        var pFarNearMm = RTMultiMeshLod(rtSleeperFar1, matConcrete, pFarNear.Count, 90f, 480f);
+                        for (int i = 0; i < pFarNear.Count; i++) pFarNearMm.SetInstanceTransform(i, pFarNear[i]);
+                        var pFarMidMm = RTMultiMeshLod(rtSleeperFar1, matConcrete, pFarMid.Count, 480f, 1250f);
+                        for (int i = 0; i < pFarMid.Count; i++) pFarMidMm.SetInstanceTransform(i, pFarMid[i]);
+                        var pFarFarMm = RTMultiMeshLod(rtSleeperFar2, matConcrete, pFarFar.Count, 1250f, 2600f);
+                        for (int i = 0; i < pFarFar.Count; i++) pFarFarMm.SetInstanceTransform(i, pFarFar[i]);
+                    }
                 }
                 RTBuildOHE(e);                                       // v23: realistic 25 kV overhead line
             }
