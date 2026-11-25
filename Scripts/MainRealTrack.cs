@@ -16,6 +16,7 @@ namespace TNBCY
     //    Coarser sleeper cadence preserves visible cross-ties at long range without forcing unstable high-frequency detail.
     //  - Points: the grey boxes are gone. The crossing now has a V-shaped cast frog with a polished top between the wing rails and check rails.
     //  - Grass tufts and small stones beside the track (not on platforms, not on the other track).
+    //  - v48: the small stones beside the track are now small light grey granite chips (they were big dark grey blobs).
     public partial class Main
     {
         // ------------------------------------------------------------------ procedural textures
@@ -566,10 +567,10 @@ void fragment() {
                             if (RTFree(pos, 2.2f))
                             {
                                 RTChunk ch; if (!rocks.TryGetValue(ck, out ch)) { ch = new RTChunk(); rocks[ck] = ch; }
-                                float sz = rng.RandfRange(.06f, .2f);
+                                float sz = rng.RandfRange(.03f, .09f);                    // v48: small chips (were .06 - .2 m blobs)
                                 var bs = new Basis(Vector3.Up, rng.RandfRange(0f, Mathf.Tau)) * Basis.FromScale(new Vector3(sz * rng.RandfRange(.9f, 1.7f), sz * rng.RandfRange(.45f, .9f), sz * rng.RandfRange(.9f, 1.7f)));
                                 pos.Y = sz * .2f; ch.T.Add(new Transform3D(bs, pos));
-                                float g = rng.RandfRange(.28f, .55f); ch.C.Add(new Color(g, g * .97f, g * .92f));
+                                float g = rng.RandfRange(.66f, .90f); ch.C.Add(new Color(g, g * .995f, g * .985f));   // v48: light grey granite like the ballast photo
                             }
                         }
                     }
