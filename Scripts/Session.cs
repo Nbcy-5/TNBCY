@@ -14,11 +14,12 @@ namespace TNBCY
     public class SessionData
     {
         public int version = 2;
-        public string route = "", consist = "", title = "", sub = "", clock = "", saved = "";
+        public string route = "", consist = "", serviceId = "", title = "", sub = "", clock = "", saved = "";
         public float simTime, aiDwell;
         public SessTrain player = new SessTrain(), ai;
         public List<SessTrain> aiTrains = new List<SessTrain>();
         public List<float> aiDwells = new List<float>();
+        public List<string> aiServiceIds = new List<string>();
         public Dictionary<string, int> switches = new Dictionary<string, int>();
         public List<SessSignal> signals = new List<SessSignal>();
         public List<bool> stDone = new List<bool>(), stServed = new List<bool>();
@@ -71,14 +72,15 @@ namespace TNBCY
             return s;
         }
 
-        public static SessionData Capture(Scenario sc, TouchControls t, string route, string consist, string consistName, string routeName)
+        public static SessionData Capture(Scenario sc, TouchControls t, string route, string consist, string consistName, string routeName, string serviceId = "")
         {
-            var d = new SessionData { route = route, consist = consist, simTime = sc.SimTime, title = consistName, sub = routeName, clock = sc.ClockText(), saved = Time.GetDatetimeStringFromSystem(false, true) };
+            var d = new SessionData { route = route, consist = consist, serviceId = serviceId, simTime = sc.SimTime, title = consistName, sub = routeName, clock = sc.ClockText(), saved = Time.GetDatetimeStringFromSystem(false, true) };
             d.player = CaptureTrain(sc.Train);
             for (int i = 0; i < sc.AiTrains.Count; i++)
             {
                 d.aiTrains.Add(CaptureTrain(sc.AiTrains[i]));
                 d.aiDwells.Add(sc.AiDrivers[i].Dwell);
+                d.aiServiceIds.Add(sc.AiServiceIds[i]);
             }
             if (sc.AiTrains.Count > 0) { d.ai = d.aiTrains[0]; d.aiDwell = d.aiDwells[0]; }
             foreach (var n in sc.Graph.Switches) d.switches[n.Id] = n.Sel;
@@ -113,7 +115,10 @@ namespace TNBCY
                 if (!RestoreTrain(sc, sc.Train, d.player)) return false;
                 if (d.version >= 2)
                 {
-                    if (d.aiTrains.Count != sc.AiTrains.Count || d.aiDwells.Count != sc.AiDrivers.Count) return false;
+                    if (d.aiTrains.Count != sc.AiTrains.Count || d.aiDwells.Count != sc.AiDrivers.Count ||
+                        d.aiServiceIds.Count != sc.AiServiceIds.Count) return false;
+                    for (int i = 0; i < d.aiServiceIds.Count; i++)
+                        if (d.aiServiceIds[i] != sc.AiServiceIds[i]) return false;
                     for (int i = 0; i < sc.AiTrains.Count; i++)
                     {
                         if (!RestoreTrain(sc, sc.AiTrains[i], d.aiTrains[i])) return false;
