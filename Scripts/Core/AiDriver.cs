@@ -28,7 +28,7 @@ namespace TNBCY
             var P = T.Phys;
             if (!T.HasPlannedRoute) { Hold(); Status = "route unavailable"; return; }
             if (T.Finished) { Hold(); Status = "finished"; return; }
-            if (simTime < departAt) { Hold(); Status = "waiting at Ghatkesar"; return; }
+            if (simTime < departAt) { Hold(); Status = "waiting to depart"; return; }
             if (dwell > 0f) { dwell -= dt; Hold(); Status = "at platform"; return; }
 
             float v = P.Speed;
