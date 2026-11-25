@@ -1,3 +1,9 @@
+TNBCY v46 — Premium-quality track performance and natural sleeper granite scatter
+PERFORMANCE Replaced the expensive distant sleeper meshes with progressively lighter geometry tiers: detailed curved sleepers remain close to the camera, with denser mid-range and sparse far-distance sleepers. Close-up texture, concrete weathering, curved profile, rails, ballast materials, lighting and graphics quality settings are preserved.
+SLEEPERS Removed the duplicate per-chunk round-sphere sleeper stones. Small angular granite chips now come from the deterministic, camera-streamed chip system, scattered naturally on selected sleeper tops while keeping clear of rail seats.
+BALLAST Retained the existing angular granite ballast and the new small crushed-granite chips between sleepers, on the ballast shoulder and on selected sleeper tops. No texture-resolution or material-quality reduction.
+SCOPE No route, train, physics, controls, scenery or gameplay changes.
+
 TNBCY v38 — Sleeper weathering visibility fix
 SLEEPERS Reworked the sleeper top colours as direct vertex-colour albedo: stronger rust transfer under both rail seats, distinct dark grease/oil residue, irregular dust and scattered concrete grime.
 MATERIAL Removed the old concrete albedo texture from sleeper material so it cannot wash out or multiply away the weathering. Applied the same material to the curved near and distance LOD sleeper meshes.
