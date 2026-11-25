@@ -84,20 +84,28 @@ namespace TNBCY
         bool CommitPlan(string id, Train train, bool isPlayer, List<TEdge> route, out string reason)
         {
             reason = "";
-            if (string.IsNullOrEmpty(id) || route == null || route.Count == 0)
-            { reason = "Invalid train route."; return false; }
+            if (string.IsNullOrEmpty(id) || train == null || train.FrontSeg == null || route == null || route.Count == 0)
+            { reason = "Invalid train route or train starting position."; return false; }
             // Validate the complete directed path before taking any interlocking resources.
             // This catches malformed service data and prevents a bad route from being committed.
             if (route[0] != train.FrontSeg.Edge)
             { reason = "The planned route does not begin on the train's current track."; return false; }
+            var visitedEdges = new HashSet<TEdge>();
             for (int i = 0; i < route.Count; i++)
             {
-                if (route[i] == null || route[i].From == null || route[i].To == null)
+                TEdge current = route[i];
+                if (current == null || current.From == null || current.To == null)
                 { reason = "The planned route contains an invalid track section."; return false; }
+                TEdge registered;
+                if (!graph.Edges.TryGetValue(current.Id, out registered) || registered != current)
+                { reason = "The planned route contains a track section outside this network: " + current.Id + "."; return false; }
+                // Train.SetPlannedRoute stores one next edge per directed edge. A repeated
+                // edge cannot be represented safely by that map, so reject it explicitly.
+                if (!visitedEdges.Add(current))
+                { reason = "The route repeats track section " + current.Id + " and cannot be represented safely."; return false; }
                 if (i > 0)
                 {
                     TEdge previous = route[i - 1];
-                    TEdge current = route[i];
                     if (previous.To != current.From || !previous.To.Outs.Contains(current))
                     { reason = "The planned route is not connected between " + previous.Id + " and " + current.Id + "."; return false; }
                 }
