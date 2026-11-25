@@ -110,7 +110,7 @@ void fragment() {
             }
             if (secIdx % 2 == 0)                                                                    // hanging platform number board
             {
-                string num = e.Id.Length > 0 && e.Id[0] == 'd' ? "1" : "2";
+                string num = e.Id == "sc_yard_a" || e.Id == "sc_yard_b" ? "3" : (e.Id.Length > 0 && e.Id[0] == 'd' ? "1" : "2");
                 Vector3 bp = pp + rr * 5.2f + up * 4.2f;
                 secSign.Add(Xf(qq, bp, new Vector3(2.6f, 1.0f, .08f)));
                 FxInit();

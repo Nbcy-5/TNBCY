@@ -468,7 +468,7 @@ void fragment() {
             var slabs = new List<Transform3D>(); var lines = new List<Transform3D>(); var roofs = new List<Transform3D>(); var poles = new List<Transform3D>();
             foreach (var st in sc.Graph.Stations)
             {
-                float sm = st.Side == "L" ? -1f : 1f; bool sec = RTIsSec(st);     // v23: Secunderabad gets the detailed platforms (MainSecunderabad.cs)
+                float sm = st.Side == "L" ? -1f : 1f; bool sec = RTIsSec(st); bool secVisual = sec && st.Edge.Id != "sc_yard_b";     // Platform 3 shares one island platform across both yard tracks.
                 var e = st.Edge; float hi = Mathf.Min(e.Length, st.Offset + 10f), remain = PlatLen;
                 for (int guard = 0; remain > 1f && e != null && guard < 6; guard++)
                 {
@@ -477,24 +477,27 @@ void fragment() {
                     {
                         float e1 = Mathf.Min(s0 + Piece, hi), len = e1 - s0, mid = (s0 + e1) * .5f;
                         var pp = e.PosAt(mid); var dd = e.DirAt(mid); var qq = Basis.LookingAt(dd, Vector3.Up); var rr = Right(dd) * sm;
-                        if (sec) { RTSecPiece(e, s0, e1, sm, e1 >= hi - .5f || s0 <= lo + .5f, st); continue; }
+                        if (sec) { if (secVisual) RTSecPiece(e, s0, e1, sm, e1 >= hi - .5f || s0 <= lo + .5f, st); continue; }
                         slabs.Add(Xf(qq, pp + rr * 3.5f + Vector3.Up * .72f, new Vector3(3.4f, 1.45f, len + .2f)));
                         for (float u = s0 + 5f; u < e1; u += 10f) fxPlat.Add(e.PosAt(u) + Right(e.DirAt(u)) * sm * 3.5f);   // for keeping signs off platforms
                         lines.Add(Xf(qq, pp + rr * 1.9f + Vector3.Up * 1.46f, new Vector3(.35f, .02f, len + .2f)));
                         roofs.Add(Xf(qq, pp + rr * 4.6f + Vector3.Up * 5.4f, new Vector3(3.8f, .25f, len + .2f)));
                         poles.Add(Xf(qq, pp + rr * 5.4f + Vector3.Up * 3.4f, new Vector3(.25f, 3.9f, .25f)));
                     }
-                    if (sec && guard == 0) RTSecRamp(e, hi, 1f, sm);
-                    if (sec && (lo <= 0f || remain - (hi - lo) <= 1f)) RTSecRamp(e, lo, -1f, sm);
+                    if (secVisual && guard == 0) RTSecRamp(e, hi, 1f, sm);
+                    if (secVisual && (lo <= 0f || remain - (hi - lo) <= 1f)) RTSecRamp(e, lo, -1f, sm);
                     remain -= hi - lo;
                     if (lo > 0f) break;
                     e = PredOf(e); if (e != null) hi = e.Length;
                 }
+                if (secVisual)
+                {
                 float cs = Mathf.Max(0f, st.Offset - 150f);          // station building and name board sit behind the stop mark
                 var p = st.Edge.PosAt(cs); var d = st.Edge.DirAt(cs); var q = Basis.LookingAt(d, Vector3.Up); var r = Right(d) * sm;
                 Box(this, p + r * 17f + Vector3.Up * 3f, q, new Vector3(9f, 6f, 70f), brick);
                 Box(this, p + r * 17f + Vector3.Up * 6.3f, q, new Vector3(10f, .6f, 72f), rf2);
                 if (st.Stop || st.Name.StartsWith("Sec")) Tag(st.Name, p + r * 3.5f + Vector3.Up * 8f, Colors.Yellow);
+                }
             }
             FillMM(slabs, matConcrete); FillMM(lines, yellow); FillMM(roofs, roof); FillMM(poles, pole);
             RTSecFinish();

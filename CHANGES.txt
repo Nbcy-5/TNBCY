@@ -1,6 +1,6 @@
-TNBCY v5.9 / APK 54
-- Simhapuri Express is tagged Superfast Express with fixed train number 56718; playable service runs Secunderabad Jn to Ghatkesar.
-- Deccan Express remains an Express; its full origin is Kakinada Jn, but its current playable section starts at Ghatkesar and runs to Secunderabad Jn until Kakinada is built.
-- Selected train now starts at its configured playable origin; the other train starts at its own configured origin and runs as AI in the opposite direction.
-- Removed random train-number generation. Duplicate assigned train numbers now produce a warning; unassigned numbers are shown as not assigned.
-- No track geometry, sleeper, ballast, scenery, or graphics changes.
+TNBCY v5.10 / APK 55
+- Deccan Express now uses fixed train number 87623.
+- Added Secunderabad Jn Platform 3 as an island platform shared by two parallel tracks on the same side of the existing line.
+- Added connected ladder-style turnouts at the yard entrance, an intermediate turnout between the two parallel tracks, and a merging throat back to the main line.
+- Added track-graph station stops for both Platform 3 track faces while rendering the shared platform only once.
+- Kept existing routes, trains, sleepers, ballast, scenery, and graphics unchanged outside the Secunderabad yard addition.
