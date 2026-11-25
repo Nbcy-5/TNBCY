@@ -3,8 +3,8 @@ using Godot;
 
 namespace TNBCY
 {
-    // Central route planner and interlocking reservation owner. Routes are planned per train;
-    // movement never needs to read a shared switch selection once a plan is assigned.
+    // Central route planner and interlocking reservation owner. Each train receives an
+    // independent path; occupied sections and conflicting point settings are protected.
     public class RailwayDispatcher
     {
         sealed class Plan
@@ -13,6 +13,7 @@ namespace TNBCY
             public Train Train;
             public bool IsPlayer;
             public List<TEdge> Route = new List<TEdge>();
+            public List<float> Starts = new List<float>();
         }
 
         readonly TrackGraph graph;
@@ -20,25 +21,25 @@ namespace TNBCY
         readonly Dictionary<TEdge, string> edgeOwners = new Dictionary<TEdge, string>();
         readonly Dictionary<string, string> platformOwners = new Dictionary<string, string>();
         readonly Dictionary<TNode, TEdge> switchRoutes = new Dictionary<TNode, TEdge>();
+        readonly Dictionary<TNode, string> switchOwners = new Dictionary<TNode, string>();
 
         public RailwayDispatcher(TrackGraph trackGraph) { graph = trackGraph; }
-
         public int TrainCount { get { return plans.Count; } }
 
         public bool TryPlanToFarthestStop(string trainId, Train train, bool isPlayer, out string reason)
         {
             reason = "";
             if (train == null || train.FrontSeg == null) { reason = "Train has no starting track."; return false; }
-
             TEdge start = train.FrontSeg.Edge;
             List<TEdge> best = null;
             float bestDistance = -1f;
+
             foreach (var station in graph.Stations)
             {
                 if (!station.Stop || station.Edge == null || station.Edge.Id.Length == 0) continue;
                 if (station.Edge.Id[0] != start.Id[0]) continue;
                 List<TEdge> candidate;
-                if (!BuildRoute(start, station.Edge, null, trainId, out candidate)) continue;
+                if (!BuildRoute(start, station.Edge, trainId, out candidate)) continue;
                 float distance = 0f;
                 foreach (var edge in candidate) distance += edge.Length;
                 if (distance > bestDistance) { bestDistance = distance; best = candidate; }
@@ -52,7 +53,8 @@ namespace TNBCY
             IList<string> viaEdgeIds, bool isPlayer, out string reason)
         {
             reason = "";
-            if (train == null || !graph.Edges.ContainsKey(destinationEdgeId))
+            TEdge destination;
+            if (train == null || !graph.Edges.TryGetValue(destinationEdgeId, out destination))
             { reason = "The train or destination track is missing."; return false; }
 
             var route = new List<TEdge>();
@@ -65,7 +67,7 @@ namespace TNBCY
                     TEdge via;
                     if (!graph.Edges.TryGetValue(id, out via)) { reason = "Unknown via track: " + id; return false; }
                     List<TEdge> segment;
-                    if (!BuildRoute(current, via, null, trainId, out segment))
+                    if (!BuildRoute(current, via, trainId, out segment))
                     { reason = "No route to via track " + id; return false; }
                     for (int i = 1; i < segment.Count; i++) route.Add(segment[i]);
                     current = via;
@@ -73,7 +75,7 @@ namespace TNBCY
             }
 
             List<TEdge> finalSegment;
-            if (!BuildRoute(current, graph.Edges[destinationEdgeId], null, trainId, out finalSegment))
+            if (!BuildRoute(current, destination, trainId, out finalSegment))
             { reason = "No route to destination track " + destinationEdgeId; return false; }
             for (int i = 1; i < finalSegment.Count; i++) route.Add(finalSegment[i]);
             return CommitPlan(trainId, train, isPlayer, route, out reason);
@@ -92,12 +94,15 @@ namespace TNBCY
                 TNode node = route[i].To;
                 TEdge next = route[i + 1];
                 if (node.Outs.Count <= 1) continue;
+
                 TEdge existing;
                 if (requestedSwitches.TryGetValue(node, out existing) && existing != next)
                 { reason = "Route requires conflicting settings at " + node.Name; return false; }
                 requestedSwitches[node] = next;
-                if (switchRoutes.TryGetValue(node, out existing) && existing != next)
-                { reason = "Switch " + node.Name + " is reserved for another train."; return false; }
+
+                string owner;
+                if (switchOwners.TryGetValue(node, out owner) && owner != id)
+                { reason = "Switch " + node.Name + " is reserved by " + owner + "."; return false; }
             }
 
             foreach (var edge in route)
@@ -108,16 +113,22 @@ namespace TNBCY
             }
 
             var plan = new Plan { Id = id, Train = train, IsPlayer = isPlayer, Route = new List<TEdge>(route) };
+            float start = 0f;
+            foreach (var edge in route) { plan.Starts.Add(start); start += edge.Length; }
             plans[id] = plan;
             foreach (var edge in route) edgeOwners[edge] = id;
-            foreach (var pair in requestedSwitches) switchRoutes[pair.Key] = pair.Value;
+            foreach (var pair in requestedSwitches)
+            {
+                switchRoutes[pair.Key] = pair.Value;
+                switchOwners[pair.Key] = id;
+            }
             train.SetPlannedRoute(route);
             UpdatePoints();
             return true;
         }
 
-        // Dijkstra on directed track edges. A reserved edge is unavailable to a different train.
-        bool BuildRoute(TEdge from, TEdge to, IList<string> ignored, string owner, out List<TEdge> route)
+        // Dijkstra over directed track edges. Reserved sections cannot be used by another train.
+        bool BuildRoute(TEdge from, TEdge to, string owner, out List<TEdge> route)
         {
             route = null;
             if (from == null || to == null) return false;
@@ -128,14 +139,16 @@ namespace TNBCY
             var previous = new Dictionary<TNode, TEdge>();
             var open = new List<TNode>();
             var closed = new HashSet<TNode>();
-            distance[source] = 0f; open.Add(source);
+            distance[source] = 0f;
+            open.Add(source);
 
             while (open.Count > 0)
             {
                 int bestIndex = 0;
                 for (int i = 1; i < open.Count; i++)
                     if (distance[open[i]] < distance[open[bestIndex]]) bestIndex = i;
-                TNode node = open[bestIndex]; open.RemoveAt(bestIndex);
+                TNode node = open[bestIndex];
+                open.RemoveAt(bestIndex);
                 if (!closed.Add(node)) continue;
                 if (node == target) break;
 
@@ -145,9 +158,8 @@ namespace TNBCY
                     if (edgeOwners.TryGetValue(edge, out reservedBy) && reservedBy != owner) continue;
                     TNode next = edge.To;
                     if (closed.Contains(next)) continue;
-                    float cost = Mathf.Max(1f, edge.Length);
+                    float candidate = distance[node] + Mathf.Max(1f, edge.Length);
                     float known;
-                    float candidate = distance[node] + cost;
                     if (distance.TryGetValue(next, out known) && candidate >= known) continue;
                     distance[next] = candidate;
                     previous[next] = edge;
@@ -174,7 +186,33 @@ namespace TNBCY
 
         public void Update()
         {
+            ReleaseClearedReservations();
             UpdatePoints();
+        }
+
+        void ReleaseClearedReservations()
+        {
+            foreach (var plan in plans.Values)
+            {
+                float rearOdo = plan.Train.Odo - plan.Train.Length - 30f;
+                for (int i = 0; i < plan.Route.Count; i++)
+                {
+                    float endOdo = plan.Starts[i] + plan.Route[i].Length;
+                    if (endOdo >= rearOdo) continue;
+
+                    string edgeOwner;
+                    if (edgeOwners.TryGetValue(plan.Route[i], out edgeOwner) && edgeOwner == plan.Id)
+                        edgeOwners.Remove(plan.Route[i]);
+
+                    TNode node = plan.Route[i].To;
+                    string switchOwner;
+                    if (node.IsSwitch && switchOwners.TryGetValue(node, out switchOwner) && switchOwner == plan.Id)
+                    {
+                        switchOwners.Remove(node);
+                        switchRoutes.Remove(node);
+                    }
+                }
+            }
         }
 
         void UpdatePoints()
@@ -225,14 +263,8 @@ namespace TNBCY
                 if (edgeOwners.TryGetValue(edge, out owner) && owner == trainId) edgeOwners.Remove(edge);
             }
             var removeSwitches = new List<TNode>();
-            foreach (var pair in switchRoutes)
-            {
-                bool used = false;
-                for (int i = 0; i + 1 < plan.Route.Count; i++)
-                    if (plan.Route[i].To == pair.Key) { used = true; break; }
-                if (used) removeSwitches.Add(pair.Key);
-            }
-            foreach (var node in removeSwitches) switchRoutes.Remove(node);
+            foreach (var pair in switchOwners) if (pair.Value == trainId) removeSwitches.Add(pair.Key);
+            foreach (var node in removeSwitches) { switchOwners.Remove(node); switchRoutes.Remove(node); }
             var removePlatforms = new List<string>();
             foreach (var pair in platformOwners) if (pair.Value == trainId) removePlatforms.Add(pair.Key);
             foreach (var key in removePlatforms) platformOwners.Remove(key);
