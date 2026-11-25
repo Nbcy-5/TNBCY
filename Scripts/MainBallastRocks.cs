@@ -3,24 +3,38 @@ using System.Collections.Generic;
 
 namespace TNBCY
 {
-    // v45: more realistic 3D ballast rocks.
-    // v44 rocks were smooth 12-corner blobs, few in number, each lying alone on the surface.
+    // v46: small crushed-granite chips, built only around the camera.
+    // v45 made every rock for the whole route at load time: hundreds of thousands of stones, and each one was big (up to 40 cm).
     // Now:
-    //  - Every rock is a crushed-stone polyhedron: a sphere cut by 7-11 random flat planes, so it has real flat faces and
-    //    sharp edges (like broken granite). 4 detailed variants (80 faces) and 2 cheaper pebble variants (20 faces).
-    //  - Faces are shaded per plane, and the lower part of each rock is darker, so stones show depth where they touch.
-    //  - About 3x as many stones on the ballast shoulder, with smaller stones resting ON TOP of bigger ones,
-    //    and some stones sunk into the surface while others sit high (one up, one down).
-    //  - Pebble groups, a few boulder piles and patches of flat mud on the ground beside the ballast.
-    //  - More stones lying between the sleepers.
-    // Rocks are only drawn near the camera (RTRockVisRange metres); far away the textured bed is used.
+    //  - The stones are real ballast size: chips about 2 - 8 cm across, a few a bit bigger. Same sharp plane-cut granite shapes as v45.
+    //  - The route is cut into 24 m blocks. A block only gets its stones while it is within RTChipBuildRange of the camera, and they are
+    //    freed again when you drive away (RTChipDropRange). The stones of a block are always the same, so nothing changes when you come back.
+    //    This keeps the triangle count, memory and loading time small, so the game runs smoothly.
+    //  - Chips on the ballast shoulder and slope (some with a smaller chip on top), pebbles on the ground beside it,
+    //    stones lying between the sleepers, and little granite chips lying on top of the sleepers.
+    // The ballast texture, normal map and all other textures are untouched.
     public partial class Main
     {
         // ---- tuning knobs ----
-        const float RTRockDensity = 1f;        // 1 = normal, .5 = half as many rocks (faster), 2 = twice as many
-        const float RTRockVisRange = 150f;     // metres from the camera (scaled by the graphics level)
-        const float RTRockStep = .5f;          // metres along the track between rock groups at density 1
-        const int RTRockVariants = 6;          // 0..3 detailed rocks, 4..5 small pebbles
+        const float RTChipDensity = 1f;           // 1 = normal, .5 = half as many chips (faster), 2 = twice as many
+        const float RTChipBuildRange = 30f;       // metres: track blocks closer than this to the camera get their stones
+        const float RTChipDropRange = 48f;        // metres: blocks further away than this are freed
+        const float RTChipBlock = 24f;            // metres of track per block
+        const int RTChipVariants = 6;             // 0..3 detailed chips, 4..5 cheap pebbles
+        const int RTChipMaxLive = 30;             // never more than this many blocks at once (busy station yards)
+
+        // kept from v45 so nothing else breaks (no longer used)
+        const float RTRockDensity = 1f;
+        const float RTRockVisRange = 150f;
+        const float RTRockStep = .5f;
+        const int RTRockVariants = 6;
+
+        sealed class RTChipBlockData { public TEdge E; public int EdgeIdx, Index; public float S0, S1, X, Z, D2; public Node3D Node; }
+        readonly List<RTChipBlockData> rtChipBlocks = new List<RTChipBlockData>();
+        readonly List<RTChipBlockData> rtChipWant = new List<RTChipBlockData>();
+        readonly List<Vector3> rtChipSwitches = new List<Vector3>();
+        ArrayMesh[] rtChipMeshes; StandardMaterial3D rtChipMat; Node3D rtChipRoot;
+        bool rtChipFirst = true; int rtChipLive;
 
         static Color RTRockVertexColor(float shade, float y)
         {
@@ -131,178 +145,196 @@ namespace TNBCY
             return 0f;
         }
 
+        bool RTChipNearSwitch(Vector3 c)
+        {
+            foreach (var q in rtChipSwitches) { float dx = q.X - c.X, dz = q.Z - c.Z; if (dx * dx + dz * dz < 3600f) return true; }
+            return false;
+        }
+
+        // Called at the end of RTV29Init. Only prepares the meshes, the material and the list of track blocks; the stones come later, near the camera.
         void RTRocksBuild()
         {
+            RTPerfInit();                // v46: sleeper levels of detail (MainPerf.cs)
             if (sc == null) return;
-            var meshes = new ArrayMesh[RTRockVariants];
-            for (int i = 0; i < RTRockVariants; i++) meshes[i] = RTMakeRockMesh(i * 7 + 3, i < 4 ? 1 : 0);
+            rtChipMeshes = new ArrayMesh[RTChipVariants];
+            for (int i = 0; i < RTChipVariants; i++) rtChipMeshes[i] = RTMakeRockMesh(i * 7 + 3, i < 4 ? 1 : 0);
             var spk = RTMakeSpeckle(128);
-            var mat = new StandardMaterial3D
+            rtChipMat = new StandardMaterial3D
             {
                 VertexColorUseAsAlbedo = true, AlbedoTexture = RTTexture(spk.Albedo, spk.Size, false), Roughness = .95f,
                 CullMode = BaseMaterial3D.CullModeEnum.Disabled, TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
                 Uv1Triplanar = true, Uv1TriplanarSharpness = 4f, Uv1Scale = new Vector3(.9f, .9f, .9f)
             };
 
-            // where the track and the platforms are (so ground pebbles do not land on a platform or another track)
-            rtCenters.Clear();
-            foreach (var e in sc.Graph.Edges.Values) for (float s = 0f; s <= e.Length; s += 1f) RTAddCenter(e.PosAt(s));
-            foreach (var stn in sc.Graph.Stations)
-            {
-                float sm = stn.Side == "L" ? -1f : 1f;
-                float s0 = Mathf.Max(0f, stn.Offset - 625f), s1 = Mathf.Min(stn.Edge.Length, stn.Offset + 12f);
-                for (float s = s0; s <= s1; s += 2f)
-                {
-                    Vector3 p = stn.Edge.PosAt(s), r = Right(stn.Edge.DirAt(s)) * sm;
-                    RTAddCenter(p + r * 1.8f); RTAddCenter(p + r * 3.5f); RTAddCenter(p + r * 5.2f);
-                }
-            }
-            var swPos = new List<Vector3>();
-            foreach (var n in sc.Graph.Switches) swPos.Add(n.Pos);
+            rtChipSwitches.Clear();
+            foreach (var n in sc.Graph.Switches) rtChipSwitches.Add(n.Pos);
 
-            var rng = new RandomNumberGenerator { Seed = 4545 };
-            float step = RTRockStep / Mathf.Max(.1f, RTRockDensity);
+            rtChipBlocks.Clear(); rtChipLive = 0; rtChipFirst = true;
+            int edgeIdx = 0;
             foreach (var e in sc.Graph.Edges.Values)
             {
-                var chunks = new Dictionary<int, RTChunk>();
-                System.Action<Vector3, float, float, float, float, float, Color> put = (pos, sx, sy, sz, tilt, yaw, col) =>
+                int nb = Mathf.Max(1, Mathf.CeilToInt(e.Length / RTChipBlock));
+                float len = e.Length / nb;
+                for (int bi = 0; bi < nb; bi++)
                 {
-                    // small stones use the cheap pebble meshes, bigger ones the detailed meshes
-                    int variant = (sx + sz) * .5f < .075f ? 4 + (int)(rng.Randi() % 2u) : (int)(rng.Randi() % 4u);
-                    int key = Mathf.FloorToInt((pos.X + pos.Z) * .0083f) * RTRockVariants + variant;       // coarse spatial chunk (about 120 m), so the distance culling works per chunk
-                    RTChunk ch; if (!chunks.TryGetValue(key, out ch)) { ch = new RTChunk(); chunks[key] = ch; }
-                    var bs = new Basis(Vector3.Up, yaw) * new Basis(Vector3.Right, rng.RandfRange(-tilt, tilt)) * new Basis(Vector3.Forward, rng.RandfRange(-tilt, tilt)) * Basis.FromScale(new Vector3(sx, sy, sz));
-                    ch.T.Add(new Transform3D(bs, pos)); ch.C.Add(col);
-                };
+                    float s0 = bi * len, s1 = s0 + len;
+                    Vector3 mid = e.PosAt((s0 + s1) * .5f);
+                    rtChipBlocks.Add(new RTChipBlockData { E = e, EdgeIdx = edgeIdx, Index = bi, S0 = s0, S1 = s1, X = mid.X, Z = mid.Z });
+                }
+                edgeIdx++;
+            }
 
-                // ---- rocks along the track: shoulder and slope of the ballast, ground pebbles, boulders, mud ----
-                for (float s = 0f; s < e.Length; s += step)
+            rtChipRoot = new Node3D(); AddChild(rtChipRoot);
+            var timer = new Godot.Timer { WaitTime = .12, Autostart = true };
+            timer.Timeout += RTChipTick;
+            AddChild(timer);
+        }
+
+        // A few times a second: build the blocks that came into range (nearest first) and free the ones left behind.
+        void RTChipTick()
+        {
+            if (cam == null || sc == null || rtChipRoot == null) return;
+            RTApplyAA();
+            Vector3 cp = cam.GlobalPosition;
+            float br2 = RTChipBuildRange * RTChipBuildRange, dr2 = RTChipDropRange * RTChipDropRange;
+            rtChipWant.Clear();
+            foreach (var b in rtChipBlocks)
+            {
+                float dx = b.X - cp.X, dz = b.Z - cp.Z; b.D2 = dx * dx + dz * dz;
+                if (b.Node == null) { if (b.D2 < br2) rtChipWant.Add(b); }
+                else if (b.D2 > dr2) { b.Node.QueueFree(); b.Node = null; rtChipLive--; }
+            }
+            if (rtChipWant.Count == 0) return;
+            rtChipWant.Sort((x, y) => x.D2.CompareTo(y.D2));
+            int budget = rtChipFirst ? 40 : 2;       // the first call fills the whole view at once, later calls add 2 blocks each
+            for (int i = 0; i < rtChipWant.Count && budget > 0 && rtChipLive < RTChipMaxLive; i++)
+            {
+                RTChipBuild(rtChipWant[i]); rtChipLive++; budget--;
+            }
+            rtChipFirst = false;
+        }
+
+        // The stones of one 24 m block. The random numbers are seeded from the block, so it always comes out the same.
+        void RTChipBuild(RTChipBlockData b)
+        {
+            var e = b.E;
+            var rng = new RandomNumberGenerator();
+            rng.Seed = (ulong)(b.EdgeIdx + 1) * 1000003UL + (ulong)(b.Index + 1) * 7919UL + 4646UL;
+            var chunks = new RTChunk[RTChipVariants];
+            System.Action<Vector3, float, float, float, float, float, Color> put = (lp, lsx, lsy, lsz, ltilt, lyaw, lcol) =>
+            {
+                // tiny stones use the cheap 20-face meshes, bigger ones the detailed 80-face meshes
+                int variant = (lsx + lsz) * .5f < .050f ? 4 + (int)(rng.Randi() % 2u) : (int)(rng.Randi() % 4u);
+                var lch = chunks[variant]; if (lch == null) { lch = new RTChunk(); chunks[variant] = lch; }
+                var bs = new Basis(Vector3.Up, lyaw) * new Basis(Vector3.Right, rng.RandfRange(-ltilt, ltilt)) * new Basis(Vector3.Forward, rng.RandfRange(-ltilt, ltilt)) * Basis.FromScale(new Vector3(lsx, lsy, lsz));
+                lch.T.Add(new Transform3D(bs, lp)); lch.C.Add(lcol);
+            };
+
+            // ---- chips on the shoulder and slope of the ballast, and pebbles on the ground beside it ----
+            float step = .2f / RTChipDensity;
+            for (float s = b.S0; s < b.S1; s += step)
+            {
+                float ss = Mathf.Clamp(s + rng.RandfRange(-.5f * step, .5f * step), 0f, e.Length);
+                Vector3 c = e.PosAt(ss), dir = e.DirAt(ss), r = Right(dir);
+                bool nearSw = RTChipNearSwitch(c);
+                for (int side = -1; side <= 1; side += 2)
                 {
-                    float ss = Mathf.Clamp(s + rng.RandfRange(-.2f, .2f), 0f, e.Length);
-                    Vector3 c = e.PosAt(ss), dir = e.DirAt(ss), r = Right(dir);
-                    bool nearSwitch = false;
-                    foreach (var q in swPos) { float dx = q.X - c.X, dz = q.Z - c.Z; if (dx * dx + dz * dz < 3600f) { nearSwitch = true; break; } }
-
-                    for (int side = -1; side <= 1; side += 2)
+                    if (!nearSw)
                     {
-                        if (!nearSwitch)
+                        float lat = rng.RandfRange(1.42f, 2.35f);
+                        float size = .016f + .032f * Mathf.Pow(rng.Randf(), 1.5f);          // radius 1.6 - 4.8 cm: small crushed granite
+                        Vector3 pos = c + dir * rng.RandfRange(-.5f * step, .5f * step) + r * (side * lat);
+                        pos.Y = c.Y + RTBallastSurface(lat) + size * rng.RandfRange(-.10f, .30f);
+                        put(pos, size * rng.RandfRange(1.0f, 1.7f), size * rng.RandfRange(.55f, 1.0f), size * rng.RandfRange(.9f, 1.5f), .6f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
+                        if (rng.Randf() < .35f)
                         {
-                            // shoulder and slope of the ballast: the main 3D stones, tilted every way, some sunk in, some high,
-                            // and about 4 in 10 carry a smaller stone resting on top
-                            int nShoulder = 2 + (rng.Randf() < .60f ? 1 : 0);
-                            for (int k = 0; k < nShoulder; k++)
-                            {
-                                float lat = rng.RandfRange(1.42f, 2.35f);
-                                float size = .07f + .17f * Mathf.Pow(rng.Randf(), 1.5f);
-                                Vector3 pos = c + dir * rng.RandfRange(-.25f, .25f) + r * (side * lat);
-                                pos.Y = c.Y + RTBallastSurface(lat) + size * rng.RandfRange(-.10f, .28f);
-                                put(pos, size * rng.RandfRange(1.0f, 1.7f), size * rng.RandfRange(.55f, 1.0f), size * rng.RandfRange(.9f, 1.5f), .6f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
-                                if (rng.Randf() < .40f)
-                                {
-                                    float sTop = size * rng.RandfRange(.45f, .75f);
-                                    Vector3 pTop = pos + dir * (size * rng.RandfRange(-.6f, .6f)) + r * (side * size * rng.RandfRange(-.6f, .6f));
-                                    pTop.Y = pos.Y + size * rng.RandfRange(.28f, .50f);
-                                    put(pTop, sTop * rng.RandfRange(1.0f, 1.6f), sTop * rng.RandfRange(.55f, 1.0f), sTop * rng.RandfRange(.9f, 1.4f), .7f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
-                                }
-                            }
+                            float sTop = size * rng.RandfRange(.5f, .8f);
+                            Vector3 pTop = pos + dir * (size * rng.RandfRange(-.6f, .6f)) + r * (side * size * rng.RandfRange(-.6f, .6f));
+                            pTop.Y = pos.Y + size * rng.RandfRange(.30f, .55f);
+                            put(pTop, sTop * rng.RandfRange(1.0f, 1.6f), sTop * rng.RandfRange(.55f, 1.0f), sTop * rng.RandfRange(.9f, 1.4f), .7f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
                         }
+                    }
 
-                        // ground beside the ballast: pebbles and small stones, many near the ballast and fewer further out, sometimes in little groups
-                        int nGround = rng.Randf() < .65f ? 2 : 1;
-                        for (int k = 0; k < nGround; k++)
+                    if (rng.Randf() < .30f)
+                    {
+                        float lat = 2.20f + Mathf.Pow(rng.Randf(), 1.8f) * 3.8f;
+                        Vector3 pos = c + dir * rng.RandfRange(-.5f * step, .5f * step) + r * (side * lat);
+                        if (RTFree(pos, 2.2f))
                         {
-                            float lat = 2.20f + Mathf.Pow(rng.Randf(), 1.8f) * 3.8f;
-                            Vector3 pos = c + dir * rng.RandfRange(-.25f, .25f) + r * (side * lat);
-                            if (!RTFree(pos, 2.2f)) continue;
-                            float size = .03f + .12f * Mathf.Pow(rng.Randf(), 1.6f);
+                            float size = .012f + .030f * Mathf.Pow(rng.Randf(), 1.6f);
                             pos.Y = c.Y + size * rng.RandfRange(-.05f, .22f);
                             put(pos, size * rng.RandfRange(.9f, 1.7f), size * rng.RandfRange(.5f, .95f), size * rng.RandfRange(.9f, 1.5f), .55f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
                             if (rng.Randf() < .25f)
                             {
                                 for (int g2 = 0; g2 < 2; g2++)
                                 {
-                                    float sg = size * rng.RandfRange(.40f, .80f);
-                                    Vector3 pg = pos + dir * (size * rng.RandfRange(-1.3f, 1.3f)) + r * (size * rng.RandfRange(-1.3f, 1.3f));
+                                    float sg = size * rng.RandfRange(.45f, .85f);
+                                    Vector3 pg = pos + dir * (size * rng.RandfRange(-1.6f, 1.6f)) + r * (size * rng.RandfRange(-1.6f, 1.6f));
                                     pg.Y = c.Y + sg * rng.RandfRange(-.02f, .20f);
                                     put(pg, sg * rng.RandfRange(.9f, 1.6f), sg * rng.RandfRange(.5f, .9f), sg * rng.RandfRange(.9f, 1.4f), .55f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
                                 }
                             }
                         }
-
-                        // now and then a bigger rock with a few stones around it
-                        if (rng.Randf() < .035f)
-                        {
-                            float lat = rng.RandfRange(2.5f, 5.5f);
-                            Vector3 pos = c + dir * rng.RandfRange(-.25f, .25f) + r * (side * lat);
-                            if (RTFree(pos, 2.2f))
-                            {
-                                float size = .22f + .16f * rng.Randf();
-                                pos.Y = c.Y + size * rng.RandfRange(.05f, .22f);
-                                put(pos, size * rng.RandfRange(1.0f, 1.5f), size * rng.RandfRange(.6f, .9f), size * rng.RandfRange(.9f, 1.3f), .35f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
-                                for (int b2 = 0; b2 < 3; b2++)
-                                {
-                                    float sb = size * rng.RandfRange(.25f, .50f);
-                                    Vector3 pb = pos + dir * (size * rng.RandfRange(-1.3f, 1.3f)) + r * (size * rng.RandfRange(-1.3f, 1.3f));
-                                    pb.Y = c.Y + sb * rng.RandfRange(0f, .25f);
-                                    put(pb, sb * rng.RandfRange(1.0f, 1.6f), sb * rng.RandfRange(.55f, 1.0f), sb * rng.RandfRange(.9f, 1.4f), .55f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
-                                }
-                            }
-                        }
-
-                        // flat dark mud patches on the ground (3 overlapping clumps)
-                        if (rng.Randf() < .16f)
-                        {
-                            float lat = 2.3f + rng.Randf() * 2.6f;
-                            Vector3 pos0 = c + dir * rng.RandfRange(-.3f, .3f) + r * (side * lat);
-                            if (RTFree(pos0, 2.2f))
-                            {
-                                float mud = rng.Randf();
-                                for (int j = 0; j < 3; j++)
-                                {
-                                    float size = .10f + .26f * rng.Randf();
-                                    Vector3 pos = pos0 + dir * rng.RandfRange(-.3f, .3f) + r * rng.RandfRange(-.3f, .3f);
-                                    pos.Y = c.Y + size * .04f;
-                                    float wet = mud * rng.RandfRange(.7f, 1.0f);
-                                    put(pos, size * rng.RandfRange(1.0f, 1.8f), size * .22f, size * rng.RandfRange(.8f, 1.5f), .12f, rng.RandfRange(0f, Mathf.Tau), new Color(.30f + .10f * wet, .22f + .07f * wet, .15f + .05f * wet));
-                                }
-                            }
-                        }
                     }
-                }
-
-                // ---- stones lying between the sleepers (not near points, where the switch rails run) ----
-                if (!e.Turnout)
-                {
-                    int cnt = Mathf.Max(1, Mathf.RoundToInt(e.Length / RTSleeperSpacing)); float slStep = e.Length / cnt;
-                    for (int k = 0; k < cnt - 1; k++)
-                    {
-                        Vector3 cGap = e.PosAt((k + 1) * slStep);
-                        bool nearSwitch = false;
-                        foreach (var q in swPos) { float dx = q.X - cGap.X, dz = q.Z - cGap.Z; if (dx * dx + dz * dz < 3600f) { nearSwitch = true; break; } }
-                        if (nearSwitch) continue;
-                        int nCrib = Mathf.Max(1, Mathf.RoundToInt(3.2f * RTRockDensity * (.6f + .8f * rng.Randf())));
-                        for (int j = 0; j < nCrib; j++)
-                        {
-                            float sc0 = (k + 1) * slStep + rng.RandfRange(-.07f, .07f);
-                            Vector3 c = e.PosAt(sc0), r = Right(e.DirAt(sc0));
-                            float zone = rng.Randf(), lat;
-                            if (zone < .30f) lat = rng.RandfRange(-.55f, .55f);
-                            else if (zone < .65f) lat = rng.RandfRange(1.00f, 1.30f);
-                            else lat = -rng.RandfRange(1.00f, 1.30f);
-                            float size = .04f + .04f * rng.Randf();
-                            Vector3 pos = c + r * lat; pos.Y = c.Y + .34f + size * rng.RandfRange(-.05f, .22f);
-                            put(pos, size * rng.RandfRange(1.0f, 1.5f), size * rng.RandfRange(.6f, .95f), size * rng.RandfRange(.9f, 1.3f), .6f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
-                        }
-                    }
-                }
-
-                foreach (var kv in chunks)
-                {
-                    var ch = kv.Value; int variant = ((kv.Key % RTRockVariants) + RTRockVariants) % RTRockVariants;
-                    var mm = MM(meshes[variant], mat, ch.T.Count, RTRockVisRange, true);
-                    for (int i = 0; i < ch.T.Count; i++) { mm.SetInstanceTransform(i, ch.T[i]); mm.SetInstanceColor(i, ch.C[i]); }
                 }
             }
+
+            // ---- stones between the sleepers (not near points, where the switch rails run) and little chips lying on the sleepers ----
+            int cnt = Mathf.Max(1, Mathf.RoundToInt(e.Length / RTSleeperSpacing)); float slStep = e.Length / cnt;
+            if (!e.Turnout)
+            {
+                int j0 = Mathf.Max(1, Mathf.CeilToInt(b.S0 / slStep)), j1 = Mathf.Min(cnt - 1, Mathf.CeilToInt(b.S1 / slStep) - 1);
+                for (int j = j0; j <= j1; j++)
+                {
+                    Vector3 cGap = e.PosAt(j * slStep);
+                    if (RTChipNearSwitch(cGap)) continue;
+                    int nCrib = Mathf.Max(1, Mathf.RoundToInt(3.6f * RTChipDensity * (.6f + .8f * rng.Randf())));
+                    for (int q = 0; q < nCrib; q++)
+                    {
+                        float sGap = j * slStep + rng.RandfRange(-.07f, .07f);
+                        Vector3 cc = e.PosAt(sGap), rr = Right(e.DirAt(sGap));
+                        float zone = rng.Randf(), lat;
+                        if (zone < .30f) lat = rng.RandfRange(-.55f, .55f);
+                        else if (zone < .65f) lat = rng.RandfRange(1.00f, 1.30f);
+                        else lat = -rng.RandfRange(1.00f, 1.30f);
+                        float size = .014f + .016f * rng.Randf();
+                        Vector3 pos = cc + rr * lat; pos.Y = cc.Y + .34f + size * rng.RandfRange(-.05f, .22f);
+                        put(pos, size * rng.RandfRange(1.0f, 1.5f), size * rng.RandfRange(.6f, .95f), size * rng.RandfRange(.9f, 1.3f), .6f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
+                    }
+                }
+            }
+
+            // little granite chips lying on top of the concrete sleepers (about one per sleeper, sometimes two or three)
+            int k0 = Mathf.Max(0, Mathf.CeilToInt(b.S0 / slStep - .5f));
+            for (int k = k0; k < cnt; k++)
+            {
+                float st = (k + .5f) * slStep; if (st >= b.S1) break;
+                int nChip = (rng.Randf() < .65f ? 1 : 0) + (rng.Randf() < .30f ? 1 : 0) + (rng.Randf() < .10f ? 1 : 0);
+                if (nChip == 0) continue;
+                Vector3 p = e.PosAt(st); var qb = Basis.LookingAt(e.DirAt(st), Vector3.Up); Vector3 sp = p + Vector3.Up * .345f;
+                for (int ci = 0; ci < nChip; ci++)
+                {
+                    float lx = rng.RandfRange(-1.30f, 1.30f);
+                    if (Mathf.Abs(Mathf.Abs(lx) - RailG) < .12f) lx += lx < 0f ? -.20f : .20f;      // keep clear of the rail seats
+                    lx = Mathf.Clamp(lx, -1.30f, 1.30f);
+                    float lz = (rng.Randf() - .5f) * .16f;
+                    float size = .010f + .018f * rng.Randf();
+                    float nx = lx / 1.375f, top = .5f - .22f * (1f - nx * nx);                     // the sleeper top is slightly curved
+                    Vector3 pos = sp + qb.X * lx + qb.Z * lz; pos.Y = sp.Y + .21f * top + size * .16f;
+                    put(pos, size * rng.RandfRange(1.15f, 1.8f), size * rng.RandfRange(.55f, .85f), size * rng.RandfRange(1.0f, 1.55f), .5f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
+                }
+            }
+
+            // ---- one MultiMesh per kind of stone for this block ----
+            var holder = new Node3D();
+            for (int v = 0; v < RTChipVariants; v++)
+            {
+                var ck = chunks[v]; if (ck == null || ck.T.Count == 0) continue;
+                var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = rtChipMeshes[v], InstanceCount = ck.T.Count };
+                for (int i = 0; i < ck.T.Count; i++) { mm.SetInstanceTransform(i, ck.T[i]); mm.SetInstanceColor(i, ck.C[i]); }
+                holder.AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = rtChipMat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+            }
+            rtChipRoot.AddChild(holder); b.Node = holder;
         }
     }
 }
