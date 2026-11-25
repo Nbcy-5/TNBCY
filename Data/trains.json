@@ -1,26 +1,44 @@
 {
   "trains": [
     {
+      "id": "SC-GT-01",
       "name": "Simhapuri Express",
       "file": "consist_express20",
-      "desc": "Long-distance express passenger service",
+      "desc": "Secunderabad to Ghatkesar passenger service",
       "kind": "Express",
       "coaches": 20,
       "origin": "Secunderabad Jn",
-      "destination": "Gudur Jn",
+      "destination": "Ghatkesar",
       "locomotive": "Random WAP electric locomotive",
-      "platform": 1
+      "platform": 1,
+      "startEdge": "d0",
+      "startOffsetM": 765,
+      "destinationEdge": "d17",
+      "viaEdges": [
+        "d7",
+        "d12"
+      ],
+      "departureAfterS": 0
     },
     {
+      "id": "GT-SC-02",
       "name": "Deccan Express",
       "file": "consist_passenger16",
-      "desc": "Intercity express passenger service",
+      "desc": "Ghatkesar to Secunderabad passenger service",
       "kind": "Express",
       "coaches": 16,
-      "origin": "Kakinada Jn",
+      "origin": "Ghatkesar",
       "destination": "Secunderabad Jn",
       "locomotive": "Random WAP electric locomotive",
-      "platform": 2
+      "platform": 2,
+      "startEdge": "u0",
+      "startOffsetM": 670,
+      "destinationEdge": "u17",
+      "viaEdges": [
+        "u5",
+        "u10"
+      ],
+      "departureAfterS": 60
     }
   ]
 }
