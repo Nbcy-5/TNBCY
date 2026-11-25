@@ -11,7 +11,15 @@ namespace TNBCY
         public bool available = true;
     }
     public class RouteList { public List<RouteInfo> routes = new List<RouteInfo>(); }
-    public class TrainOption { public string name = "", file = "", desc = "", kind = "", origin = "Secunderabad Jn", destination = "Gudur Jn", locomotive = "WAP electric locomotive"; public int coaches = 8, trainNumber = 0, platform = 1; }
+    public class TrainOption
+    {
+        public string id = "", name = "", file = "", desc = "", kind = "", origin = "Secunderabad Jn",
+            destination = "Ghatkesar", locomotive = "WAP electric locomotive";
+        public string startEdge = "", destinationEdge = "";
+        public float startOffsetM, departureAfterS;
+        public List<string> viaEdges = new List<string>();
+        public int coaches = 8, trainNumber = 0, platform = 1;
+    }
     public class TrainList { public List<TrainOption> trains = new List<TrainOption>(); }
 
     // Home screen with animated railway backdrop, route and train selection, settings.
