@@ -393,6 +393,14 @@
       "speedLimitKmh": 100
     },
     {
+      "id": "d6",
+      "from": "D2500",
+      "to": "D2600",
+      "gradientPermil": 0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 100
+    },
+    {
       "id": "d7",
       "from": "D2600",
       "to": "DMLY",
@@ -403,14 +411,6 @@
     {
       "id": "d7_after",
       "from": "DMLY",
-      "to": "D3800",
-      "gradientPermil": 0,
-      "curveRadiusM": 0,
-      "speedLimitKmh": 100
-    },
-    {
-      "id": "d7",
-      "from": "D2600",
       "to": "D3800",
       "gradientPermil": 0,
       "curveRadiusM": 0,
