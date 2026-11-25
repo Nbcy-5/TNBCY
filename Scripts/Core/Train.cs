@@ -6,13 +6,16 @@ namespace TNBCY
     public class PathSeg { public TEdge Edge; public float StartOdo; }
     public class Car { public VehicleSpec Spec; public float Offset, Length; }
 
-    // A train moving along the track graph. Forces come from TrainPhysics; this class follows the path through switches.
+    // A train follows its own dispatcher-assigned path. Shared turnout selections are only
+    // a visual/interlocking state; they are no longer the source of the train's next edge.
     public class Train
     {
         public readonly TrainPhysics Phys;
         public List<Car> Cars = new List<Car>();
         public List<PathSeg> Trail = new List<PathSeg>();
-        public bool Finished; public int EndKind; public float EndSpeed;   // EndKind 1 = end of line, 2 = buffer stop
+        readonly Dictionary<TEdge, TEdge> plannedNext = new Dictionary<TEdge, TEdge>();
+        public bool HasPlannedRoute { get; private set; }
+        public bool Finished; public int EndKind; public float EndSpeed;
 
         public float Length { get { return Phys.LengthM; } }
         public float Speed { get { return Phys.Speed; } }
@@ -30,7 +33,25 @@ namespace TNBCY
             Odo = Mathf.Max(startOffset, Length + 2f);
         }
 
-        // Puts the train back where a saved session left it.
+        public void SetPlannedRoute(IList<TEdge> route)
+        {
+            plannedNext.Clear();
+            HasPlannedRoute = route != null && route.Count > 0;
+            if (!HasPlannedRoute) return;
+            for (int i = 0; i + 1 < route.Count; i++)
+                plannedNext[route[i]] = route[i + 1];
+        }
+
+        public TEdge NextEdge(TEdge edge)
+        {
+            if (HasPlannedRoute)
+            {
+                TEdge next;
+                return plannedNext.TryGetValue(edge, out next) ? next : null;
+            }
+            return edge != null && edge.To.Outs.Count > 0 ? edge.To.Outs[edge.To.Sel] : null;
+        }
+
         public void Restore(List<PathSeg> trail, float odo) { Trail = trail; Phys.Position = odo; Finished = false; }
 
         PathSeg SegAt(float odo)
@@ -61,12 +82,13 @@ namespace TNBCY
                 if (Odo - seg.StartOdo < seg.Edge.Length) return;
                 float nodeOdo = seg.StartOdo + seg.Edge.Length;
                 var n = seg.Edge.To; n.PassedOdo = nodeOdo;
-                if (n.Outs.Count == 0)
+                TEdge next = NextEdge(seg.Edge);
+                if (next == null)
                 {
                     EndSpeed = Phys.Speed; Odo = nodeOdo; Phys.Speed = 0f;
                     Finished = true; EndKind = n.Type == "buffer" ? 2 : 1; return;
                 }
-                Trail.Add(new PathSeg { Edge = n.Outs[n.Sel], StartOdo = nodeOdo });
+                Trail.Add(new PathSeg { Edge = next, StartOdo = nodeOdo });
             }
         }
     }
