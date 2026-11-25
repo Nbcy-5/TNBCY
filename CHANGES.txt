@@ -1,3 +1,6 @@
+TNBCY v5.4 / APK 48
+- Fixed turnout intersection sleeper placement: one shared fan-shaped bearer layout supports both tracks without overlapping duplicate sleepers.
+
 TNBCY v51 — Fix intermittent missing sleepers at every viewing distance
 SLEEPERS Split the far and distant sleeper LOD MultiMeshes into the same small batches as the close and middle tiers. This prevents long sections from being hidden together when their visibility-range bounds cross the camera distance. Sleeper meshes, spacing, shape, colours, materials and LOD distance windows are unchanged.
 SCOPE Only sleeper visibility batching and version metadata changed. Rails, ballast, granite, track geometry, scenery, lighting, shadows, textures, graphics quality and gameplay are untouched.
