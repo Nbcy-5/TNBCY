@@ -17,6 +17,10 @@ namespace TNBCY
     //  - Points: the grey boxes are gone. The crossing now has a V-shaped cast frog with a polished top between the wing rails and check rails.
     //  - Grass tufts and small stones beside the track (not on platforms, not on the other track).
     //  - v48: the small stones beside the track are now small light grey granite chips (they were big dark grey blobs).
+    //  - v50: sleepers that were missing in places are fixed. The close and middle sleepers are now built in small pieces of
+    //    RTSleeperPiece (40) sleepers, with fixed hand-over distances (full sleeper 0 - 18 m, middle sleeper 18 - 150 m, far tiers from 90 m),
+    //    so there is no gap between the levels of detail whatever the graphics level is. Before, one block of 220 sleepers (132 m) was shown or
+    //    hidden as a whole by the distance to its centre, and the hide distance changed with the graphics level, which left gaps with no sleepers.
     public partial class Main
     {
         // ------------------------------------------------------------------ procedural textures
@@ -456,13 +460,27 @@ void fragment() {
                         fl.Add(Xf(q, sp + q.Y * .1f - q.X * RailG, Vector3.One)); fl.Add(Xf(q, sp + q.Y * .1f + q.X * RailG, Vector3.One));
                     }
                     if (tl.Count == 0) continue;
-                    var slp = MM(rtSleeperN26, matConcrete, tl.Count, 112.5f, true); // Far() applies .8 scale: exact 90 m handover to sleeper LOD
-                    var fit = MM(fitMesh, matFit, fl.Count, 55f);
-                    for (int i = 0; i < tl.Count; i++) { slp.SetInstanceTransform(i, tl[i]); slp.SetInstanceColor(i, cl[i]); }
-                    for (int i = 0; i < fl.Count; i++) fit.SetInstanceTransform(i, fl[i]);
+                    // v50: the close sleepers (full shape with clips, 0 - 18 m), the middle sleepers (same curved shape, fewer segments, 18 - 150 m)
+                    // and the rail fittings are built in small pieces of RTSleeperPiece sleepers (about 24 m). Each piece is shown or hidden by the
+                    // distance to its own centre, so the hand-over between the levels is exact (the full sleeper ends at the distance where the
+                    // middle one starts) and does not depend on the graphics level. The far tiers below start at 90 m and sit 1.5 cm lower, so they
+                    // never flicker against the middle sleepers where they overlap, and they close every gap beyond the middle tier.
+                    for (int pb = 0; pb < tl.Count; pb += RTSleeperPiece)
+                    {
+                        int pn = Mathf.Min(RTSleeperPiece, tl.Count - pb);
+                        var pSlp = RTMultiMeshLodColor(rtSleeperN26, matConcrete, pn, 0f, RTSleeperNearRange);
+                        var pMid = RTMultiMeshLodColor(rtSleeperMid, matConcrete, pn, RTSleeperNearRange, 150f);
+                        var pFit = RTMultiMeshLod(fitMesh, matFit, pn * 2, 0f, 55f);
+                        for (int pk = 0; pk < pn; pk++)
+                        {
+                            pSlp.SetInstanceTransform(pk, tl[pb + pk]); pSlp.SetInstanceColor(pk, cl[pb + pk]);
+                            pMid.SetInstanceTransform(pk, tl[pb + pk]); pMid.SetInstanceColor(pk, cl[pb + pk]);
+                            pFit.SetInstanceTransform(pk * 2, fl[(pb + pk) * 2]); pFit.SetInstanceTransform(pk * 2 + 1, fl[(pb + pk) * 2 + 1]);
+                        }
+                    }
                     // Replace the old coplanar distance texture with actual low-poly curved sleepers.
                     // This keeps cross-ties crisp and avoids a second textured plane shimmering over the ballast.
-                    var farNear = RTMultiMeshLod(rtSleeperMid, matConcrete, lodNear.Count, 90f, 480f);
+                    var farNear = RTMultiMeshLod(rtSleeperFar1, matConcrete, lodNear.Count, 90f, 480f);
                     for (int i = 0; i < lodNear.Count; i++) farNear.SetInstanceTransform(i, lodNear[i]);
                     var farMid = RTMultiMeshLod(rtSleeperFar1, matConcrete, lodMid.Count, 480f, 1250f);
                     for (int i = 0; i < lodMid.Count; i++) farMid.SetInstanceTransform(i, lodMid[i]);
