@@ -86,6 +86,23 @@ namespace TNBCY
             reason = "";
             if (string.IsNullOrEmpty(id) || route == null || route.Count == 0)
             { reason = "Invalid train route."; return false; }
+            // Validate the complete directed path before taking any interlocking resources.
+            // This catches malformed service data and prevents a bad route from being committed.
+            if (route[0] != train.FrontSeg.Edge)
+            { reason = "The planned route does not begin on the train's current track."; return false; }
+            for (int i = 0; i < route.Count; i++)
+            {
+                if (route[i] == null || route[i].From == null || route[i].To == null)
+                { reason = "The planned route contains an invalid track section."; return false; }
+                if (i > 0)
+                {
+                    TEdge previous = route[i - 1];
+                    TEdge current = route[i];
+                    if (previous.To != current.From || !previous.To.Outs.Contains(current))
+                    { reason = "The planned route is not connected between " + previous.Id + " and " + current.Id + "."; return false; }
+                }
+            }
+
             // Validate the replacement first; keep the train's existing reservations if it fails.
             var requestedSwitches = new Dictionary<TNode, TEdge>();
             for (int i = 0; i + 1 < route.Count; i++)
