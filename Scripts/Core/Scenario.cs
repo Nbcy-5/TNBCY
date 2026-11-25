@@ -7,29 +7,107 @@ namespace TNBCY
     public class Scenario
     {
         public readonly NetworkSpec Net; public readonly TrackGraph Graph; public readonly Train Train;
-        public readonly AiDriver Ai;
+        public readonly List<AiDriver> AiDrivers = new List<AiDriver>();
+        public readonly List<Train> AiTrains = new List<Train>();
+        public readonly List<string> AiServiceIds = new List<string>();
+        public AiDriver Ai { get { return AiDrivers.Count == 0 ? null : AiDrivers[0]; } }
+        public Train AiTrain { get { return AiTrains.Count == 0 ? null : AiTrains[0]; } }
+        public readonly RailwayDispatcher Dispatcher;
         public float SimTime, TimeScale = 1f; public bool Ended; public string EndMessage = "";
         public System.Action<string, string> OnEvent;   // (message, "ok" | "bad")
         readonly HashSet<string> served = new HashSet<string>();
 
+        List<string> ResolveViaEdges(string startEdgeId, IList<string> edgeIds, IList<string> stationNames)
+        {
+            if (edgeIds != null && edgeIds.Count > 0) return new List<string>(edgeIds);
+            var result = new List<string>();
+            string direction = string.IsNullOrEmpty(startEdgeId) ? "" : startEdgeId.Substring(0, 1);
+            if (stationNames == null) return result;
+            foreach (string stationName in stationNames)
+            {
+                TStation match = null;
+                foreach (var station in Graph.Stations)
+                    if (station.Stop && station.Name == stationName &&
+                        (string.IsNullOrEmpty(direction) || station.Edge.Id.StartsWith(direction)))
+                    { match = station; break; }
+                if (match == null)
+                {
+                    GD.PrintErr("Via station not found in this direction: " + stationName);
+                    return null;
+                }
+                result.Add(match.Edge.Id);
+            }
+            return result;
+        }
+
         public Scenario(NetworkSpec net, ConsistSpec consist, ConsistSpec aiConsist = null)
+            : this(net, consist, "", null, null, null, aiConsist) { }
+
+        public Scenario(NetworkSpec net, ConsistSpec consist, string playerDestinationEdge,
+            IList<string> playerViaEdges, IList<string> playerViaStations,
+            List<AiServiceRuntime> aiServices, ConsistSpec fallbackAiConsist = null)
         {
             Net = net; Graph = TrackGraph.Build(net);
             Train = new Train(consist, Graph.Edges[net.start.edge], net.start.offsetM);
             TimeScale = Mathf.Max(0.1f, net.timeScale);
-            if (net.ai != null && net.ai.enabled && Graph.Edges.ContainsKey(net.ai.edge))
-                Ai = new AiDriver(new Train(aiConsist ?? consist, Graph.Edges[net.ai.edge], net.ai.offsetM), Graph, net.ai.departAfterS, net.defaultLimitKmh);
-            // Long trains start further along the platform: move the start platforms to where the fronts really are.
+            Dispatcher = new RailwayDispatcher(Graph);
+            string dispatchReason;
+
+            if (!string.IsNullOrEmpty(playerDestinationEdge))
+            {
+                var resolvedPlayerVia = ResolveViaEdges(Train.FrontSeg.Edge.Id, playerViaEdges, playerViaStations);
+                if (resolvedPlayerVia == null)
+                    GD.PrintErr("Player route planning cancelled: one or more via stations could not be resolved.");
+                else if (!Dispatcher.TryPlanRoute("PLAYER", Train, playerDestinationEdge, resolvedPlayerVia, true, out dispatchReason))
+                    GD.PrintErr("Player route planning: " + dispatchReason);
+            }
+            else if (!Dispatcher.TryPlanToFarthestStop("PLAYER", Train, true, out dispatchReason))
+                GD.PrintErr("Player route planning: " + dispatchReason);
+
+            if (aiServices != null && aiServices.Count > 0)
+            {
+                foreach (var service in aiServices)
+                {
+                    if (service == null || service.consist == null || !Graph.Edges.ContainsKey(service.startEdge))
+                    { GD.PrintErr("Skipping invalid AI service " + (service == null ? "(null)" : service.id)); continue; }
+                    var aiTrain = new Train(service.consist, Graph.Edges[service.startEdge], service.startOffsetM);
+                    var driver = new AiDriver(aiTrain, Graph, service.departureAfterS, net.defaultLimitKmh);
+                    AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add(service.id);
+                    var resolvedVia = ResolveViaEdges(service.startEdge, service.viaEdges, service.viaStations);
+                    if (resolvedVia == null)
+                        GD.PrintErr("AI route planning cancelled (" + service.id + "): a via station could not be resolved.");
+                    else if (!Dispatcher.TryPlanRoute(service.id, aiTrain, service.destinationEdge, resolvedVia, false, out dispatchReason))
+                        GD.PrintErr("AI route planning (" + service.id + "): " + dispatchReason);
+                }
+            }
+            else if (net.ai != null && net.ai.enabled && Graph.Edges.ContainsKey(net.ai.edge))
+            {
+                var aiTrain = new Train(fallbackAiConsist ?? consist, Graph.Edges[net.ai.edge], net.ai.offsetM);
+                var driver = new AiDriver(aiTrain, Graph, net.ai.departAfterS, net.defaultLimitKmh);
+                AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add("AI-1");
+                if (!Dispatcher.TryPlanToFarthestStop("AI-1", aiTrain, false, out dispatchReason))
+                    GD.PrintErr("AI route planning: " + dispatchReason);
+            }
+
+            // Movement authority: each AI driver stops short of track the dispatcher has not reserved for its train.
+            for (int i = 0; i < AiDrivers.Count; i++)
+            {
+                string serviceId = AiServiceIds[i];
+                AiDrivers[i].Authority = () => Dispatcher.AuthorityDistance(serviceId);
+            }
+
+            // Long trains start further along the platform: move the start markers to where the fronts really are.
             foreach (var st in Graph.Stations)
             {
                 if (st.Stop) continue;
                 if (st.Edge == Train.FrontSeg.Edge && Mathf.Abs(st.Offset - net.start.offsetM) < 20f) st.Offset = Train.Odo;
-                if (Ai != null && st.Edge == Ai.T.FrontSeg.Edge && Mathf.Abs(st.Offset - net.ai.offsetM) < 20f) st.Offset = Ai.T.Odo;
+                foreach (var aiTrain in AiTrains)
+                    if (st.Edge == aiTrain.FrontSeg.Edge && Mathf.Abs(st.Offset - aiTrain.FrontOffset) < 20f)
+                        st.Offset = aiTrain.FrontOffset;
             }
         }
         public List<string> ServedNames() { return new List<string>(served); }
         public void SetServed(IEnumerable<string> names) { served.Clear(); foreach (var n in names) served.Add(n); }
-        public Train AiTrain { get { return Ai == null ? null : Ai.T; } }
         public float LimitKmh(TEdge e) { return e.LimitKmh > 0f ? e.LimitKmh : Net.defaultLimitKmh; }
         void Emit(string m, bool good) { if (OnEvent != null) OnEvent(m, good ? "ok" : "bad"); }
         public float ElapsedReal { get { return SimTime / TimeScale; } }
@@ -53,9 +131,13 @@ namespace TNBCY
         void Step(float h)
         {
             SimTime += h;
+            Dispatcher.Update();
             Train.Update(h);
-            if (Ai != null) Ai.Update(h, SimTime);
-            if (Ai != null) Ai.T.Update(h);
+            for (int i = 0; i < AiDrivers.Count; i++)
+            {
+                AiDrivers[i].Update(h, SimTime);
+                AiTrains[i].Update(h);
+            }
             UpdateSignals(h); UpdateStations();
             if (!Ended && Train.Finished) End();
         }
@@ -71,11 +153,13 @@ namespace TNBCY
             float off = Train.FrontOffset;
             foreach (var s in Graph.Signals)
             {
-                if (s.Held && s.Red && !s.Started && (Near(Train, s) || Near(AiTrain, s))) s.Started = true;
+                bool trainNear = Near(Train, s);
+                for (int i = 0; i < AiTrains.Count && !trainNear; i++) trainNear = Near(AiTrains[i], s);
+                if (s.Held && s.Red && !s.Started && trainNear) s.Started = true;
                 if (s.Started && s.Red)
                 {
                     s.Timer += dt;
-                    if (s.Timer >= s.HoldSeconds) { s.Red = false; if (Near(Train, s) || Train.FrontSeg.Edge == s.Edge) Emit("Signal " + s.Id + " cleared", true); }
+                    if (s.Timer >= s.HoldSeconds) { s.Red = false; if (trainNear || Train.FrontSeg.Edge == s.Edge) Emit("Signal " + s.Id + " cleared", true); }
                 }
                 if (!s.Passed && Train.FrontSeg.Edge == s.Edge && off >= s.Offset)
                 {
@@ -136,7 +220,7 @@ namespace TNBCY
             {
                 acc += e.Length; var n = e.To;
                 if (n.IsSwitch) { dist = acc; return n; }
-                e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
+                e = Train.NextEdge(e);
             }
             return null;
         }

@@ -1,31 +1,37 @@
 {
   "name": "Secunderabad Jn - Moula Ali - Charlapalli - Ghatkesar (20 km, double line, 25 kV AC)",
   "defaultLimitKmh": 100,
-  "timeScale": 1.0,
+  "timeScale": 1,
   "targetTimeS": 0,
   "routeLengthM": 20000,
   "clockStart": "09:00",
   "start": {
     "edge": "d0",
-    "offsetM": 765.0
+    "offsetM": 765
   },
   "ai": {
     "enabled": true,
     "edge": "u0",
-    "offsetM": 670.0,
+    "offsetM": 670,
     "departAfterS": 60
   },
   "nodes": [
     {
       "id": "D0",
       "x": 2.25,
-      "z": 0.0,
+      "z": 0,
       "type": "start"
+    },
+    {
+      "id": "S0",
+      "x": 6.75,
+      "z": -173.3,
+      "type": "plain"
     },
     {
       "id": "D900",
       "x": 2.25,
-      "z": 2250.0,
+      "z": 2250,
       "type": "plain"
     },
     {
@@ -65,6 +71,12 @@
       "type": "plain"
     },
     {
+      "id": "DMLY",
+      "x": 247.09,
+      "z": 7672.125,
+      "type": "plain"
+    },
+    {
       "id": "D3800",
       "x": 247.09,
       "z": 9397.125,
@@ -79,7 +91,7 @@
     {
       "id": "D4350",
       "x": 179.99,
-      "z": 10757.0,
+      "z": 10757,
       "type": "plain"
     },
     {
@@ -127,7 +139,7 @@
     {
       "id": "D8000",
       "x": 245.2,
-      "z": 20765.0,
+      "z": 20765,
       "type": "end"
     },
     {
@@ -139,7 +151,7 @@
     {
       "id": "U900",
       "x": -2.25,
-      "z": 2250.0,
+      "z": 2250,
       "type": "plain"
     },
     {
@@ -241,7 +253,7 @@
     {
       "id": "U8000",
       "x": 240.7,
-      "z": 20765.0,
+      "z": 20765,
       "type": "start"
     }
   ],
@@ -251,7 +263,37 @@
       "from": "D0",
       "to": "D900",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 60
+    },
+    {
+      "id": "s0",
+      "from": "S0",
+      "to": "D900",
+      "via": [
+        [
+          6.75,
+          1750
+        ],
+        [
+          6.75,
+          1900
+        ],
+        [
+          6.4,
+          2050
+        ],
+        [
+          5.4,
+          2160
+        ],
+        [
+          3.7,
+          2230
+        ]
+      ],
+      "gradientPermil": 0,
+      "curveRadiusM": 1200,
       "speedLimitKmh": 60
     },
     {
@@ -347,7 +389,7 @@
       "from": "D1900",
       "to": "D2500",
       "gradientPermil": 5,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -355,15 +397,23 @@
       "from": "D2500",
       "to": "D2600",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
       "id": "d7",
       "from": "D2600",
+      "to": "DMLY",
+      "gradientPermil": 0,
+      "curveRadiusM": 0,
+      "speedLimitKmh": 100
+    },
+    {
+      "id": "d7_after",
+      "from": "DMLY",
       "to": "D3800",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -371,7 +421,7 @@
       "from": "D3800",
       "to": "D3900",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -447,7 +497,7 @@
       "from": "D4800",
       "to": "D5000",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -455,7 +505,7 @@
       "from": "D5000",
       "to": "D6200",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -463,7 +513,7 @@
       "from": "D6200",
       "to": "D6300",
       "gradientPermil": -6,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -537,7 +587,7 @@
       "from": "D7100",
       "to": "D8000",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 50
     },
     {
@@ -545,7 +595,7 @@
       "from": "D2600",
       "to": "D3800",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 30,
       "via": [
         [
@@ -742,7 +792,7 @@
         ],
         [
           248.06,
-          9366.0
+          9366
         ],
         [
           247.521,
@@ -756,7 +806,7 @@
       "from": "D5000",
       "to": "D6200",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 30,
       "via": [
         [
@@ -967,7 +1017,7 @@
       "from": "U8000",
       "to": "U7100",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 50
     },
     {
@@ -1041,7 +1091,7 @@
       "from": "U6300",
       "to": "U6200",
       "gradientPermil": 6,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -1049,7 +1099,7 @@
       "from": "U6200",
       "to": "U5000",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -1057,7 +1107,7 @@
       "from": "U5000",
       "to": "U4800",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -1077,8 +1127,8 @@
           11542.025000000001
         ],
         [
-          121.0,
-          11382.0
+          121,
+          11382
         ],
         [
           130.62,
@@ -1133,7 +1183,7 @@
       "from": "U3900",
       "to": "U3800",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -1141,7 +1191,7 @@
       "from": "U3800",
       "to": "U2600",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -1149,7 +1199,7 @@
       "from": "U2600",
       "to": "U2500",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -1157,7 +1207,7 @@
       "from": "U2500",
       "to": "U1900",
       "gradientPermil": -5,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 100
     },
     {
@@ -1253,7 +1303,7 @@
       "from": "U900",
       "to": "U0",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 60
     },
     {
@@ -1261,7 +1311,7 @@
       "from": "U3800",
       "to": "U2600",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 30,
       "via": [
         [
@@ -1274,7 +1324,7 @@
         ],
         [
           241.62,
-          9366.0
+          9366
         ],
         [
           240.867,
@@ -1472,7 +1522,7 @@
       "from": "U6200",
       "to": "U5000",
       "gradientPermil": 0,
-      "curveRadiusM": 0.0,
+      "curveRadiusM": 0,
       "speedLimitKmh": 30,
       "via": [
         [
@@ -1683,27 +1733,27 @@
     {
       "id": "D1",
       "edge": "d0",
-      "offsetM": 1750.0
+      "offsetM": 1750
     },
     {
       "id": "D2",
       "edge": "d5",
-      "offsetM": 20.0
+      "offsetM": 20
     },
     {
       "id": "D3",
       "edge": "d5",
-      "offsetM": 1375.0
+      "offsetM": 1375
     },
     {
       "id": "D4",
       "edge": "d9",
-      "offsetM": 125.0
+      "offsetM": 125
     },
     {
       "id": "D5",
       "edge": "d11",
-      "offsetM": 125.0
+      "offsetM": 125
     },
     {
       "id": "D6",
@@ -1713,24 +1763,24 @@
     {
       "id": "D7",
       "edge": "d14",
-      "offsetM": 250.0
+      "offsetM": 250
     },
     {
       "id": "D8",
       "edge": "d17",
-      "offsetM": 250.0
+      "offsetM": 250
     },
     {
       "id": "DM1",
-      "edge": "d7",
-      "offsetM": 1300,
+      "edge": "d7_after",
+      "offsetM": 25,
       "held": true,
       "holdSeconds": 40
     },
     {
       "id": "D9",
       "edge": "d17",
-      "offsetM": 1250.0,
+      "offsetM": 1250,
       "held": true,
       "holdSeconds": 30
     },
@@ -1747,32 +1797,32 @@
     {
       "id": "U3",
       "edge": "u3",
-      "offsetM": 375.0
+      "offsetM": 375
     },
     {
       "id": "U4",
       "edge": "u6",
-      "offsetM": 375.0
+      "offsetM": 375
     },
     {
       "id": "U5",
       "edge": "u8",
-      "offsetM": 1000.0
+      "offsetM": 1000
     },
     {
       "id": "U6",
       "edge": "u12",
-      "offsetM": 125.0
+      "offsetM": 125
     },
     {
       "id": "U7",
       "edge": "u17",
-      "offsetM": 250.0
+      "offsetM": 250
     },
     {
       "id": "U8",
       "edge": "u14",
-      "offsetM": 500.0,
+      "offsetM": 500,
       "held": true,
       "holdSeconds": 20
     }
@@ -1781,7 +1831,7 @@
     {
       "name": "Secunderabad Jn (SC)",
       "edge": "d0",
-      "offsetM": 765.0,
+      "offsetM": 765,
       "stop": false,
       "side": "L",
       "dwellS": 25
@@ -1789,7 +1839,7 @@
     {
       "name": "Moula Ali (MLY)",
       "edge": "d7",
-      "offsetM": 1274.9,
+      "offsetM": 1275,
       "stop": true,
       "side": "L",
       "dwellS": 30
@@ -1813,7 +1863,7 @@
     {
       "name": "Ghatkesar (GT)",
       "edge": "u0",
-      "offsetM": 670.0,
+      "offsetM": 670,
       "stop": false,
       "side": "L",
       "dwellS": 25
@@ -1837,10 +1887,18 @@
     {
       "name": "Secunderabad Jn (SC)",
       "edge": "u17",
-      "offsetM": 2095.0,
+      "offsetM": 2095,
       "stop": true,
       "side": "L",
       "dwellS": 30
+    },
+    {
+      "name": "Secunderabad Jn (SC) - Platform 3",
+      "edge": "s0",
+      "offsetM": 765,
+      "stop": false,
+      "side": "L",
+      "dwellS": 25
     }
   ]
 }

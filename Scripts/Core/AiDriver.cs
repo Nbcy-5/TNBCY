@@ -2,15 +2,19 @@ using Godot;
 
 namespace TNBCY
 {
-    // Computer driver for the opposing train: obeys speed limits, signals (red = stop, yellow = slow) and stops at platforms.
+    // Computer driver for the opposing train: obeys speed limits, signals (red = stop, yellow = slow), stops at platforms
+    // and never runs past the end of the track the dispatcher has reserved for it.
     public class AiDriver
     {
         public readonly Train T;
         readonly TrackGraph g;
         readonly float departAt, defaultLimit;
+        readonly System.Collections.Generic.HashSet<TStation> served = new System.Collections.Generic.HashSet<TStation>();
         float dwell;
         public float Dwell { get { return dwell; } set { dwell = value; } }
         public string Status = "waiting";
+        // Distance ahead that the dispatcher has cleared for this train (float.MaxValue = unrestricted).
+        public System.Func<float> Authority;
         const float A = 0.30f;     // planning deceleration, m/s^2 (a bit gentler than the real brake)
 
         public AiDriver(Train t, TrackGraph graph, float departAfter, float defLimitKmh)
@@ -25,8 +29,9 @@ namespace TNBCY
         public void Update(float dt, float simTime)
         {
             var P = T.Phys;
+            if (!T.HasPlannedRoute) { Hold(); Status = "route unavailable"; return; }
             if (T.Finished) { Hold(); Status = "finished"; return; }
-            if (simTime < departAt) { Hold(); Status = "waiting at Ghatkesar"; return; }
+            if (simTime < departAt) { Hold(); Status = "waiting to depart"; return; }
             if (dwell > 0f) { dwell -= dt; Hold(); Status = "at platform"; return; }
 
             float v = P.Speed;
@@ -49,20 +54,32 @@ namespace TNBCY
                 }
                 foreach (var st in g.Stations)
                 {
-                    if (st.Edge != e || !st.Stop || st.Served) continue;
+                    if (st.Edge != e || !st.Stop || served.Contains(st)) continue;
                     float d = acc + st.Offset;
-                    if (d < -8f) { st.Served = true; continue; }
+                    if (d < -8f) { served.Add(st); continue; }
                     target = Mathf.Min(target, StopSpeed(d - 4f - v * 1.5f));
                     if (arriving == null || d < arriveD) { arriving = st; arriveD = d; }
                 }
                 var n = e.To; acc += e.Length;
                 if (n.Outs.Count == 0) { target = Mathf.Min(target, StopSpeed(acc - 8f - v * 1.5f)); break; }
-                e = n.Outs[n.Sel];
+                e = T.NextEdge(e);
+            }
+
+            // Movement authority: stop short of track that another train holds.
+            if (Authority != null)
+            {
+                float authority = Authority();
+                if (authority < 1e8f)
+                {
+                    float room = authority - 15f - v * 1.5f;
+                    target = Mathf.Min(target, StopSpeed(room));
+                    if (room <= 0f && v < 1f) { Hold(); Status = "waiting for clear track"; return; }
+                }
             }
 
             if (arriving != null && arriveD < 25f && v < 0.4f)
             {
-                arriving.Served = true; dwell = arriving.Dwell; Hold(); Status = "at " + arriving.Name; return;
+                served.Add(arriving); dwell = arriving.Dwell; Hold(); Status = "at " + arriving.Name; return;
             }
 
             float err = target - v;

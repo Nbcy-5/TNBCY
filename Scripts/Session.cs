@@ -13,10 +13,13 @@ namespace TNBCY
 
     public class SessionData
     {
-        public int version = 1;
-        public string route = "", consist = "", title = "", sub = "", clock = "", saved = "";
+        public int version = 2;
+        public string route = "", consist = "", serviceId = "", title = "", sub = "", clock = "", saved = "";
         public float simTime, aiDwell;
         public SessTrain player = new SessTrain(), ai;
+        public List<SessTrain> aiTrains = new List<SessTrain>();
+        public List<float> aiDwells = new List<float>();
+        public List<string> aiServiceIds = new List<string>();
         public Dictionary<string, int> switches = new Dictionary<string, int>();
         public List<SessSignal> signals = new List<SessSignal>();
         public List<bool> stDone = new List<bool>(), stServed = new List<bool>();
@@ -57,7 +60,7 @@ namespace TNBCY
                 using var f = Godot.FileAccess.Open(FilePath, Godot.FileAccess.ModeFlags.Read);
                 if (f == null) return null;
                 var d = JsonSerializer.Deserialize<SessionData>(f.GetAsText(), Opt);
-                return (d != null && d.version == 1 && d.player != null && d.player.edges.Count > 0) ? d : null;
+                return (d != null && (d.version == 1 || d.version == 2) && d.player != null && d.player.edges.Count > 0) ? d : null;
             }
             catch (System.Exception ex) { GD.PrintErr("Session load failed: " + ex.Message); return null; }
         }
@@ -69,11 +72,17 @@ namespace TNBCY
             return s;
         }
 
-        public static SessionData Capture(Scenario sc, TouchControls t, string route, string consist, string consistName, string routeName)
+        public static SessionData Capture(Scenario sc, TouchControls t, string route, string consist, string consistName, string routeName, string serviceId = "")
         {
-            var d = new SessionData { route = route, consist = consist, simTime = sc.SimTime, title = consistName, sub = routeName, clock = sc.ClockText(), saved = Time.GetDatetimeStringFromSystem(false, true) };
+            var d = new SessionData { route = route, consist = consist, serviceId = serviceId, simTime = sc.SimTime, title = consistName, sub = routeName, clock = sc.ClockText(), saved = Time.GetDatetimeStringFromSystem(false, true) };
             d.player = CaptureTrain(sc.Train);
-            if (sc.Ai != null) { d.ai = CaptureTrain(sc.Ai.T); d.aiDwell = sc.Ai.Dwell; }
+            for (int i = 0; i < sc.AiTrains.Count; i++)
+            {
+                d.aiTrains.Add(CaptureTrain(sc.AiTrains[i]));
+                d.aiDwells.Add(sc.AiDrivers[i].Dwell);
+                d.aiServiceIds.Add(sc.AiServiceIds[i]);
+            }
+            if (sc.AiTrains.Count > 0) { d.ai = d.aiTrains[0]; d.aiDwell = d.aiDwells[0]; }
             foreach (var n in sc.Graph.Switches) d.switches[n.Id] = n.Sel;
             foreach (var s in sc.Graph.Signals) d.signals.Add(new SessSignal { id = s.Id, red = s.Red, started = s.Started, passed = s.Passed, timer = s.Timer });
             foreach (var st in sc.Graph.Stations) { d.stDone.Add(st.Done); d.stServed.Add(st.Served); }
@@ -82,10 +91,10 @@ namespace TNBCY
             return d;
         }
 
-        // true when every edge the saved train used still exists in this route (checked before anything is changed)
+        // Validate a saved train's complete path before mutating any live simulation state.
         static bool TrainFits(Scenario sc, SessTrain s)
         {
-            if (s == null || s.edges.Count == 0 || s.edges.Count != s.starts.Count) return false;
+            if (s == null || s.edges == null || s.starts == null || s.edges.Count == 0 || s.edges.Count != s.starts.Count) return false;
             foreach (var id in s.edges) if (!sc.Graph.Edges.ContainsKey(id)) return false;
             return true;
         }
@@ -110,13 +119,41 @@ namespace TNBCY
         {
             try
             {
-                if (d.signals.Count != sc.Graph.Signals.Count || d.stDone.Count != sc.Graph.Stations.Count || d.stServed.Count != sc.Graph.Stations.Count) return false;
-                // check that everything fits BEFORE changing the running game, so a failed restore leaves a clean new run
+                if (d.signals == null || d.stDone == null || d.stServed == null ||
+                    d.signals.Count != sc.Graph.Signals.Count || d.stDone.Count != sc.Graph.Stations.Count ||
+                    d.stServed.Count != sc.Graph.Stations.Count) return false;
+
+                // Preflight every train and signal before changing the player, AI, points or signals.
                 if (!TrainFits(sc, d.player)) return false;
-                if (sc.Ai != null && d.ai != null && !TrainFits(sc, d.ai)) return false;
-                for (int i = 0; i < d.signals.Count; i++) if (sc.Graph.Signals[i].Id != d.signals[i].id) return false;
+                if (d.version >= 2)
+                {
+                    if (d.aiTrains == null || d.aiDwells == null || d.aiServiceIds == null ||
+                        d.aiTrains.Count != sc.AiTrains.Count || d.aiDwells.Count != sc.AiDrivers.Count ||
+                        d.aiServiceIds.Count != sc.AiServiceIds.Count) return false;
+                    for (int i = 0; i < d.aiServiceIds.Count; i++)
+                        if (d.aiServiceIds[i] != sc.AiServiceIds[i] || !TrainFits(sc, d.aiTrains[i])) return false;
+                }
+                else if (sc.AiTrains.Count > 0)
+                {
+                    if (sc.AiTrains.Count > 1 || d.ai == null || !TrainFits(sc, d.ai)) return false;
+                }
+                for (int i = 0; i < d.signals.Count; i++)
+                    if (sc.Graph.Signals[i].Id != d.signals[i].id) return false;
+
                 if (!RestoreTrain(sc, sc.Train, d.player)) return false;
-                if (sc.Ai != null && d.ai != null) { if (!RestoreTrain(sc, sc.Ai.T, d.ai)) return false; sc.Ai.Dwell = d.aiDwell; }
+                if (d.version >= 2)
+                {
+                    for (int i = 0; i < sc.AiTrains.Count; i++)
+                    {
+                        if (!RestoreTrain(sc, sc.AiTrains[i], d.aiTrains[i])) return false;
+                        sc.AiDrivers[i].Dwell = d.aiDwells[i];
+                    }
+                }
+                else if (sc.AiTrains.Count > 0)
+                {
+                    if (!RestoreTrain(sc, sc.AiTrains[0], d.ai)) return false;
+                    sc.AiDrivers[0].Dwell = d.aiDwell;
+                }
                 foreach (var n in sc.Graph.Switches) { int v; if (d.switches.TryGetValue(n.Id, out v) && v >= 0 && v < n.Outs.Count) n.Sel = v; }
                 for (int i = 0; i < d.signals.Count; i++)
                 {
