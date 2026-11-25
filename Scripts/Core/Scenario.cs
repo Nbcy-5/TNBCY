@@ -17,6 +17,29 @@ namespace TNBCY
         public System.Action<string, string> OnEvent;   // (message, "ok" | "bad")
         readonly HashSet<string> served = new HashSet<string>();
 
+        List<string> ResolveViaEdges(string startEdgeId, IList<string> edgeIds, IList<string> stationNames)
+        {
+            if (edgeIds != null && edgeIds.Count > 0) return new List<string>(edgeIds);
+            var result = new List<string>();
+            string direction = string.IsNullOrEmpty(startEdgeId) ? "" : startEdgeId.Substring(0, 1);
+            if (stationNames == null) return result;
+            foreach (string stationName in stationNames)
+            {
+                TStation match = null;
+                foreach (var station in Graph.Stations)
+                    if (station.Stop && station.Name == stationName &&
+                        (string.IsNullOrEmpty(direction) || station.Edge.Id.StartsWith(direction)))
+                    { match = station; break; }
+                if (match == null)
+                {
+                    GD.PrintErr("Via station not found in this direction: " + stationName);
+                    return new List<string>();
+                }
+                result.Add(match.Edge.Id);
+            }
+            return result;
+        }
+
         public Scenario(NetworkSpec net, ConsistSpec consist, ConsistSpec aiConsist = null)
             : this(net, consist, "", null, null, aiConsist) { }
 
@@ -31,7 +54,8 @@ namespace TNBCY
 
             if (!string.IsNullOrEmpty(playerDestinationEdge))
             {
-                if (!Dispatcher.TryPlanRoute("PLAYER", Train, playerDestinationEdge, playerViaEdges, true, out dispatchReason))
+                var resolvedPlayerVia = ResolveViaEdges(Train.FrontSeg.Edge.Id, playerViaEdges, null);
+                if (!Dispatcher.TryPlanRoute("PLAYER", Train, playerDestinationEdge, resolvedPlayerVia, true, out dispatchReason))
                     GD.PrintErr("Player route planning: " + dispatchReason);
             }
             else if (!Dispatcher.TryPlanToFarthestStop("PLAYER", Train, true, out dispatchReason))
@@ -46,7 +70,8 @@ namespace TNBCY
                     var aiTrain = new Train(service.consist, Graph.Edges[service.startEdge], service.startOffsetM);
                     var driver = new AiDriver(aiTrain, Graph, service.departureAfterS, net.defaultLimitKmh);
                     AiTrains.Add(aiTrain); AiDrivers.Add(driver); AiServiceIds.Add(service.id);
-                    if (!Dispatcher.TryPlanRoute(service.id, aiTrain, service.destinationEdge, service.viaEdges, false, out dispatchReason))
+                    var resolvedVia = ResolveViaEdges(service.startEdge, service.viaEdges, service.viaStations);
+                    if (!Dispatcher.TryPlanRoute(service.id, aiTrain, service.destinationEdge, resolvedVia, false, out dispatchReason))
                         GD.PrintErr("AI route planning (" + service.id + "): " + dispatchReason);
                 }
             }
