@@ -3,16 +3,14 @@ using System.Collections.Generic;
 
 namespace TNBCY
 {
-    // v46: small crushed-granite chips, built only around the camera.
-    // v45 made every rock for the whole route at load time: hundreds of thousands of stones, and each one was big (up to 40 cm).
-    // Now:
-    //  - The stones are real ballast size: chips about 2 - 8 cm across, a few a bit bigger. Same sharp plane-cut granite shapes as v45.
-    //  - The route is cut into 24 m blocks. A block only gets its stones while it is within RTChipBuildRange of the camera, and they are
-    //    freed again when you drive away (RTChipDropRange). The stones of a block are always the same, so nothing changes when you come back.
-    //    This keeps the triangle count, memory and loading time small, so the game runs smoothly.
-    //  - Chips on the ballast shoulder and slope (some with a smaller chip on top), pebbles on the ground beside it,
-    //    stones lying between the sleepers, and little granite chips lying on top of the sleepers.
-    // The ballast texture, normal map and all other textures are untouched.
+    // v47: the ballast now looks like the reference photo: light grey, sharp-edged crushed granite with dark salt-and-pepper flecks.
+    // The old ballast look is removed completely:
+    //  - the ballast bed texture is replaced by a new light grey granite-chip texture (made in RTRocksBuild, see RTMakePhotoBallast)
+    //  - the old pink / brown / dark stones are gone: every 3D stone is now a light grey granite chip
+    //  - there are more stones on the ballast, so the whole bed looks like a heap of chips
+    // Stones on the sleepers: only at some places. The route is split into random patches (smooth noise along the track);
+    // only inside a patch do some sleepers carry one or two stones, everywhere else the sleepers are clean.
+    // Same streaming as v46: a 24 m block only gets its stones while it is near the camera.
     public partial class Main
     {
         // ---- tuning knobs ----
@@ -22,6 +20,9 @@ namespace TNBCY
         const float RTChipBlock = 24f;            // metres of track per block
         const int RTChipVariants = 6;             // 0..3 detailed chips, 4..5 cheap pebbles
         const int RTChipMaxLive = 30;             // never more than this many blocks at once (busy station yards)
+        const int RTPhotoBallastCells = 40;       // stones per 2 m tile of the ballast texture (higher = smaller stones)
+        const float RTSleeperRockPatch = .60f;    // 0..1  noise level above which a stretch of sleepers may carry stones (higher = fewer places)
+        const float RTSleeperRockChance = .45f;   // chance that a sleeper inside such a place carries stones
 
         // kept from v45 so nothing else breaks (no longer used)
         const float RTRockDensity = 1f;
@@ -38,9 +39,9 @@ namespace TNBCY
 
         static Color RTRockVertexColor(float shade, float y)
         {
-            float ao = Mathf.Clamp(.74f + .55f * (y + .25f), .55f, 1f);     // darker toward the bottom of the stone
-            float k = shade * ao;
-            return new Color(k, k * .99f, k * 1.01f);
+            float ao = Mathf.Clamp(.78f + .45f * (y + .25f), .62f, 1f);     // a little darker toward the bottom of the stone
+            float k = Mathf.Min(1.15f, shade * ao);
+            return new Color(k, k * .995f, k * 1.005f);
         }
 
         // Crushed-stone polyhedron: a (subdivided) icosphere whose every vertex is pushed in until it meets the nearest cutting plane.
@@ -102,7 +103,7 @@ namespace TNBCY
                     n = n.Normalized();
                     if (n.Dot(a + b + c) < 0f) n = -n;
                     int qx = Mathf.RoundToInt(n.X * 4f), qy = Mathf.RoundToInt(n.Y * 4f), qz = Mathf.RoundToInt(n.Z * 4f);
-                    float shade = .70f + .40f * RTHash((qx + 5) * 11 + (qy + 5), (qz + 5) * 17 + seed, 5101);   // one shade per flat plane
+                    float shade = .86f + .30f * RTHash((qx + 5) * 11 + (qy + 5), (qz + 5) * 17 + seed, 5101);   // one shade per flat plane (sunlit and shaded faces)
                     st.SetColor(RTRockVertexColor(shade, a.Y)); st.SetNormal(n); st.AddVertex(a);
                     st.SetColor(RTRockVertexColor(shade, b.Y)); st.SetNormal(n); st.AddVertex(b);
                     st.SetColor(RTRockVertexColor(shade, c.Y)); st.SetNormal(n); st.AddVertex(c);
@@ -110,7 +111,7 @@ namespace TNBCY
             });
         }
 
-        // Fine salt-and-pepper mineral speckle, mapped on the rocks in object space.
+        // Salt-and-pepper granite speckle, mapped on the stones in object space: many small dark flecks, a few white ones, pale patches.
         static RTTex RTMakeSpeckle(int size)
         {
             var alb = new byte[size * size * 3];
@@ -118,23 +119,77 @@ namespace TNBCY
                 for (int x = 0; x < size; x++)
                 {
                     float h = RTHash(x, y, 5200), n = RTFbm(x / (float)size, y / (float)size, 6, 3, 5201);
-                    float v = .80f + .20f * n;
-                    if (h > .90f) v += .18f; else if (h < .08f) v -= .25f;
+                    float v = .90f + .10f * n;
+                    if (h < .13f) v -= .40f; else if (h < .20f) v -= .20f; else if (h > .93f) v += .10f;
                     int o = (y * size + x) * 3;
-                    alb[o] = RTByte(v); alb[o + 1] = RTByte(v * .99f); alb[o + 2] = RTByte(v * .98f);
+                    alb[o] = RTByte(v); alb[o + 1] = RTByte(v * .995f); alb[o + 2] = RTByte(v * .99f);
                 }
             return new RTTex { Albedo = alb, Normal = null, Size = size };
         }
 
-        // Granite colours: grey, light grey, dark slate, pink granite, warm grey-brown, pale quartz.
+        // Granite colours like the photo: light grey, pale grey, white-ish quartz, a few mid grey and a few warm beige-white stones.
         static Color RTRockColor(float t, float j)
         {
-            if (t < .26f) { float v = .56f + .12f * j; return new Color(v, v, v * 1.02f); }
-            if (t < .50f) { float v = .72f + .14f * j; return new Color(v, v * .99f, v * .98f); }
-            if (t < .64f) { float v = .36f + .10f * j; return new Color(v, v * 1.01f, v * 1.05f); }
-            if (t < .78f) return new Color(.68f + .08f * j, .52f + .06f * j, .48f + .05f * j);
-            if (t < .90f) return new Color(.58f + .08f * j, .51f + .07f * j, .43f + .05f * j);
-            float q = .84f + .10f * j; return new Color(q, q * .99f, q * .96f);
+            if (t < .40f) { float v = .80f + .12f * j; return new Color(v, v * .995f, v * .985f); }
+            if (t < .72f) { float v = .88f + .10f * j; return new Color(v, v * .995f, v * .985f); }
+            if (t < .88f) { float v = .68f + .10f * j; return new Color(v, v, v * 1.005f); }
+            float q = .90f + .08f * j; return new Color(q, q * .96f, q * .90f);
+        }
+
+        // New ballast bed texture: light grey crushed granite chips, angular, with shadowed gaps and dark flecks (replaces the old one).
+        static RTTex RTMakePhotoBallast(int size)
+        {
+            const int cells = RTPhotoBallastCells;
+            var alb = new byte[size * size * 3];
+            var hgt = new float[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float fu = x / (float)size * cells, fv = y / (float)size * cells;
+                    float wu = fu + .9f * (RTNoise(fu * .5f, fv * .5f, cells / 2, 1901) - .5f);
+                    float wv = fv + .9f * (RTNoise(fu * .5f + 3f, fv * .5f + 7f, cells / 2, 1902) - .5f);
+                    int xi = Mathf.FloorToInt(wu), yi = Mathf.FloorToInt(wv);
+                    float d1 = 99f, d2 = 99f, fx = 0f, fy = 0f;
+                    int bx = 0, by = 0;
+                    for (int j = -1; j <= 1; j++)
+                        for (int i = -1; i <= 1; i++)
+                        {
+                            int cx = xi + i, cy = yi + j, wx = RTWrap(cx, cells), wy = RTWrap(cy, cells);
+                            float px = cx + .1f + .8f * RTHash(wx, wy, 1911);
+                            float py = cy + .1f + .8f * RTHash(wx, wy, 1912);
+                            float sz = .60f + .95f * RTHash(wx, wy, 1913);
+                            float dx = px - wu, dy = py - wv;
+                            float ax = Mathf.Abs(dx), ay = Mathf.Abs(dy);
+                            float d = (Mathf.Max(ax, ay) * .6f + (ax + ay) * .4f) / sz;     // angular, octagon-like stones of different sizes
+                            if (d < d1) { d2 = d1; d1 = d; bx = wx; by = wy; fx = -dx / sz; fy = -dy / sz; }
+                            else if (d < d2) d2 = d;
+                        }
+
+                    float r1 = RTHash(bx, by, 1921), r2 = RTHash(bx, by, 1922), r3 = RTHash(bx, by, 1923), r4 = RTHash(bx, by, 1924);
+                    float cr, cg, cb;
+                    if (r2 < .38f) { float v = .64f + .14f * r1; cr = v; cg = v * .995f; cb = v * .985f; }                      // light grey
+                    else if (r2 < .70f) { float v = .74f + .12f * r1; cr = v; cg = v * .995f; cb = v * .985f; }                 // pale grey
+                    else if (r2 < .82f) { float v = .86f + .08f * r1; cr = v; cg = v * .99f; cb = v * .97f; }                   // white-ish quartz
+                    else if (r2 < .93f) { float v = .52f + .12f * r1; cr = v; cg = v; cb = v * 1.01f; }                         // mid grey
+                    else { cr = .80f + .06f * r1; cg = .74f + .06f * r1; cb = .66f + .05f * r1; }                               // warm beige-white
+
+                    float facet = Mathf.Clamp(.72f + .70f * (.5f + (fx * (r3 - .5f) + fy * (r4 - .5f)) * 1.1f), .60f, 1.30f);
+                    float edge = Mathf.Clamp((d2 - d1) * 3.2f, 0f, 1f);
+                    float k = facet * (.34f + .66f * Mathf.Pow(edge, .7f)) * 1.05f;      // shadow in the gaps between the stones
+
+                    float spk = RTHash(x * 5 + bx * 7, y * 5 + by * 3, 1906), spk2 = RTHash(x, y, 1909);
+                    float speck = spk > .90f ? .10f + .08f * spk2 : (spk < .16f ? -.26f - .08f * spk2 : 0f);   // dark flecks (many) and white flecks (few)
+
+                    float fr = (cr + speck) * k, fg = (cg + speck) * k, fb = (cb + speck) * k;
+
+                    float gap = (1f - edge) * .40f;                                       // neutral dark gaps
+                    fr = Mathf.Lerp(fr, .22f, gap); fg = Mathf.Lerp(fg, .22f, gap); fb = Mathf.Lerp(fb, .23f, gap);
+
+                    int o = (y * size + x) * 3;
+                    alb[o] = RTByte(fr); alb[o + 1] = RTByte(fg); alb[o + 2] = RTByte(fb);
+                    hgt[y * size + x] = edge * (.55f + .45f * r1) + .04f * spk2;
+                }
+            return new RTTex { Albedo = alb, Normal = RTNormals(hgt, size, 3.0f), Size = size };
         }
 
         static float RTBallastSurface(float lat)      // height of the ballast surface at a distance from the track centre (matches RTRibbons)
@@ -151,11 +206,27 @@ namespace TNBCY
             return false;
         }
 
-        // Called at the end of RTV29Init. Only prepares the meshes, the material and the list of track blocks; the stones come later, near the camera.
+        // Called at the end of RTV29Init. Replaces the ballast bed texture, prepares the meshes, the material and the list of track blocks;
+        // the stones come later, near the camera.
         void RTRocksBuild()
         {
             RTPerfInit();                // v46: sleeper levels of detail (MainPerf.cs)
             if (sc == null) return;
+
+            // v47: the old ballast texture is thrown away and replaced by the light grey granite chips of the photo
+            if (matGravel != null)
+            {
+                var pb = RTMakePhotoBallast(512);
+                matGravel.AlbedoTexture = RTTexture(pb.Albedo, pb.Size, false);
+                matGravel.NormalEnabled = true;
+                matGravel.NormalTexture = RTTexture(pb.Normal, pb.Size, true);
+                matGravel.NormalScale = 1.5f;
+                matGravel.TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic;
+                matGravel.VertexColorUseAsAlbedo = false;
+                matGravel.AlbedoColor = Colors.White;
+                matGravel.Roughness = .98f;
+            }
+
             rtChipMeshes = new ArrayMesh[RTChipVariants];
             for (int i = 0; i < RTChipVariants; i++) rtChipMeshes[i] = RTMakeRockMesh(i * 7 + 3, i < 4 ? 1 : 0);
             var spk = RTMakeSpeckle(128);
@@ -219,7 +290,7 @@ namespace TNBCY
         {
             var e = b.E;
             var rng = new RandomNumberGenerator();
-            rng.Seed = (ulong)(b.EdgeIdx + 1) * 1000003UL + (ulong)(b.Index + 1) * 7919UL + 4646UL;
+            rng.Seed = (ulong)(b.EdgeIdx + 1) * 1000003UL + (ulong)(b.Index + 1) * 7919UL + 4747UL;
             var chunks = new RTChunk[RTChipVariants];
             System.Action<Vector3, float, float, float, float, float, Color> put = (lp, lsx, lsy, lsz, ltilt, lyaw, lcol) =>
             {
@@ -230,7 +301,7 @@ namespace TNBCY
                 lch.T.Add(new Transform3D(bs, lp)); lch.C.Add(lcol);
             };
 
-            // ---- chips on the shoulder and slope of the ballast, and pebbles on the ground beside it ----
+            // ---- light grey chips on the top, shoulder and slope of the ballast (two per step and side), and pebbles on the ground beside it ----
             float step = .2f / RTChipDensity;
             for (float s = b.S0; s < b.S1; s += step)
             {
@@ -241,17 +312,20 @@ namespace TNBCY
                 {
                     if (!nearSw)
                     {
-                        float lat = rng.RandfRange(1.42f, 2.35f);
-                        float size = .016f + .032f * Mathf.Pow(rng.Randf(), 1.5f);          // radius 1.6 - 4.8 cm: small crushed granite
-                        Vector3 pos = c + dir * rng.RandfRange(-.5f * step, .5f * step) + r * (side * lat);
-                        pos.Y = c.Y + RTBallastSurface(lat) + size * rng.RandfRange(-.10f, .30f);
-                        put(pos, size * rng.RandfRange(1.0f, 1.7f), size * rng.RandfRange(.55f, 1.0f), size * rng.RandfRange(.9f, 1.5f), .6f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
-                        if (rng.Randf() < .35f)
+                        for (int rep = 0; rep < 2; rep++)
                         {
-                            float sTop = size * rng.RandfRange(.5f, .8f);
-                            Vector3 pTop = pos + dir * (size * rng.RandfRange(-.6f, .6f)) + r * (side * size * rng.RandfRange(-.6f, .6f));
-                            pTop.Y = pos.Y + size * rng.RandfRange(.30f, .55f);
-                            put(pTop, sTop * rng.RandfRange(1.0f, 1.6f), sTop * rng.RandfRange(.55f, 1.0f), sTop * rng.RandfRange(.9f, 1.4f), .7f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
+                            float lat = rng.RandfRange(1.42f, 2.35f);
+                            float size = .018f + .030f * Mathf.Pow(rng.Randf(), 1.4f);          // radius 1.8 - 4.8 cm: crushed granite like the photo
+                            Vector3 pos = c + dir * rng.RandfRange(-.5f * step, .5f * step) + r * (side * lat);
+                            pos.Y = c.Y + RTBallastSurface(lat) + size * rng.RandfRange(-.10f, .30f);
+                            put(pos, size * rng.RandfRange(1.0f, 1.7f), size * rng.RandfRange(.55f, 1.0f), size * rng.RandfRange(.9f, 1.5f), .6f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
+                            if (rng.Randf() < .35f)
+                            {
+                                float sTop = size * rng.RandfRange(.5f, .8f);
+                                Vector3 pTop = pos + dir * (size * rng.RandfRange(-.6f, .6f)) + r * (side * size * rng.RandfRange(-.6f, .6f));
+                                pTop.Y = pos.Y + size * rng.RandfRange(.30f, .55f);
+                                put(pTop, sTop * rng.RandfRange(1.0f, 1.6f), sTop * rng.RandfRange(.55f, 1.0f), sTop * rng.RandfRange(.9f, 1.4f), .7f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
+                            }
                         }
                     }
 
@@ -279,7 +353,7 @@ namespace TNBCY
                 }
             }
 
-            // ---- stones between the sleepers (not near points, where the switch rails run) and little chips lying on the sleepers ----
+            // ---- stones between the sleepers (ballast fill, not near points, where the switch rails run) ----
             int cnt = Mathf.Max(1, Mathf.RoundToInt(e.Length / RTSleeperSpacing)); float slStep = e.Length / cnt;
             if (!e.Turnout)
             {
@@ -288,7 +362,7 @@ namespace TNBCY
                 {
                     Vector3 cGap = e.PosAt(j * slStep);
                     if (RTChipNearSwitch(cGap)) continue;
-                    int nCrib = Mathf.Max(1, Mathf.RoundToInt(3.6f * RTChipDensity * (.6f + .8f * rng.Randf())));
+                    int nCrib = Mathf.Max(1, Mathf.RoundToInt(5f * RTChipDensity * (.6f + .8f * rng.Randf())));
                     for (int q = 0; q < nCrib; q++)
                     {
                         float sGap = j * slStep + rng.RandfRange(-.07f, .07f);
@@ -297,20 +371,24 @@ namespace TNBCY
                         if (zone < .30f) lat = rng.RandfRange(-.55f, .55f);
                         else if (zone < .65f) lat = rng.RandfRange(1.00f, 1.30f);
                         else lat = -rng.RandfRange(1.00f, 1.30f);
-                        float size = .014f + .016f * rng.Randf();
+                        float size = .016f + .018f * rng.Randf();
                         Vector3 pos = cc + rr * lat; pos.Y = cc.Y + .34f + size * rng.RandfRange(-.05f, .22f);
                         put(pos, size * rng.RandfRange(1.0f, 1.5f), size * rng.RandfRange(.6f, .95f), size * rng.RandfRange(.9f, 1.3f), .6f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
                     }
                 }
             }
 
-            // little granite chips lying on top of the concrete sleepers (about one per sleeper, sometimes two or three)
+            // ---- stones lying on top of the concrete sleepers: ONLY AT SOME PLACES, chosen at random ----
+            // A smooth noise along the track (same for the same sleeper every time) marks the places. Outside them the sleepers stay clean.
+            // Inside a place only some sleepers carry a stone, sometimes two.
             int k0 = Mathf.Max(0, Mathf.CeilToInt(b.S0 / slStep - .5f));
             for (int k = k0; k < cnt; k++)
             {
                 float st = (k + .5f) * slStep; if (st >= b.S1) break;
-                int nChip = (rng.Randf() < .65f ? 1 : 0) + (rng.Randf() < .30f ? 1 : 0) + (rng.Randf() < .10f ? 1 : 0);
-                if (nChip == 0) continue;
+                float place = RTNoise(k * .09f, b.EdgeIdx * 3.1f + .5f, 61, 7001);
+                if (place < RTSleeperRockPatch) continue;
+                if (rng.Randf() > RTSleeperRockChance) continue;
+                int nChip = 1 + (rng.Randf() < .35f ? 1 : 0);
                 Vector3 p = e.PosAt(st); var qb = Basis.LookingAt(e.DirAt(st), Vector3.Up); Vector3 sp = p + Vector3.Up * .345f;
                 for (int ci = 0; ci < nChip; ci++)
                 {
@@ -318,7 +396,7 @@ namespace TNBCY
                     if (Mathf.Abs(Mathf.Abs(lx) - RailG) < .12f) lx += lx < 0f ? -.20f : .20f;      // keep clear of the rail seats
                     lx = Mathf.Clamp(lx, -1.30f, 1.30f);
                     float lz = (rng.Randf() - .5f) * .16f;
-                    float size = .010f + .018f * rng.Randf();
+                    float size = .016f + .018f * rng.Randf();
                     float nx = lx / 1.375f, top = .5f - .22f * (1f - nx * nx);                     // the sleeper top is slightly curved
                     Vector3 pos = sp + qb.X * lx + qb.Z * lz; pos.Y = sp.Y + .21f * top + size * .16f;
                     put(pos, size * rng.RandfRange(1.15f, 1.8f), size * rng.RandfRange(.55f, .85f), size * rng.RandfRange(1.0f, 1.55f), .5f, rng.RandfRange(0f, Mathf.Tau), RTRockColor(rng.Randf(), rng.Randf()));
