@@ -1,3 +1,7 @@
+TNBCY v5.19 / APK 64
+- Trains now start ON the platform: the start point is snapped to the Secunderabad platform stop mark, so the whole train stands beside the platform.
+- AI train start uses the same rule.
+
 TNBCY v5.18 / APK 63
 - Secunderabad yard tracks moved closer together: A + B and C + D are now 4.5 m apart, exactly like the two main lines, so there is no wide empty gap between the platforms.
 - Platform 2 is now 7 m wide, the same as Platform 1, and sits centred under the foot-over-bridge.

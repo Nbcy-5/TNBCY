@@ -15,17 +15,34 @@ namespace TNBCY
         public Scenario(NetworkSpec net, ConsistSpec consist, ConsistSpec aiConsist = null)
         {
             Net = net; Graph = TrackGraph.Build(net);
-            Train = new Train(consist, Graph.Edges[net.start.edge], net.start.offsetM);
+            // v64: a train always starts ON its platform. If the route's start point is not at the platform of the non-stopping start station
+            // on that edge (e.g. the platform was moved), the start is snapped to that platform's stop mark.
+            float startOff = PlatformStart(net.start.edge, net.start.offsetM);
+            float aiOff = net.ai != null ? PlatformStart(net.ai.edge, net.ai.offsetM) : 0f;
+            Train = new Train(consist, Graph.Edges[net.start.edge], startOff);
             TimeScale = Mathf.Max(0.1f, net.timeScale);
             if (net.ai != null && net.ai.enabled && Graph.Edges.ContainsKey(net.ai.edge))
-                Ai = new AiDriver(new Train(aiConsist ?? consist, Graph.Edges[net.ai.edge], net.ai.offsetM), Graph, net.ai.departAfterS, net.defaultLimitKmh);
+                Ai = new AiDriver(new Train(aiConsist ?? consist, Graph.Edges[net.ai.edge], aiOff), Graph, net.ai.departAfterS, net.defaultLimitKmh);
             // Long trains start further along the platform: move the start platforms to where the fronts really are.
             foreach (var st in Graph.Stations)
             {
                 if (st.Stop) continue;
-                if (st.Edge == Train.FrontSeg.Edge && Mathf.Abs(st.Offset - net.start.offsetM) < 20f) st.Offset = Train.Odo;
-                if (Ai != null && st.Edge == Ai.T.FrontSeg.Edge && Mathf.Abs(st.Offset - net.ai.offsetM) < 20f) st.Offset = Ai.T.Odo;
+                if (st.Edge == Train.FrontSeg.Edge && Mathf.Abs(st.Offset - startOff) < 20f) st.Offset = Train.Odo;
+                if (Ai != null && st.Edge == Ai.T.FrontSeg.Edge && Mathf.Abs(st.Offset - aiOff) < 20f) st.Offset = Ai.T.Odo;
             }
+        }
+
+        // Stop mark of the non-stopping (start) station on this edge that lies within one platform length of the given offset; the offset itself when there is none.
+        float PlatformStart(string edgeId, float off)
+        {
+            float best = off, bd = 700f;
+            foreach (var st in Graph.Stations)
+            {
+                if (st.Stop || st.Edge.Id != edgeId) continue;
+                float d = Mathf.Abs(st.Offset - off);
+                if (d < bd) { bd = d; best = st.Offset; }
+            }
+            return best;
         }
         public List<string> ServedNames() { return new List<string>(served); }
         public void SetServed(IEnumerable<string> names) { served.Clear(); foreach (var n in names) served.Add(n); }
