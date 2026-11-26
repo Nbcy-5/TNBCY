@@ -3,12 +3,14 @@ using System.Collections.Generic;
 
 namespace TNBCY
 {
-    // v63: platform labels and the single station building are mapped to the actual Secunderabad yard edge IDs.\n    // v61: platforms are built to fit the tracks.
+    // v62: a platform is built only on the side of the track its station stop is on.
+    //  - Secunderabad layout: Platform 1 | d0 + u17 | Platform 2 | A + B | Platform 3 | C + D | Platform 4,
+    //    so exactly two tracks lie between every pair of platforms (no platform between A/B or C/D).
+    // v61: platforms are built to fit the tracks.
     //  - A platform that has a track on both sides is an island: it fills the exact space between the two tracks,
     //    1.70 m from each track centre (Indian BG standard), with a finished edge (coping, red line, tactile band) on BOTH faces and no fence on the track side.
     //  - A platform with no track on its far side is a normal side platform, 7 m wide, with a safety railing at the back.
     //  - Width is measured from the real track geometry, so there are no gaps and no overlaps whatever the track spacing is.
-    //  - Every station now uses the same realistic platform (paved top, coping, tactile band, shelter, benches, lights).
     public partial class Main
     {
         const float PfMaxGap = 16f;     // look for a neighbouring track up to this far from the track centre
@@ -43,20 +45,27 @@ namespace TNBCY
             return best;
         }
 
-        static bool PfPair(string x, string y, string p, string q) { return (x == p && y == q) || (x == q && y == p); }
-
-        // Number the five platform faces in order across the actual six-track station throat.
-        // Platform 1 is the outer side platform beside sc_yard_d; the remaining platforms sit between adjacent tracks.
-        static string PfName(TEdge a, TEdge b)
+        // Platform number of the track's face: P1 d0 | d0 u17 | P2 u17 A | A B | P3 B C | C D | P4 D
+        static int PfNo(string id)
         {
-            string x = a.Id;
-            if (b == null) return x == "sc_yard_d" ? "PLATFORM 1" : null;
-            string y = b.Id;
-            if (PfPair(x, y, "sc_yard_c", "sc_yard_d")) return "PLATFORM 2";
-            if (PfPair(x, y, "sc_yard_b", "sc_yard_c")) return "PLATFORM 3";
-            if (PfPair(x, y, "sc_yard_a", "sc_yard_b")) return "PLATFORM 4";
-            if (PfPair(x, y, "u17", "sc_yard_a")) return "PLATFORM 5";
-            return null;
+            switch (id)
+            {
+                case "d0": return 1;
+                case "u17": return 2;
+                case "sc_yard_a": return 2;
+                case "sc_yard_b": case "sc_yard_c": return 3;
+                case "sc_yard_d": return 4;
+                default: return 0;
+            }
+        }
+
+        static string PfLabel(TEdge a, TEdge b)
+        {
+            int x = PfNo(a.Id), y = b == null ? 0 : PfNo(b.Id);
+            if (x == 0) x = y;
+            if (y == 0) y = x;
+            if (x == 0) return null;
+            return x == y ? "PLATFORM " + x : "PLATFORM " + System.Math.Min(x, y) + " / " + System.Math.Max(x, y);
         }
 
         // The foot-over-bridge stairs come down here: no roof, lights or benches.
@@ -177,7 +186,7 @@ namespace TNBCY
                 try
                 {
                     bool sec = RTIsSec(st); float w0 = SecW;
-                    for (int pass = 0; pass < 2; pass++)       // pass 0: the station's own side, pass 1: the other side (only if a track runs there too)
+                    for (int pass = 0; pass < 1; pass++)       // v62: only the station's own side (a platform between two tracks is built once, from either track)
                     {
                         float sm = (st.Side == "L" ? -1f : 1f) * (pass == 0 ? 1f : -1f);
                         float midS = Mathf.Clamp(st.Offset - PlatLen * .5f, 1f, Mathf.Max(1f, st.Edge.Length - 1f));
@@ -193,7 +202,7 @@ namespace TNBCY
                         }
                         else if (pass == 1) continue;
                         if (pass == 0) w0 = w;
-                        string label = sec ? PfName(st.Edge, far ? nb : null) : null;
+                        string label = sec ? PfLabel(st.Edge, far ? nb : null) : null;
 
                         var e = st.Edge; float hi = Mathf.Min(e.Length, st.Offset + 10f), remain = PlatLen;
                         for (int guard = 0; remain > 1f && e != null && guard < 6; guard++)
@@ -211,15 +220,15 @@ namespace TNBCY
                             e = PredOf(e); if (e != null) hi = e.Length;
                         }
                     }
-                    if (sec && st.Edge.Id == "sc_yard_d")
+                    if (sec && st.Edge.Id == "d0")
                     {
-                        // The main station building stands directly behind Platform 1 (the outermost platform).
+                        // The main station building stands directly behind Platform 1.
                         float cs = Mathf.Max(0f, st.Offset - 150f), sm0 = st.Side == "L" ? -1f : 1f;
                         var p = st.Edge.PosAt(cs); var d = st.Edge.DirAt(cs); var q = Basis.LookingAt(d, Vector3.Up); var r = Right(d) * sm0;
                         float bx = SecEdge + w0 + 4.6f;
                         Box(this, p + r * bx + Vector3.Up * 3f, q, new Vector3(9f, 6f, 70f), brick);
                         Box(this, p + r * bx + Vector3.Up * 6.3f, q, new Vector3(10f, .6f, 72f), rf2);
-                        Tag("Secunderabad Jn (SC)", p + r * 3.5f + Vector3.Up * 8f, Colors.Yellow);
+                        Tag(st.Name, p + r * 3.5f + Vector3.Up * 8f, Colors.Yellow);
                     }
                 }
                 catch (System.Exception ex) { GD.PrintErr("Platform build failed at " + st.Name + ": " + ex.Message); }
