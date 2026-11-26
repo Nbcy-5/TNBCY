@@ -29,6 +29,29 @@
       "routeStartEdge": "u0",
       "routeStartOffsetM": 670,
       "routeSection": "Ghatkesar → Secunderabad Jn (Kakinada section not built yet)"
+    },
+    {
+      "name": "Hyderabad Intercity Passenger",
+      "file": "consist_intercity12",
+      "desc": "Daily intercity passenger service from Moula Ali to Secunderabad Jn",
+      "kind": "Passenger",
+      "coaches": 12,
+      "origin": "Moula Ali",
+      "destination": "Secunderabad Jn",
+      "locomotive": "Random WAP electric locomotive",
+      "platform": 2,
+      "trainNumber": 87625,
+      "routeStartEdge": "u10",
+      "routeStartOffsetM": 2335.1,
+      "routeSection": "Moula Ali → Secunderabad Jn (playable section)",
+      "days": "Daily",
+      "distanceKm": 6,
+      "departure": "09:30",
+      "arrival": "09:42",
+      "stops": [
+        { "station": "Moula Ali (MLY)", "arr": "", "dep": "09:30" },
+        { "station": "Secunderabad Jn (SC)", "arr": "09:42", "dep": "" }
+      ]
     }
   ]
 }
