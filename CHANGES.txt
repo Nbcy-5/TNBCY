@@ -1,3 +1,8 @@
+TNBCY v5.16 / APK 61
+- Platforms now fit between the tracks: 1.70 m from each rail, no gaps, finished edge on both faces.
+- New island platforms between all Secunderabad tracks and between loop and main at Moula Ali / Charlapalli.
+- Track junctions rebuilt as long smooth S-curves (tangent-continuous) at Secunderabad and both loops.
+
 TNBCY v5.15 / APK 60
 - Corrected Secunderabad platform alignment by setting the two main-line platform stop offsets to the same world-space 620 m span as Platforms 3 and 4.
 - All four platform groups now target the same station length and longitudinal position.
