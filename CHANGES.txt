@@ -1,16 +1,14 @@
+TNBCY v5.18 / APK 63
+- Secunderabad yard tracks moved closer together: A + B and C + D are now 4.5 m apart, exactly like the two main lines, so there is no wide empty gap between the platforms.
+- Platform 2 is now 7 m wide, the same as Platform 1, and sits centred under the foot-over-bridge.
+- Yard junction curves regenerated for the new spacing; platform stops unchanged.
+
 TNBCY v5.17 / APK 62
 - Secunderabad platform layout rebuilt so exactly two tracks lie between every pair of platforms:
   Platform 1 | d0 + u17 | Platform 2 | A + B | Platform 3 | C + D | Platform 4.
-  No platform is built between tracks A/B or C/D any more; Platform 4 is a new side platform west of track D.
-- Station stops: A -> Platform 2, B and C -> Platform 3, D -> Platform 4 (doors/side updated).
-- Platform number boards updated to match.
+- Station stops: A -> Platform 2, B and C -> Platform 3, D -> Platform 4.
 
 TNBCY v5.16 / APK 61
 - Platforms now fit between the tracks: 1.70 m from each rail, no gaps, finished edge on both faces.
 - New island platforms between all Secunderabad tracks and between loop and main at Moula Ali / Charlapalli.
 - Track junctions rebuilt as long smooth S-curves (tangent-continuous) at Secunderabad and both loops.
-
-TNBCY v5.15 / APK 60
-- Corrected Secunderabad platform alignment by setting the two main-line platform stop offsets to the same world-space 620 m span as Platforms 3 and 4.
-- All four platform groups now target the same station length and longitudinal position.
-- Kept the six-track layout, existing track geometry, single Platform 1 station building, trains, sleepers, ballast, shelters and scenery unchanged.
