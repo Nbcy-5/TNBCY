@@ -7,7 +7,7 @@ namespace TNBCY
     // Game screen: train menu, loading, driver controls, HUD and the frame loop. World / train / camera code is in the other Main*.cs files.
     public partial class Main : Node3D
     {
-        public const string Version = "v60";
+        public const string Version = "v61";
         static readonly string[] QualityNames = { "Fast", "Balanced", "High", "Ultra" };
 
         FrontEnd frontEnd; Label loadL, fpsL; HudBar hudBar; Control pauseOverlay; SettingsPanel pauseSettings;
@@ -160,7 +160,7 @@ namespace TNBCY
                 matSteel = Solid(new Color(.34f, .27f, .23f), .55f, .45f);
                 matRail = IronMat(.20f, .62f); matFit = IronMat(.15f, .65f); matFit.VertexColorUseAsAlbedo = true;
                 matWire = Solid(new Color(.18f, .18f, .2f), .4f, .5f); matMast = Solid(new Color(.55f, .57f, .6f), .3f, .6f);
-                BuildRealTrack(); BuildScenery(); BuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildLineSigns(); BuildWaterPipes(); BuildSwitchTags();
+                BuildRealTrack(); BuildScenery(); PfBuildStations(); BuildSignals(); BuildIndianRailwayObjects(); BuildLineSigns(); BuildWaterPipes(); BuildSwitchTags();
                 playerVis = BuildTrain(sc.Train, null, null);
                 if (sc.AiTrain != null) aiVis = BuildTrain(sc.AiTrain, new Color(.12f, .32f, .78f), new Color(.82f, .85f, .9f));
                 BuildCab(); BuildHorn();
