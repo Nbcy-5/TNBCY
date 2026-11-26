@@ -136,11 +136,11 @@
     {"name": "Ghatkesar (GT)", "edge": "d17", "offsetM": 3128.3, "stop": true, "side": "L", "dwellS": 30},
     {"name": "Ghatkesar (GT)", "edge": "u0", "offsetM": 670, "stop": false, "side": "L", "dwellS": 25},
     {"name": "Moula Ali (MLY)", "edge": "u10", "offsetM": 2335.1, "stop": true, "side": "L", "dwellS": 30},
-    {"name": "Charlapalli (CHZ)", "edge": "u5", "offsetM": 1256.5, "stop": true, "side": "L", "dwellS": 30},
+    {"name": "Charlapalli (CHZ)", "edge": "u5", "offsetM": 2353.5, "stop": true, "side": "L", "dwellS": 30},
     {"name": "Secunderabad Jn (SC)", "edge": "u17", "offsetM": 1575, "stop": true, "side": "L", "dwellS": 30},
     {"name": "Secunderabad Jn (SC) Platform 2", "edge": "sc_yard_a", "offsetM": 1337.5, "stop": true, "side": "R", "dwellS": 30},
     {"name": "Secunderabad Jn (SC) Platform 3", "edge": "sc_yard_b", "offsetM": 1100, "stop": true, "side": "L", "dwellS": 30},
-    {"name": "Secunderabad Jn (SC) Platform 3", "edge": "sc_yard_c", "offsetM": 862.5, "stop": true, "side": "L", "dwellS": 30},
-    {"name": "Secunderabad Jn (SC) Platform 4", "edge": "sc_yard_d", "offsetM": 1100, "stop": true, "side": "L", "dwellS": 30}
+    {"name": "Secunderabad Jn (SC) Platform 3", "edge": "sc_yard_c", "offsetM": 862.5, "stop": true, "side": "R", "dwellS": 30},
+    {"name": "Secunderabad Jn (SC) Platform 4", "edge": "sc_yard_d", "offsetM": 625, "stop": true, "side": "L", "dwellS": 30}
   ]
 }
