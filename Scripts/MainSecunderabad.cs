@@ -22,6 +22,12 @@ namespace TNBCY
 
         static bool RTIsSec(TStation st) { return st.Name.StartsWith("Sec"); }
 
+        // Platform number shown on the hanging boards: d0 = 1, u17 = 2, s0 = 3, u18 = 4 (v53: four platform lines, island platforms between 1/3 and 2/4 pairs).
+        static string RTSecPlatNum(string id)
+        {
+            switch (id) { case "d0": return "1"; case "u17": return "2"; case "s0": return "3"; case "u18": return "4"; default: return id.Length > 0 && id[0] == 'd' ? "1" : "2"; }
+        }
+
         const string SecTileShader = @"
 shader_type spatial;
 render_mode diffuse_lambert, specular_disabled;
@@ -110,7 +116,7 @@ void fragment() {
             }
             if (secIdx % 2 == 0)                                                                    // hanging platform number board
             {
-                string num = e.Id.Length > 0 && e.Id[0] == 'd' ? "1" : "2";
+                string num = RTSecPlatNum(e.Id);
                 Vector3 bp = pp + rr * 5.2f + up * 4.2f;
                 secSign.Add(Xf(qq, bp, new Vector3(2.6f, 1.0f, .08f)));
                 FxInit();
