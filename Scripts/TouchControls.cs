@@ -86,7 +86,7 @@ namespace TNBCY
             if (!HudVisible) return false;
             if (menuBtn.Grow(6f * u).HasPoint(p)) return true;
             if (brakeZone.HasPoint(p) || powerZone.HasPoint(p) || reverserZone.HasPoint(p)) return true;
-            foreach (Rect2 r in actionButtons) if (r.Grow(5f * u).HasPoint(p)) return true;
+            for (int i = 0; i < actionButtons.Length; i++) if (i != 3 && actionButtons[i].Grow(5f * u).HasPoint(p)) return true;
             return ShowCoachButtons && (coachLeft.HasPoint(p) || coachRight.HasPoint(p));
         }
 
@@ -160,7 +160,7 @@ namespace TNBCY
                 }
 
             for (int i = 0; i < 6; i++)
-                if (actionButtons[i].Grow(5f * u).HasPoint(p))
+                if (i != 3 && actionButtons[i].Grow(5f * u).HasPoint(p))
                 {
                     Press(i);
                     return;
@@ -205,7 +205,7 @@ namespace TNBCY
             if (i == 0) OnPantoToggle?.Invoke();
             else if (i == 1) { if (!Diesel) OnBreakerToggle?.Invoke(); }
             else if (i == 2) OnHorn?.Invoke();
-            else if (i == 3) OnSwitch?.Invoke();
+            else if (i == 3) return;
             else if (i == 4) CamMode = (CamMode + 1) % CamNames.Length;
             else
             {
@@ -328,7 +328,6 @@ namespace TNBCY
             Button(actionButtons[0], Diesel ? "ENGINE" : "PANTO", Diesel ? (running ? "running" : "stopped") : (running ? "raised" : "lowered"), btn, running);
             Button(actionButtons[1], "VCB", Diesel ? "not fitted" : (Breaker ? "closed" : "open"), btn, Breaker && !Diesel);
             Button(actionButtons[2], "HORN", "sound horn", btn, false);
-            Button(actionButtons[3], "POINTS", SwitchLabel, btn, false);
             Button(actionButtons[4], "CAMERA", CamNames[CamMode], btn, false);
             Button(actionButtons[5], Emergency ? "RELEASE" : "EMERGENCY", Emergency ? "release brake" : "apply brake",
                 Emergency ? new Color(.48f, .16f, .13f) : new Color(.65f, .16f, .13f), Emergency);

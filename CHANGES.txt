@@ -1,3 +1,9 @@
+TNBCY v5.18 / APK 63
+- Corrected Secunderabad platform numbering to use the actual sc_yard_a through sc_yard_d tracks and the Up main line.
+- Attached the single Secunderabad station building to the actual outer platform track (sc_yard_d), instead of a non-existent track ID.
+- Removed the POINTS button from the driving HUD while retaining the physical railway points and existing switch network.
+- This release does not yet implement bidirectional platform routing; that requires a separate train-routing change and operational testing.
+
 TNBCY v5.16 / APK 61
 - Platforms now fit between the tracks: 1.70 m from each rail, no gaps, finished edge on both faces.
 - New island platforms between all Secunderabad tracks and between loop and main at Moula Ali / Charlapalli.
