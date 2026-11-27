@@ -1,4 +1,4 @@
-TNBCY - NOTES FOR FUTURE DEVELOPMENT (updated at v26)
+TNBCY - NOTES FOR FUTURE DEVELOPMENT (updated at v26; platform note corrected at APK 64)
 =====================================================
 GOAL: real-looking Indian railway game. Phone can take a 10 GB install IF there is no lag. Rule: size on disk is free, frame time is not.
 
@@ -29,7 +29,7 @@ GOAL: real-looking Indian railway game. Phone can take a 10 GB install IF there 
 
 3. KNOWN LIMITS / TO DO NEXT
  - Points (turnouts) and crossings: geometry unchanged from v19-v22 except even sleeper spacing and joint smoothing. Needs a close look on the phone at every switch.
- - Only 2 platforms at Secunderabad (the route has 2 lines). Real SC has about 10 platforms: add more lines to Data/network_demo.json first, then platforms.
+ - Secunderabad now has 4 platforms (since APK 62 / v5.17, see CHANGES.txt). Real SC has about 10 platforms: add more lines to Data/network_demo.json first, then platforms.
  - Overhead line: no portal gantries, no section insulators, no neutral sections, no feeder/return wires, no mast numbers. Add them at stations and every 25 km.
  - Platform: tactile studs are a shader pattern (no height), no passengers, no vendors, no stalls, no clocks, no CCTV, no escalator, no lift.
  - Ballast: texture only. For real stones add a displacement/parallax or scatter 3D stones near the camera (within 15 m) with MultiMesh.
