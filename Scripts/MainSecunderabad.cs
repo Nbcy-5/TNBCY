@@ -22,6 +22,29 @@ namespace TNBCY
 
         static bool RTIsSec(TStation st) { return st.Name.StartsWith("Sec"); }
 
+        // World-space painted-metal finish with restrained dust fading and rust freckles.
+        // The same noise field spans adjacent canopy modules, avoiding visible texture breaks.
+        const string SecRoofShader = @"
+shader_type spatial;
+render_mode diffuse_lambert, specular_disabled;
+varying vec3 world_pos;
+float hash21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+    vec2 p = world_pos.xz;
+    float broad = hash21(floor(p * vec2(0.42, 0.18)));
+    float fine = hash21(floor(p * 3.4));
+    float streak = smoothstep(0.72, 0.96, hash21(floor(p * vec2(1.8, 0.24))));
+    float rust = smoothstep(0.84, 0.98, fine) * 0.20;
+    float dust = 0.035 + 0.07 * broad + 0.05 * streak;
+    vec3 blue = vec3(0.105, 0.335, 0.535);
+    blue = mix(blue, vec3(0.34, 0.255, 0.17), rust);
+    blue = mix(blue, vec3(0.43, 0.415, 0.36), dust);
+    ALBEDO = blue;
+    ROUGHNESS = 0.91;
+    METALLIC = 0.08;
+}
+
         const string SecTileShader = @"
 shader_type spatial;
 render_mode diffuse_lambert, specular_disabled;
@@ -137,10 +160,11 @@ void fragment() {
             secDone = true;
             var tile = new ShaderMaterial { Shader = new Shader { Code = SecTileShader } };
             var tac = new ShaderMaterial { Shader = new Shader { Code = SecTactileShader } };
+            var roofWeather = new ShaderMaterial { Shader = new Shader { Code = SecRoofShader } };
             var lamp = new StandardMaterial3D { AlbedoColor = new Color(.96f, .96f, .92f), EmissionEnabled = true, Emission = new Color(1f, .96f, .82f), EmissionEnergyMultiplier = 1.2f };
             FillMM(secBody, Mat(new Color(.46f, .47f, .45f))); FillMM(secTopL, tile); FillMM(secCop, Mat(new Color(.88f, .88f, .84f)));
             FillMM(secRed, Mat(new Color(.63f, .17f, .14f))); FillMM(secTac, tac); FillMM(secRail, Solid(new Color(.30f, .32f, .35f), .3f, .5f));
-            FillMM(secPost, Solid(new Color(.30f, .32f, .35f), .3f, .5f)); FillMM(secRoof, Solid(new Color(.12f, .38f, .62f), .18f, .72f)); FillMM(secRib, Solid(new Color(.075f, .27f, .45f), .22f, .68f));
+            FillMM(secPost, Solid(new Color(.30f, .32f, .35f), .3f, .5f)); FillMM(secRoof, roofWeather); FillMM(secRib, Solid(new Color(.075f, .27f, .45f), .22f, .88f));
             FillMM(secCol, Mat(new Color(.25f, .27f, .30f))); FillMM(secBeam, Mat(new Color(.25f, .27f, .30f)));
             FillMM(secSeat, Mat(new Color(.62f, .20f, .16f))); FillMM(secBack, Mat(new Color(.62f, .20f, .16f))); FillMM(secLeg, Mat(new Color(.22f, .24f, .27f)));
             FillMM(secLight, lamp); FillMM(secSign, Mat(new Color(.13f, .36f, .59f)));

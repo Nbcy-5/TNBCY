@@ -136,9 +136,10 @@ namespace TNBCY
             Vector3 rightRoof = pp + rr * (rC + halfSpan * .5f) + up * 5.41f;
             secRoof.Add(Xf(qL, leftRoof, new Vector3(halfSpan + .12f, .12f, L)));
             secRoof.Add(Xf(qR, rightRoof, new Vector3(halfSpan + .12f, .12f, L)));
-            // Deep blue folded fascia gives the canopy the substantial edge profile seen at Indian stations.
-            secRoof.Add(Xf(qq, pp + rr * rA + up * 4.88f, new Vector3(.16f, .64f, L)));
-            secRoof.Add(Xf(qq, pp + rr * rB + up * 4.88f, new Vector3(.16f, .64f, L)));
+            // Closed, overlapping edge fascia hides the open-looking seams between canopy sections.
+            // Keep the platform sides open below the roof while giving the roof edge a continuous finished profile.
+            secRoof.Add(Xf(qq, pp + rr * rA + up * 4.82f, new Vector3(.22f, .76f, L)));
+            secRoof.Add(Xf(qq, pp + rr * rB + up * 4.82f, new Vector3(.22f, .76f, L)));
             // Fine raised seams follow each roof slope instead of running flat across the canopy.
             for (float rx = rA + .18f; rx < rC - .08f; rx += .42f)
             {
@@ -150,6 +151,24 @@ namespace TNBCY
                 float t = (rx - rC) / halfSpan;
                 secRib.Add(Xf(qR, pp + rr * rx + up * (5.62f - .42f * t + .075f), new Vector3(.045f, .035f, L)));
             }
+
+            // Raised ridge cap and top edge trims create a continuous finished roof silhouette.
+            secRib.Add(Xf(qq, pp + rr * rC + up * 5.69f, new Vector3(.22f, .10f, L)));
+            secRib.Add(Xf(qq, pp + rr * rA + up * 5.23f, new Vector3(.07f, .045f, L)));
+            secRib.Add(Xf(qq, pp + rr * rB + up * 5.23f, new Vector3(.07f, .045f, L)));
+
+            // Thin transverse cover strips bridge the small joints between adjacent 40 m roof modules.
+            foreach (float endS in new float[] { s0, e1 })
+            {
+                Vector3 ep = e.PosAt(endS), ed = e.DirAt(endS);
+                Basis eq = Basis.LookingAt(ed, up);
+                Vector3 er = Right(ed) * sm;
+                Basis eL = eq * new Basis(Vector3.Back, pitch);
+                Basis eR = eq * new Basis(Vector3.Back, -pitch);
+                secRib.Add(Xf(eL, ep + er * (rA + halfSpan * .5f) + up * 5.41f, new Vector3(halfSpan + .12f, .045f, .10f)));
+                secRib.Add(Xf(eR, ep + er * (rC + halfSpan * .5f) + up * 5.41f, new Vector3(halfSpan + .12f, .045f, .10f)));
+            }
+
             for (float u = s0 + 5f; u < e1; u += 10f)
             {
                 Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;

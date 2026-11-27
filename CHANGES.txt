@@ -1,3 +1,9 @@
+TNBCY v5.27 / APK 72
+- Secunderabad platform sheds: closed and strengthened long edge fascia to remove visible side gaps.
+- Added continuous ridge caps, top edge trims and transverse cover strips at canopy module joints.
+- Applied subtle painted-metal weathering with dusty fading and restrained rust variation to the shed roofing.
+- Changes are limited to Secunderabad platform canopy geometry and finish; tracks, platforms, trains, station buildings and controls are unchanged.
+
 TNBCY v5.26 / APK 71
 - Reworked platform sheds into shallow gabled, twin-pitch corrugated canopies inspired by the supplied Indian railway references.
 - Added deeper blue fascia, roof seams that follow the pitched surfaces, and sturdier support beams/columns.
