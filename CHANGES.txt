@@ -1,3 +1,8 @@
+TNBCY v5.26 / APK 71
+- Reworked platform sheds into shallow gabled, twin-pitch corrugated canopies inspired by the supplied Indian railway references.
+- Added deeper blue fascia, roof seams that follow the pitched surfaces, and sturdier support beams/columns.
+- Limited changes to platform canopy geometry; track layout, platforms, trains, station buildings, signals and controls are unchanged.
+
 TNBCY v5.25 / APK 70
 - Replaced the three-step platform end treatment with a continuous, gently sloping tapered concrete ramp mesh.
 - Added a subtly curved/tapered plan profile to platform noses so ends no longer look like abrupt rectangular steps.

@@ -127,15 +127,34 @@ namespace TNBCY
             }
             if (PfFobZone(pp + rr * xc)) return;
 
-            secRoof.Add(Xf(qq, pp + rr * rC + up * 5.2f, new Vector3(rW, .12f, L)));
-            // Raised longitudinal seams create a corrugated blue-metal canopy; all ribs remain inside the platform footprint.
-            for (float rx = rA + .12f; rx < rB - .08f; rx += .24f)
-                secRib.Add(Xf(qq, pp + rr * rx + up * 5.275f, new Vector3(.045f, .035f, L)));
+            // Indian railway-style gabled canopy: two shallow pitched sheets meet at a raised ridge.
+            // The roof stays within the platform footprint, with deep corrugated fascia and a dark underside.
+            float halfSpan = rW * .5f;
+            float pitch = Mathf.Atan2(.42f, Mathf.Max(1f, halfSpan));
+            Basis qL = qq * new Basis(Vector3.Back, pitch), qR = qq * new Basis(Vector3.Back, -pitch);
+            Vector3 leftRoof = pp + rr * (rA + halfSpan * .5f) + up * 5.41f;
+            Vector3 rightRoof = pp + rr * (rC + halfSpan * .5f) + up * 5.41f;
+            secRoof.Add(Xf(qL, leftRoof, new Vector3(halfSpan + .12f, .12f, L)));
+            secRoof.Add(Xf(qR, rightRoof, new Vector3(halfSpan + .12f, .12f, L)));
+            // Deep blue folded fascia gives the canopy the substantial edge profile seen at Indian stations.
+            secRoof.Add(Xf(qq, pp + rr * rA + up * 4.88f, new Vector3(.16f, .64f, L)));
+            secRoof.Add(Xf(qq, pp + rr * rB + up * 4.88f, new Vector3(.16f, .64f, L)));
+            // Fine raised seams follow each roof slope instead of running flat across the canopy.
+            for (float rx = rA + .18f; rx < rC - .08f; rx += .42f)
+            {
+                float t = (rx - rA) / halfSpan;
+                secRib.Add(Xf(qL, pp + rr * rx + up * (5.20f + .42f * t + .075f), new Vector3(.045f, .035f, L)));
+            }
+            for (float rx = rC + .18f; rx < rB - .08f; rx += .42f)
+            {
+                float t = (rx - rC) / halfSpan;
+                secRib.Add(Xf(qR, pp + rr * rx + up * (5.62f - .42f * t + .075f), new Vector3(.045f, .035f, L)));
+            }
             for (float u = s0 + 5f; u < e1; u += 10f)
             {
                 Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;
-                secBeam.Add(Xf(qu, pu + ru * rC + up * 5.0f, new Vector3(rW, .20f, .18f)));
-                secCol.Add(Xf(qu, pu + ru * (rB - .2f) + up * ((SecTop + 5.14f) * .5f), new Vector3(.28f, 5.14f - SecTop, .28f)));
+                secBeam.Add(Xf(qu, pu + ru * rC + up * 5.0f, new Vector3(rW, .24f, .22f)));
+                secCol.Add(Xf(qu, pu + ru * (rB - .2f) + up * ((SecTop + 5.18f) * .5f), new Vector3(.34f, 5.18f - SecTop, .34f)));
                 if (far) secCol.Add(Xf(qu, pu + ru * (rA + .2f) + up * ((SecTop + 5.14f) * .5f), new Vector3(.28f, 5.14f - SecTop, .28f)));
             }
             if (len >= 25f)
