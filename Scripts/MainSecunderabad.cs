@@ -43,7 +43,7 @@ void fragment() {
     ALBEDO = blue;
     ROUGHNESS = 0.91;
     METALLIC = 0.08;
-}
+}";
 
         const string SecTileShader = @"
 shader_type spatial;
