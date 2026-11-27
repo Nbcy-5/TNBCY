@@ -13,7 +13,7 @@ namespace TNBCY
     //  - Portals are left out near the foot-over-bridge and the signals.
     public partial class Main
     {
-        const float PortalZ0 = -150f, PortalZ1 = 2235f, PortalStep = 60f, PortalMastOff = 3.0f, PortalMinX = -60f, PortalMaxX = 15f;
+        const float PortalZ0 = -2235f, PortalZ1 = 150f, PortalStep = 60f, PortalMastOff = 3.0f, PortalMinX = -15f, PortalMaxX = 60f;
         bool portalsDone;
 
         sealed class PortalTrack { public TEdge E; public float S, X; }
