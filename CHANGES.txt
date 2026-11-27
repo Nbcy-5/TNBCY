@@ -1,3 +1,7 @@
+TNBCY v5.21 / APK 66
+- Main line directions: the Down line (D) now runs up the map (towards -Z) and the Up line (U) runs down it. The whole route, including the Secunderabad yard, is turned 180 degrees, so left-hand running, curves and platform sides stay the same.
+- Version numbers aligned: the in-game version label, the app updater and the Android export all say build 66 (the label was stuck on v61).
+
 TNBCY v5.20 / APK 65
 - NEW Controller Centre: train schedules, signals and switches (home and pause screens).
 - New train: Hyderabad Intercity Passenger 87625, Moula Ali to Secunderabad Jn.
