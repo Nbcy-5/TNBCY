@@ -7,11 +7,11 @@ namespace TNBCY
     public class StopTime { public string station = "", arr = "", dep = ""; }
 
     // One service in the timetable, read from Data/trains.json. The game itself ignores the schedule fields
-    // (days, departure, arrival, stops), so a train only needs those when it should have a timetable.
+    // (days, departure, arrival, stops, finalStop, aiPartner), so a train only needs those when the controller should plan for it.
     public class ScheduleEntry
     {
-        public string name = "", file = "", kind = "", origin = "", destination = "", days = "", departure = "", arrival = "";
-        public int trainNumber, platform = 1, coaches;
+        public string name = "", file = "", kind = "", origin = "", destination = "", days = "", departure = "", arrival = "", finalStop = "";
+        public int trainNumber, platform = 1, coaches, aiPartner;
         public float distanceKm;
         public List<StopTime> stops = new List<StopTime>();
     }
@@ -24,9 +24,13 @@ namespace TNBCY
         public int delayMin, shiftMin;      // delayMin = running late, shiftMin = timetable moved earlier / later
         public bool IsDefault() { return !cancelled && delayMin == 0 && shiftMin == 0; }
     }
-    public class ControllerSave { public Dictionary<string, TrainOverride> trains = new Dictionary<string, TrainOverride>(); }
+    public class ControllerSave
+    {
+        public bool autopilot = true;
+        public Dictionary<string, TrainOverride> trains = new Dictionary<string, TrainOverride>();
+    }
 
-    // Timetable + controller changes. It also keeps the game's train list (the one on the SELECT TRAIN screen) in step:
+    // Timetable + controller settings. It also keeps the game's train list (the one on the SELECT TRAIN screen) in step:
     // cancelled services are taken out of it, and the game clock starts at the service's departure time.
     public class ScheduleStore
     {
@@ -35,6 +39,7 @@ namespace TNBCY
         static readonly JsonSerializerOptions Opt = new JsonSerializerOptions { IncludeFields = true, PropertyNameCaseInsensitive = true, WriteIndented = true };
 
         public List<ScheduleEntry> Entries = new List<ScheduleEntry>();
+        public bool Autopilot = true;         // the automatic controller (AI train, platforms, signals) is switched on
         readonly Dictionary<string, TrainOverride> overrides = new Dictionary<string, TrainOverride>();
         readonly List<TrainOption> live;      // the list the game shows and uses; cancelled trains are removed from it
         readonly List<TrainOption> master;    // every train, before any cancellation
@@ -58,8 +63,12 @@ namespace TNBCY
                 {
                     using var g = Godot.FileAccess.Open(SavePath, Godot.FileAccess.ModeFlags.Read);
                     var sv = JsonSerializer.Deserialize<ControllerSave>(g.GetAsText(), Opt);
-                    if (sv != null && sv.trains != null)
-                        foreach (var kv in sv.trains) if (kv.Value != null) overrides[kv.Key] = kv.Value;
+                    if (sv != null)
+                    {
+                        Autopilot = sv.autopilot;
+                        if (sv.trains != null)
+                            foreach (var kv in sv.trains) if (kv.Value != null) overrides[kv.Key] = kv.Value;
+                    }
                 }
             }
             catch (System.Exception ex) { GD.PrintErr("Controller: saved changes could not be read: " + ex.Message); }
@@ -69,7 +78,7 @@ namespace TNBCY
         {
             try
             {
-                var sv = new ControllerSave();
+                var sv = new ControllerSave { autopilot = Autopilot };
                 foreach (var kv in overrides) if (!kv.Value.IsDefault()) sv.trains[kv.Key] = kv.Value;
                 using var f = Godot.FileAccess.Open(SavePath, Godot.FileAccess.ModeFlags.Write);
                 if (f == null) return;
@@ -77,6 +86,8 @@ namespace TNBCY
             }
             catch (System.Exception ex) { GD.PrintErr("Controller: save failed: " + ex.Message); }
         }
+
+        public void SetAutopilot(bool on) { Autopilot = on; Save(); }
 
         // ------------------------------------------------------------------ time helpers
         public static int ParseTime(string s)
@@ -121,6 +132,27 @@ namespace TNBCY
             foreach (var e in Entries) if (e.file == file) return e;
             return null;
         }
+        public TrainOption OptionForFile(string file)
+        {
+            foreach (var t in master) if (t.file == file) return t;
+            return null;
+        }
+
+        // The train the controller sends the other way (or ahead) while the player drives 'player'.
+        // 1. the train named by "aiPartner" in trains.json, 2. the first train that starts on the opposite track, 3. the first other train.
+        public TrainOption PickAi(TrainOption player)
+        {
+            var cands = new List<TrainOption>();
+            foreach (var t in live) if (t != null && !string.IsNullOrEmpty(t.file) && t.file != player.file) cands.Add(t);
+            if (cands.Count == 0) return null;
+            var pe = EntryFor(player);
+            if (pe != null && pe.aiPartner > 0)
+                foreach (var t in cands) if (t.trainNumber == pe.aiPartner) return t;
+            char dir = Dir(player);
+            foreach (var t in cands) if (Dir(t) != dir) return t;
+            return cands[0];
+        }
+        static char Dir(TrainOption t) { return string.IsNullOrEmpty(t.routeStartEdge) ? '?' : char.ToLowerInvariant(t.routeStartEdge[0]); }
 
         // ------------------------------------------------------------------ shown times and status
         public bool HasTimetable(ScheduleEntry e) { return ParseTime(e.departure) >= 0; }
@@ -178,6 +210,7 @@ namespace TNBCY
         void Commit() { Save(); ApplyToGame(); }
 
         // Puts the game's train list in line with the cancellations (the list object is shared with the SELECT TRAIN screen).
+        // It also puts the list back in its normal order.
         public void ApplyToGame()
         {
             live.Clear();
