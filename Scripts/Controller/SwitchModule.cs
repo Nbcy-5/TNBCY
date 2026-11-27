@@ -22,7 +22,7 @@ namespace TNBCY
             why = "";
             if (sc.SwitchLocked(n)) { why = "your train is on it or too close"; return true; }
             var ai = sc.AiTrain;
-            if (ai != null && ai.Trail.Count > 0)
+            if (ai != null)
             {
                 var seg = ai.FrontSeg;
                 if (seg.Edge.To == n && seg.Edge.Length - ai.FrontOffset < 60f) { why = "the opposing train is about to reach it"; return true; }
