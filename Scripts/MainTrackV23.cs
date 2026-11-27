@@ -6,6 +6,7 @@ namespace TNBCY
     // v23 track add-on: coloured ballast bands, muddy-cement formation under/beside the ballast (no more green strip),
     // seamless joints between track pieces, and a realistic 25 kV AC overhead line (steel masts, cantilever, sagging
     // messenger wire, staggered contact wire, droppers, insulators).
+    // v5.22: inside the Secunderabad station area the single masts are replaced by portal gantries (MainSecPortals.cs).
     public partial class Main
     {
         public const float RTSleeperSpacing = .65f;            // concrete sleepers, centre to centre (was 0.60 m)
@@ -192,6 +193,7 @@ void fragment() {
         void RTBuildOHE(TEdge e)
         {
             RTOheInit();
+            if (e.Id == "d0") RTSecPortals();                       // v5.22: portal gantries over all Secunderabad tracks
             int n = Mathf.Max(1, Mathf.CeilToInt(e.Length / 4.5f)); float step = e.Length / n;
             Color cu = new Color(.55f, .33f, .2f), mess = new Color(.62f, .64f, .66f), drop = new Color(.55f, .57f, .6f);
             for (int c0 = 0; c0 < n; c0 += 40)
@@ -221,6 +223,7 @@ void fragment() {
             for (int m = 0; (m + .5f) * MastSpacing < e.Length; m++)
             {
                 float sp = MastPlace(e, (m + .5f) * MastSpacing); if (sp < 0f) continue;
+                if (RTInPortalZone(e.PosAt(sp))) continue;           // v5.22: the station area is carried by portal gantries, no single mast between the tracks
                 var tr = Xf(Basis.LookingAt(e.DirAt(sp), Vector3.Up), e.PosAt(sp), Vector3.One);
                 if ((m & 1) == 0) ta.Add(tr); else tb.Add(tr);
             }

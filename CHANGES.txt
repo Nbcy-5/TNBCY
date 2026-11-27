@@ -1,3 +1,8 @@
+TNBCY v5.22 / APK 67
+- Secunderabad station electrification: steel portal gantries every 60 m with lattice cross girders cover all tracks (main lines, platform lines and junction lines), each with its own hanger and registration arm.
+- No pole stands on or between tracks any more: portal masts stand 3.0 m outside each track pair, and the old single masts that stood in the neighbouring yard track are gone.
+- Portals are left out at the foot-over-bridge and at signals.
+
 TNBCY v5.21 / APK 66
 - Main line directions: the Down line (D) now runs up the map (towards -Z) and the Up line (U) runs down it. The whole route, including the Secunderabad yard, is turned 180 degrees, so left-hand running, curves and platform sides stay the same.
 - Version numbers aligned: the in-game version label, the app updater and the Android export all say build 66 (the label was stuck on v61).
