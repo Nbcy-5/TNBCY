@@ -10,10 +10,11 @@ namespace TNBCY
         public System.Action<string, bool> Say = (m, ok) => { };    // one-line status at the bottom of the centre
         public System.Action Rebuild = () => { };                   // rebuild the open screen (keeps the scroll position)
         public ScheduleStore Schedules;
+        public Dispatcher Dispatch;                                 // the automatic controller
         public Scenario Sc { get { return GetScenario(); } }
     }
 
-    // One tab of the Controller Centre. To add a new one: write a class like SignalModule and register it
+    // One tab of the Controller Centre. To add a new one: write a class like PlatformModule and register it
     // with ControllerCentre.AddModule(...) in Main.InstallControllerCentre (Scripts/MainController.cs).
     public abstract class ControllerModule
     {
