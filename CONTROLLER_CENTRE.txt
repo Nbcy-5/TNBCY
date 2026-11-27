@@ -1,25 +1,46 @@
-CONTROLLER CENTRE
-=================
+CONTROLLER CENTRE (automatic controller)
+========================================
 
-Open it
-- Home screen: CONTROLLER CENTRE button (train schedules only; signals and switches need a running drive).
-- During a drive: tap the menu button to pause, then tap CONTROLLER (top right).
+What it does while you drive
+- Starts the other (AI) train at its timetable time. It never makes you wait more than 15 minutes.
+- Makes the AI train stop only at the stations of its timetable ("stops") and run through the others.
+- Gives every train a track and platform (main line, loop line, Secunderabad yard track), sets the switches for it
+  and keeps a train from using a platform that another train holds.
+- Holds a signal at red when no platform is free or the track ahead is occupied, and lets it go afterwards.
+- About 2 km before a station (measured to where the station begins, its first switch) a panel offers you the free
+  platforms. Occupied or reserved ones are greyed out and say who has them. Tap one and the controller sets the
+  switches for it. If you do nothing, it picks one for you about 480 m before the switch.
+  If no platform is free the home signal stays red until one is.
+  Single-platform stations (Ghatkesar) are allotted without a question.
+- Loop lines are real platforms: you can stop there. Your trip ends when you stop at the destination of your train.
 
-Modules
-1. TRAIN SCHEDULES - retime (+/-5 min), delay (+/-5 min), cancel / restore, reset. Saved in user://controller.json.
-   Cancelled trains are hidden from SELECT TRAIN. The game clock starts at the departure time shown.
-2. SIGNALS - per signal AUTO / STOP / CLEAR, plus ALL STOP / ALL AUTO.
-3. SWITCHES - per switch MAIN / LOOP. Locked while a train is on the points or about to reach them.
+Where to look
+- Home screen: CONTROLLER CENTRE button. During a drive: pause, then CONTROLLER (top right).
+- CONTROL ROOM: autopilot on/off, what the other train is doing, your next platform, the controller log.
+- TRAIN SCHEDULES: retime (+/-5 min), delay (+/-5 min), cancel / restore, reset. Saved in user://controller.json.
+  Cancelled trains do not appear in SELECT TRAIN and never run as the AI train.
+- PLATFORMS, SIGNALS, SWITCHES: live views (read only).
 
-Adding a train (Data/trains.json)
+Which train is the AI train
+1. The train named by "aiPartner" in the player's entry in Data/trains.json (Deccan Express uses 87625,
+   so it follows the Hyderabad Intercity Passenger and the two compete for the Secunderabad platforms).
+2. Otherwise the first train that starts on the opposite track (down / up).
+3. Otherwise the first other train.
+With autopilot off the game picks the other train itself, as before.
+
+Trains in Data/trains.json
 The game reads: name, file (consist), desc, kind, coaches, origin, destination, locomotive, platform,
 trainNumber, routeStartEdge, routeStartOffsetM, routeSection.
-The Controller Centre also reads: days, distanceKm, departure ("HH:MM"), arrival ("HH:MM"),
-stops: [ { "station": "...", "arr": "HH:MM", "dep": "HH:MM" } ].
+The controller also reads:
+  days, distanceKm, departure ("HH:MM"), arrival ("HH:MM"),
+  stops: [ { "station": "Moula Ali (MLY)", "arr": "HH:MM", "dep": "HH:MM" } ]  (station names as in the network file; a train with no stops list stops everywhere)
+  finalStop: "Charlapalli (CHZ)"   the trip ends when the player stops at this station
+  aiPartner: 87625                 the train number to run as the other service
 Put the consist in Data/consist_<name>.json and add it to export_files of the "Content" preset.
+Platform names shown in the popup come from Data/platforms.json (by track id).
 
 Adding a new module later
-1. Write a class that extends ControllerModule (see Scripts/Controller/SignalModule.cs).
+1. Write a class that extends ControllerModule (see Scripts/Controller/PlatformModule.cs).
 2. Register it in Main.InstallControllerCentre (Scripts/MainController.cs):
    ccCentre.AddModule(new MyModule());
    A new tab appears automatically.
