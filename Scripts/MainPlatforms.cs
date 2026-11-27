@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace TNBCY
 {
+    // v5.24: Secunderabad and Charlapalli get the new blue platform sheds (MainShed.cs); Platform 1 at Secunderabad has the station building and wall behind it (MainSecBuilding.cs).
     // v5.23: the Secunderabad main station building (MainSecBuilding.cs) stands behind Platform 1; the platform railing leaves a gap in front of it.
     // v62: a platform is built only on the side of the track its station stop is on.
     //  - Secunderabad layout: Platform 1 | d0 + u17 | Platform 2 | A + B | Platform 3 | C + D | Platform 4,
@@ -89,17 +90,17 @@ namespace TNBCY
             secBody.Add(Xf(qq, pp + rr * xc + up * .70f, new Vector3(w, 1.40f, L)));
             secTopL.Add(Xf(qq, pp + rr * ((topA + topB) * .5f) + up * 1.44f, new Vector3(topB - topA, .04f, L)));
             secCop.Add(Xf(qq, pp + rr * (xe + .2f) + up * 1.455f, new Vector3(.40f, .07f, L)));
-            secRed.Add(Xf(qq, pp + rr * (xe + .12f) + up * 1.495f, new Vector3(.20f, .014f, L)));
+            secRed.Add(Xf(qq, pp + rr * (xe + .06f) + up * 1.495f, new Vector3(.10f, .012f, L)));
             secTac.Add(Xf(qq, pp + rr * (xe + .75f) + up * 1.468f, new Vector3(.50f, .016f, L)));
             if (far)
             {
                 secCop.Add(Xf(qq, pp + rr * (xf - .2f) + up * 1.455f, new Vector3(.40f, .07f, L)));
-                secRed.Add(Xf(qq, pp + rr * (xf - .12f) + up * 1.495f, new Vector3(.20f, .014f, L)));
+                secRed.Add(Xf(qq, pp + rr * (xf - .06f) + up * 1.495f, new Vector3(.10f, .012f, L)));
                 secTac.Add(Xf(qq, pp + rr * (xf - .75f) + up * 1.468f, new Vector3(.50f, .016f, L)));
             }
             else
             {
-                SbmRailRun(e, s0, e1, sm, xf - .15f);      // v5.23: the railing stops in front of the station building (doors open onto the platform)
+                SbmRailRun(e, s0, e1, sm, xf - .15f);      // v5.23: no railing along the station building and wall (the doors open onto the platform)
                 for (float u = s0 + 1.5f; u < e1; u += 3f)
                 {
                     if (SbmInZone(e, u)) continue;
@@ -115,66 +116,32 @@ namespace TNBCY
             if (endPiece) return;
 
             float rA, rB;
-            if (far) { float rw = Mathf.Clamp(w - 1.2f, 1.6f, 6.0f); rA = xc - rw * .5f; rB = xc + rw * .5f; }
-            else { rA = xe + .8f; rB = xf - .35f; }
+            if (far) { float rw = Mathf.Clamp(w - 3.0f, 1.6f, 5.4f); rA = xc - rw * .5f; rB = xc + rw * .5f; }
+            else { rA = xe + 2.45f; rB = xf - .4f; }
             float rW = rB - rA, rC = (rA + rB) * .5f;
 
-            for (float u = s0 + 3f; u < e1; u += 6f)
+            if (shdOn) ShdRoof(e, s0, e1, sm, w, far);      // v5.24: the new blue shed (roof, columns and lights of every 10 m bay)
+            else
             {
-                Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;
-                if (PfFobZone(pu + ru * xc)) continue;
-                secLight.Add(Xf(qu, pu + ru * rC + up * 5.02f, new Vector3(.14f, .07f, 1.3f)));
+                for (float u = s0 + 3f; u < e1; u += 6f)
+                {
+                    Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;
+                    if (PfFobZone(pu + ru * xc)) continue;
+                    secLight.Add(Xf(qu, pu + ru * rC + up * 5.02f, new Vector3(.14f, .07f, 1.3f)));
+                }
             }
             if (PfFobZone(pp + rr * xc)) return;
 
-            // Indian railway-style gabled canopy: two shallow pitched sheets meet at a raised ridge.
-            // The roof stays within the platform footprint, with deep corrugated fascia and a dark underside.
-            float halfSpan = rW * .5f;
-            float pitch = Mathf.Atan2(.42f, Mathf.Max(1f, halfSpan));
-            Basis qL = qq * new Basis(Vector3.Back, pitch), qR = qq * new Basis(Vector3.Back, -pitch);
-            Vector3 leftRoof = pp + rr * (rA + halfSpan * .5f) + up * 5.41f;
-            Vector3 rightRoof = pp + rr * (rC + halfSpan * .5f) + up * 5.41f;
-            secRoof.Add(Xf(qL, leftRoof, new Vector3(halfSpan + .12f, .12f, L)));
-            secRoof.Add(Xf(qR, rightRoof, new Vector3(halfSpan + .12f, .12f, L)));
-            // Closed, overlapping edge fascia hides the open-looking seams between canopy sections.
-            // Keep the platform sides open below the roof while giving the roof edge a continuous finished profile.
-            secRoof.Add(Xf(qq, pp + rr * rA + up * 4.82f, new Vector3(.22f, .76f, L)));
-            secRoof.Add(Xf(qq, pp + rr * rB + up * 4.82f, new Vector3(.22f, .76f, L)));
-            // Fine raised seams follow each roof slope instead of running flat across the canopy.
-            for (float rx = rA + .18f; rx < rC - .08f; rx += .42f)
+            if (!shdOn)
             {
-                float t = (rx - rA) / halfSpan;
-                secRib.Add(Xf(qL, pp + rr * rx + up * (5.20f + .42f * t + .075f), new Vector3(.045f, .035f, L)));
-            }
-            for (float rx = rC + .18f; rx < rB - .08f; rx += .42f)
-            {
-                float t = (rx - rC) / halfSpan;
-                secRib.Add(Xf(qR, pp + rr * rx + up * (5.62f - .42f * t + .075f), new Vector3(.045f, .035f, L)));
-            }
-
-            // Raised ridge cap and top edge trims create a continuous finished roof silhouette.
-            secRib.Add(Xf(qq, pp + rr * rC + up * 5.69f, new Vector3(.22f, .10f, L)));
-            secRib.Add(Xf(qq, pp + rr * rA + up * 5.23f, new Vector3(.07f, .045f, L)));
-            secRib.Add(Xf(qq, pp + rr * rB + up * 5.23f, new Vector3(.07f, .045f, L)));
-
-            // Thin transverse cover strips bridge the small joints between adjacent 40 m roof modules.
-            foreach (float endS in new float[] { s0, e1 })
-            {
-                Vector3 ep = e.PosAt(endS), ed = e.DirAt(endS);
-                Basis eq = Basis.LookingAt(ed, up);
-                Vector3 er = Right(ed) * sm;
-                Basis eL = eq * new Basis(Vector3.Back, pitch);
-                Basis eR = eq * new Basis(Vector3.Back, -pitch);
-                secRib.Add(Xf(eL, ep + er * (rA + halfSpan * .5f) + up * 5.41f, new Vector3(halfSpan + .12f, .045f, .10f)));
-                secRib.Add(Xf(eR, ep + er * (rC + halfSpan * .5f) + up * 5.41f, new Vector3(halfSpan + .12f, .045f, .10f)));
-            }
-
-            for (float u = s0 + 5f; u < e1; u += 10f)
-            {
-                Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;
-                secBeam.Add(Xf(qu, pu + ru * rC + up * 5.0f, new Vector3(rW, .24f, .22f)));
-                secCol.Add(Xf(qu, pu + ru * (rB - .2f) + up * ((SecTop + 5.18f) * .5f), new Vector3(.34f, 5.18f - SecTop, .34f)));
-                if (far) secCol.Add(Xf(qu, pu + ru * (rA + .2f) + up * ((SecTop + 5.14f) * .5f), new Vector3(.28f, 5.14f - SecTop, .28f)));
+                secRoof.Add(Xf(qq, pp + rr * rC + up * 5.2f, new Vector3(rW, .12f, L)));
+                for (float u = s0 + 5f; u < e1; u += 10f)
+                {
+                    Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;
+                    secBeam.Add(Xf(qu, pu + ru * rC + up * 5.0f, new Vector3(rW, .20f, .18f)));
+                    secCol.Add(Xf(qu, pu + ru * (rB - .2f) + up * ((SecTop + 5.14f) * .5f), new Vector3(.28f, 5.14f - SecTop, .28f)));
+                    if (far) secCol.Add(Xf(qu, pu + ru * (rA + .2f) + up * ((SecTop + 5.14f) * .5f), new Vector3(.28f, 5.14f - SecTop, .28f)));
+                }
             }
             if (len >= 25f)
             {
@@ -205,59 +172,15 @@ namespace TNBCY
             }
         }
 
-        // Smooth, tapered concrete ramp at each platform end. A continuous mesh replaces the old three visible steps.
-        static void PfRampTri(List<Vector3> v, List<Vector3> n, Vector3 a, Vector3 b, Vector3 c)
-        {
-            Vector3 normal = (b - a).Cross(c - a).Normalized();
-            v.Add(a); v.Add(b); v.Add(c); n.Add(normal); n.Add(normal); n.Add(normal);
-        }
-
+        // Three-step ramp at a platform end.
         void PfRamp(TEdge e, float s, float dirSign, float sm, float w)
         {
-            const int segments = 18;
-            const float length = 12f, top = 1.40f;
-            Vector3 p = e.PosAt(s), d = e.DirAt(s) * dirSign;
-            Basis q = Basis.LookingAt(d, Vector3.Up);
-            Vector3 rr = Right(e.DirAt(s)) * sm;
-            var v = new List<Vector3>(segments * 36);
-            var n = new List<Vector3>(segments * 36);
-            Vector3[] tl = new Vector3[segments + 1], tr = new Vector3[segments + 1];
-            Vector3[] bl = new Vector3[segments + 1], br = new Vector3[segments + 1];
-
-            for (int i = 0; i <= segments; i++)
+            Vector3 p = e.PosAt(s), d = e.DirAt(s) * dirSign; Basis q = Basis.LookingAt(e.DirAt(s), Vector3.Up); Vector3 rr = Right(e.DirAt(s)) * sm;
+            for (int k = 0; k < 3; k++)
             {
-                float t = i / (float)segments;
-                float smooth = t * t * (3f - 2f * t);
-                float half = w * .5f * (1f - .06f * smooth);
-                float z = -length * t;
-                float y = top * (1f - smooth);
-                tl[i] = new Vector3(-half, y, z); tr[i] = new Vector3(half, y, z);
-                bl[i] = new Vector3(-half, 0f, z); br[i] = new Vector3(half, 0f, z);
+                float ht = 1.10f - .35f * k;
+                secBody.Add(Xf(q, p + d * (2f + 4f * k) + rr * (SecEdge + w * .5f) + Vector3.Up * (ht * .5f), new Vector3(w, ht, 4f)));
             }
-
-            for (int i = 0; i < segments; i++)
-            {
-                // Tiled top, underside and both side faces of the continuous sloping platform nose.
-                PfRampTri(v, n, tl[i], tr[i], tr[i + 1]); PfRampTri(v, n, tl[i], tr[i + 1], tl[i + 1]);
-                PfRampTri(v, n, bl[i], br[i + 1], br[i]); PfRampTri(v, n, bl[i], bl[i + 1], br[i + 1]);
-                PfRampTri(v, n, bl[i], tl[i + 1], tl[i]); PfRampTri(v, n, bl[i], bl[i + 1], tl[i + 1]);
-                PfRampTri(v, n, br[i], tr[i], tr[i + 1]); PfRampTri(v, n, br[i], tr[i + 1], br[i + 1]);
-            }
-            // Close the ground-level nose and the joint hidden inside the platform slab.
-            PfRampTri(v, n, bl[segments], br[segments], tr[segments]);
-            PfRampTri(v, n, bl[segments], tr[segments], tl[segments]);
-            PfRampTri(v, n, tl[0], tr[0], br[0]);
-            PfRampTri(v, n, tl[0], br[0], bl[0]);
-
-            var arrays = new Godot.Collections.Array();
-            arrays.Resize((int)Mesh.ArrayType.Max);
-            arrays[(int)Mesh.ArrayType.Vertex] = v.ToArray();
-            arrays[(int)Mesh.ArrayType.Normal] = n.ToArray();
-            var mesh = new ArrayMesh();
-            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-            var mi = new MeshInstance3D { Mesh = mesh, MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(.48f, .49f, .47f), Roughness = .94f, CullMode = BaseMaterial3D.CullModeEnum.Disabled } };
-            AddChild(mi);
-            mi.Transform = new Transform3D(q, p + rr * (SecEdge + w * .5f));
         }
 
         // Replaces BuildStations (MainWorld.cs). Platforms are 620 m long and follow the track, even across edge joins.
@@ -271,7 +194,10 @@ namespace TNBCY
                 try
                 {
                     bool sec = RTIsSec(st); float w0 = SecW;
-                    if (sec && st.Edge.Id == "d0") { float bcz = SbmCentre(st); sbmEdgeId = "d0"; sbmS0 = bcz - SbmHalf; sbmS1 = bcz + SbmHalf; }     // v5.23: where the station building stands
+                    shdSec = sec; shdOn = sec || st.Name.StartsWith("Char");                    // v5.24: new sheds at Secunderabad and Charlapalli
+                    if (shdOn) ShdCollectMasts();
+                    float bLo = 0f, bS0 = 0f, bS1 = 0f;
+                    if (sec && st.Edge.Id == "d0") { SbmPlan(st, out bLo, out bS0, out bS1); sbmEdgeId = "d0"; sbmS0 = bLo; sbmS1 = bS1; }     // v5.24: the building and wall cover the whole of Platform 1
                     for (int pass = 0; pass < 1; pass++)       // v62: only the station's own side (a platform between two tracks is built once, from either track)
                     {
                         float sm = (st.Side == "L" ? -1f : 1f) * (pass == 0 ? 1f : -1f);
@@ -308,14 +234,15 @@ namespace TNBCY
                     }
                     if (sec && st.Edge.Id == "d0")
                     {
-                        // The main station building stands directly behind Platform 1 (MainSecBuilding.cs).
-                        float cs = SbmCentre(st), sm0 = st.Side == "L" ? -1f : 1f;
-                        SbmBuild(st.Edge, cs, sm0, SecEdge + w0);
+                        // The main station building stands directly behind Platform 1, with a wall along the rest of it (MainSecBuilding.cs).
+                        float cs = (bS0 + bS1) * .5f, sm0 = st.Side == "L" ? -1f : 1f;
+                        SbmBuild(st.Edge, cs, sm0, SecEdge + w0, bLo, bS0);
                         Tag(st.Name, st.Edge.PosAt(cs) + Right(st.Edge.DirAt(cs)) * sm0 * 3.5f + Vector3.Up * 8f, Colors.Yellow);
                     }
                 }
                 catch (System.Exception ex) { GD.PrintErr("Platform build failed at " + st.Name + ": " + ex.Message); }
             }
+            ShdFinish();
             RTSecFinish();
         }
     }
