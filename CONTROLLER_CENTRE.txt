@@ -1,0 +1,25 @@
+CONTROLLER CENTRE
+=================
+
+Open it
+- Home screen: CONTROLLER CENTRE button (train schedules only; signals and switches need a running drive).
+- During a drive: tap the menu button to pause, then tap CONTROLLER (top right).
+
+Modules
+1. TRAIN SCHEDULES - retime (+/-5 min), delay (+/-5 min), cancel / restore, reset. Saved in user://controller.json.
+   Cancelled trains are hidden from SELECT TRAIN. The game clock starts at the departure time shown.
+2. SIGNALS - per signal AUTO / STOP / CLEAR, plus ALL STOP / ALL AUTO.
+3. SWITCHES - per switch MAIN / LOOP. Locked while a train is on the points or about to reach them.
+
+Adding a train (Data/trains.json)
+The game reads: name, file (consist), desc, kind, coaches, origin, destination, locomotive, platform,
+trainNumber, routeStartEdge, routeStartOffsetM, routeSection.
+The Controller Centre also reads: days, distanceKm, departure ("HH:MM"), arrival ("HH:MM"),
+stops: [ { "station": "...", "arr": "HH:MM", "dep": "HH:MM" } ].
+Put the consist in Data/consist_<name>.json and add it to export_files of the "Content" preset.
+
+Adding a new module later
+1. Write a class that extends ControllerModule (see Scripts/Controller/SignalModule.cs).
+2. Register it in Main.InstallControllerCentre (Scripts/MainController.cs):
+   ccCentre.AddModule(new MyModule());
+   A new tab appears automatically.
