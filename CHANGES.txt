@@ -1,3 +1,10 @@
+TNBCY v5.23 / APK 68
+- New Secunderabad main station building behind Platform 1, with clock tower and name boards.
+- Platform 1 railing stops in front of the building so the doors open onto the platform.
+- Overhead portal gantries now stand in the Secunderabad station area.
+- Details: the building is 84 m long (two wings, a centre block, a 29 m clock tower, street porch with steps, forecourt); it is made from boxes in code, no new image files.
+- Portal fix: the area limits in MainSecPortals.cs were still in the old route direction (yard on the -X side, route towards +Z), so the portals stood in the wrong place after v5.21. They are mirrored now.
+
 TNBCY v5.22 / APK 67
 - Secunderabad station electrification: steel portal gantries every 60 m with lattice cross girders cover all tracks (main lines, platform lines and junction lines), each with its own hanger and registration arm.
 - No pole stands on or between tracks any more: portal masts stand 3.0 m outside each track pair, and the old single masts that stood in the neighbouring yard track are gone.
