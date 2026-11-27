@@ -1,0 +1,18 @@
+{
+  "labels": {
+    "d7": "Main line",
+    "dl_one": "Loop line",
+    "d12": "Main line",
+    "dl_two": "Loop line",
+    "d17": "Main line",
+    "u10": "Main line",
+    "ul_one": "Loop line",
+    "u5": "Main line",
+    "ul_two": "Loop line",
+    "u17": "Platform 2 · Main line",
+    "sc_yard_a": "Platform 2 · Track A",
+    "sc_yard_b": "Platform 3 · Track B",
+    "sc_yard_c": "Platform 3 · Track C",
+    "sc_yard_d": "Platform 4 · Track D"
+  }
+}
