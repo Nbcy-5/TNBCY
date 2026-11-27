@@ -89,12 +89,12 @@ namespace TNBCY
             secBody.Add(Xf(qq, pp + rr * xc + up * .70f, new Vector3(w, 1.40f, L)));
             secTopL.Add(Xf(qq, pp + rr * ((topA + topB) * .5f) + up * 1.44f, new Vector3(topB - topA, .04f, L)));
             secCop.Add(Xf(qq, pp + rr * (xe + .2f) + up * 1.455f, new Vector3(.40f, .07f, L)));
-            secRed.Add(Xf(qq, pp + rr * (xe + .06f) + up * 1.495f, new Vector3(.10f, .012f, L)));
+            secRed.Add(Xf(qq, pp + rr * (xe + .12f) + up * 1.495f, new Vector3(.20f, .014f, L)));
             secTac.Add(Xf(qq, pp + rr * (xe + .75f) + up * 1.468f, new Vector3(.50f, .016f, L)));
             if (far)
             {
                 secCop.Add(Xf(qq, pp + rr * (xf - .2f) + up * 1.455f, new Vector3(.40f, .07f, L)));
-                secRed.Add(Xf(qq, pp + rr * (xf - .06f) + up * 1.495f, new Vector3(.10f, .012f, L)));
+                secRed.Add(Xf(qq, pp + rr * (xf - .12f) + up * 1.495f, new Vector3(.20f, .014f, L)));
                 secTac.Add(Xf(qq, pp + rr * (xf - .75f) + up * 1.468f, new Vector3(.50f, .016f, L)));
             }
             else
@@ -115,8 +115,8 @@ namespace TNBCY
             if (endPiece) return;
 
             float rA, rB;
-            if (far) { float rw = Mathf.Clamp(w - 3.0f, 1.6f, 5.4f); rA = xc - rw * .5f; rB = xc + rw * .5f; }
-            else { rA = xe + 2.45f; rB = xf - .4f; }
+            if (far) { float rw = Mathf.Clamp(w - 1.2f, 1.6f, 6.0f); rA = xc - rw * .5f; rB = xc + rw * .5f; }
+            else { rA = xe + .8f; rB = xf - .35f; }
             float rW = rB - rA, rC = (rA + rB) * .5f;
 
             for (float u = s0 + 3f; u < e1; u += 6f)
@@ -128,6 +128,9 @@ namespace TNBCY
             if (PfFobZone(pp + rr * xc)) return;
 
             secRoof.Add(Xf(qq, pp + rr * rC + up * 5.2f, new Vector3(rW, .12f, L)));
+            // Raised longitudinal seams create a corrugated blue-metal canopy; all ribs remain inside the platform footprint.
+            for (float rx = rA + .12f; rx < rB - .08f; rx += .24f)
+                secRib.Add(Xf(qq, pp + rr * rx + up * 5.275f, new Vector3(.045f, .035f, L)));
             for (float u = s0 + 5f; u < e1; u += 10f)
             {
                 Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;

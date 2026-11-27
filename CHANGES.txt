@@ -1,3 +1,8 @@
+TNBCY v5.24 / APK 69
+- Rebuilt station platform canopies with wider, platform-contained blue corrugated-metal roofing and visible raised seams.
+- Updated platform paving to a more natural concrete-grey finish and strengthened the red trackside coping stripe.
+- Preserved track geometry, platform alignment, station buildings, signals and rolling stock.
+
 TNBCY v5.23 / APK 68
 - New Secunderabad main station building behind Platform 1, with clock tower and name boards.
 - Platform 1 railing stops in front of the building so the doors open onto the platform.

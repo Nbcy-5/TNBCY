@@ -15,7 +15,7 @@ namespace TNBCY
     {
         const float SecEdge = 1.70f, SecW = 7.0f, SecTop = 1.46f;
         readonly List<Transform3D> secBody = new List<Transform3D>(), secTopL = new List<Transform3D>(), secCop = new List<Transform3D>(), secRed = new List<Transform3D>(),
-            secTac = new List<Transform3D>(), secRail = new List<Transform3D>(), secPost = new List<Transform3D>(), secRoof = new List<Transform3D>(),
+            secTac = new List<Transform3D>(), secRail = new List<Transform3D>(), secPost = new List<Transform3D>(), secRoof = new List<Transform3D>(), secRib = new List<Transform3D>(),
             secCol = new List<Transform3D>(), secBeam = new List<Transform3D>(), secSeat = new List<Transform3D>(), secBack = new List<Transform3D>(),
             secLeg = new List<Transform3D>(), secLight = new List<Transform3D>(), secSign = new List<Transform3D>();
         bool secFobOk, secDone; Vector3 secFobC, secFobD; int secIdx;
@@ -31,9 +31,9 @@ float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void fragment() {
     vec2 uv = wp.xz / 0.6; vec2 id = floor(uv); vec2 f = fract(uv);
     float line = min(step(f.x, 0.03) + step(f.y, 0.03), 1.0);
-    vec3 base = vec3(0.66, 0.65, 0.61) * (0.90 + 0.16 * h(id));
-    base *= 0.92 + 0.08 * h(floor(wp.xz * 3.0));
-    ALBEDO = mix(base, vec3(0.36, 0.36, 0.34), line * 0.75);
+    vec3 base = vec3(0.55, 0.56, 0.54) * (0.92 + 0.12 * h(id));
+    base *= 0.94 + 0.06 * h(floor(wp.xz * 4.0));
+    ALBEDO = mix(base, vec3(0.31, 0.32, 0.30), line * 0.55);
     ROUGHNESS = 0.9;
 }";
         const string SecTactileShader = @"
@@ -140,7 +140,7 @@ void fragment() {
             var lamp = new StandardMaterial3D { AlbedoColor = new Color(.96f, .96f, .92f), EmissionEnabled = true, Emission = new Color(1f, .96f, .82f), EmissionEnergyMultiplier = 1.2f };
             FillMM(secBody, Mat(new Color(.56f, .56f, .54f))); FillMM(secTopL, tile); FillMM(secCop, Mat(new Color(.88f, .88f, .84f)));
             FillMM(secRed, Mat(new Color(.63f, .17f, .14f))); FillMM(secTac, tac); FillMM(secRail, Solid(new Color(.30f, .32f, .35f), .3f, .5f));
-            FillMM(secPost, Solid(new Color(.30f, .32f, .35f), .3f, .5f)); FillMM(secRoof, Solid(new Color(.16f, .42f, .66f), .2f, .6f));
+            FillMM(secPost, Solid(new Color(.30f, .32f, .35f), .3f, .5f)); FillMM(secRoof, Solid(new Color(.12f, .38f, .62f), .18f, .72f)); FillMM(secRib, Solid(new Color(.075f, .27f, .45f), .22f, .68f));
             FillMM(secCol, Mat(new Color(.25f, .27f, .30f))); FillMM(secBeam, Mat(new Color(.25f, .27f, .30f)));
             FillMM(secSeat, Mat(new Color(.62f, .20f, .16f))); FillMM(secBack, Mat(new Color(.62f, .20f, .16f))); FillMM(secLeg, Mat(new Color(.22f, .24f, .27f)));
             FillMM(secLight, lamp); FillMM(secSign, Mat(new Color(.13f, .36f, .59f)));
