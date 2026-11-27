@@ -167,15 +167,59 @@ namespace TNBCY
             }
         }
 
-        // Three-step ramp at a platform end.
+        // Smooth, tapered concrete ramp at each platform end. A continuous mesh replaces the old three visible steps.
+        static void PfRampTri(List<Vector3> v, List<Vector3> n, Vector3 a, Vector3 b, Vector3 c)
+        {
+            Vector3 normal = (b - a).Cross(c - a).Normalized();
+            v.Add(a); v.Add(b); v.Add(c); n.Add(normal); n.Add(normal); n.Add(normal);
+        }
+
         void PfRamp(TEdge e, float s, float dirSign, float sm, float w)
         {
-            Vector3 p = e.PosAt(s), d = e.DirAt(s) * dirSign; Basis q = Basis.LookingAt(e.DirAt(s), Vector3.Up); Vector3 rr = Right(e.DirAt(s)) * sm;
-            for (int k = 0; k < 3; k++)
+            const int segments = 18;
+            const float length = 12f, top = 1.40f;
+            Vector3 p = e.PosAt(s), d = e.DirAt(s) * dirSign;
+            Basis q = Basis.LookingAt(d, Vector3.Up);
+            Vector3 rr = Right(e.DirAt(s)) * sm;
+            var v = new List<Vector3>(segments * 36);
+            var n = new List<Vector3>(segments * 36);
+            Vector3[] tl = new Vector3[segments + 1], tr = new Vector3[segments + 1];
+            Vector3[] bl = new Vector3[segments + 1], br = new Vector3[segments + 1];
+
+            for (int i = 0; i <= segments; i++)
             {
-                float ht = 1.10f - .35f * k;
-                secBody.Add(Xf(q, p + d * (2f + 4f * k) + rr * (SecEdge + w * .5f) + Vector3.Up * (ht * .5f), new Vector3(w, ht, 4f)));
+                float t = i / (float)segments;
+                float smooth = t * t * (3f - 2f * t);
+                float half = w * .5f * (1f - .06f * smooth);
+                float z = -length * t;
+                float y = top * (1f - smooth);
+                tl[i] = new Vector3(-half, y, z); tr[i] = new Vector3(half, y, z);
+                bl[i] = new Vector3(-half, 0f, z); br[i] = new Vector3(half, 0f, z);
             }
+
+            for (int i = 0; i < segments; i++)
+            {
+                // Tiled top, underside and both side faces of the continuous sloping platform nose.
+                PfRampTri(v, n, tl[i], tr[i], tr[i + 1]); PfRampTri(v, n, tl[i], tr[i + 1], tl[i + 1]);
+                PfRampTri(v, n, bl[i], br[i + 1], br[i]); PfRampTri(v, n, bl[i], bl[i + 1], br[i + 1]);
+                PfRampTri(v, n, bl[i], tl[i + 1], tl[i]); PfRampTri(v, n, bl[i], bl[i + 1], tl[i + 1]);
+                PfRampTri(v, n, br[i], tr[i], tr[i + 1]); PfRampTri(v, n, br[i], tr[i + 1], br[i + 1]);
+            }
+            // Close the ground-level nose and the joint hidden inside the platform slab.
+            PfRampTri(v, n, bl[segments], br[segments], tr[segments]);
+            PfRampTri(v, n, bl[segments], tr[segments], tl[segments]);
+            PfRampTri(v, n, tl[0], tr[0], br[0]);
+            PfRampTri(v, n, tl[0], br[0], bl[0]);
+
+            var arrays = new Godot.Collections.Array();
+            arrays.Resize((int)Mesh.ArrayType.Max);
+            arrays[(int)Mesh.ArrayType.Vertex] = v.ToArray();
+            arrays[(int)Mesh.ArrayType.Normal] = n.ToArray();
+            var mesh = new ArrayMesh();
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+            var mi = new MeshInstance3D { Mesh = mesh, MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(.48f, .49f, .47f), Roughness = .94f, CullMode = BaseMaterial3D.CullModeEnum.Disabled } };
+            AddChild(mi);
+            mi.Transform = new Transform3D(q, p + rr * (SecEdge + w * .5f));
         }
 
         // Replaces BuildStations (MainWorld.cs). Platforms are 620 m long and follow the track, even across edge joins.

@@ -1,3 +1,9 @@
+TNBCY v5.25 / APK 70
+- Replaced the three-step platform end treatment with a continuous, gently sloping tapered concrete ramp mesh.
+- Added a subtly curved/tapered plan profile to platform noses so ends no longer look like abrupt rectangular steps.
+- Darkened platform concrete and paving to a more natural weathered grey, reducing the over-bright white appearance.
+- Preserved track geometry, platform positions, station structures, sheds, signals and trains.
+
 TNBCY v5.24 / APK 69
 - Rebuilt station platform canopies with wider, platform-contained blue corrugated-metal roofing and visible raised seams.
 - Updated platform paving to a more natural concrete-grey finish and strengthened the red trackside coping stripe.
