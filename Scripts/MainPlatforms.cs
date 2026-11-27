@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace TNBCY
 {
+    // v5.23: the Secunderabad main station building (MainSecBuilding.cs) stands behind Platform 1; the platform railing leaves a gap in front of it.
     // v62: a platform is built only on the side of the track its station stop is on.
     //  - Secunderabad layout: Platform 1 | d0 + u17 | Platform 2 | A + B | Platform 3 | C + D | Platform 4,
     //    so exactly two tracks lie between every pair of platforms (no platform between A/B or C/D).
@@ -98,10 +99,10 @@ namespace TNBCY
             }
             else
             {
-                secRail.Add(Xf(qq, pp + rr * (xf - .15f) + up * (SecTop + .95f), new Vector3(.05f, .05f, L)));
-                secRail.Add(Xf(qq, pp + rr * (xf - .15f) + up * (SecTop + .50f), new Vector3(.04f, .04f, L)));
+                SbmRailRun(e, s0, e1, sm, xf - .15f);      // v5.23: the railing stops in front of the station building (doors open onto the platform)
                 for (float u = s0 + 1.5f; u < e1; u += 3f)
                 {
+                    if (SbmInZone(e, u)) continue;
                     Vector3 pu = e.PosAt(u), du = e.DirAt(u); Basis qu = Basis.LookingAt(du, up); Vector3 ru = Right(du) * sm;
                     secPost.Add(Xf(qu, pu + ru * (xf - .15f) + up * (SecTop + .5f), new Vector3(.06f, 1.0f, .06f)));
                 }
@@ -178,7 +179,6 @@ namespace TNBCY
         void PfBuildStations()
         {
             const float PlatLen = 620f, Piece = 40f;
-            var brick = Mat(new Color(.55f, .3f, .24f)); var rf2 = Mat(new Color(.3f, .3f, .32f));
             fxPlat.Clear();
             var built = new HashSet<string>();
             foreach (var st in sc.Graph.Stations)
@@ -186,6 +186,7 @@ namespace TNBCY
                 try
                 {
                     bool sec = RTIsSec(st); float w0 = SecW;
+                    if (sec && st.Edge.Id == "d0") { float bcz = SbmCentre(st); sbmEdgeId = "d0"; sbmS0 = bcz - SbmHalf; sbmS1 = bcz + SbmHalf; }     // v5.23: where the station building stands
                     for (int pass = 0; pass < 1; pass++)       // v62: only the station's own side (a platform between two tracks is built once, from either track)
                     {
                         float sm = (st.Side == "L" ? -1f : 1f) * (pass == 0 ? 1f : -1f);
@@ -222,13 +223,10 @@ namespace TNBCY
                     }
                     if (sec && st.Edge.Id == "d0")
                     {
-                        // The main station building stands directly behind Platform 1.
-                        float cs = Mathf.Max(0f, st.Offset - 150f), sm0 = st.Side == "L" ? -1f : 1f;
-                        var p = st.Edge.PosAt(cs); var d = st.Edge.DirAt(cs); var q = Basis.LookingAt(d, Vector3.Up); var r = Right(d) * sm0;
-                        float bx = SecEdge + w0 + 4.6f;
-                        Box(this, p + r * bx + Vector3.Up * 3f, q, new Vector3(9f, 6f, 70f), brick);
-                        Box(this, p + r * bx + Vector3.Up * 6.3f, q, new Vector3(10f, .6f, 72f), rf2);
-                        Tag(st.Name, p + r * 3.5f + Vector3.Up * 8f, Colors.Yellow);
+                        // The main station building stands directly behind Platform 1 (MainSecBuilding.cs).
+                        float cs = SbmCentre(st), sm0 = st.Side == "L" ? -1f : 1f;
+                        SbmBuild(st.Edge, cs, sm0, SecEdge + w0);
+                        Tag(st.Name, st.Edge.PosAt(cs) + Right(st.Edge.DirAt(cs)) * sm0 * 3.5f + Vector3.Up * 8f, Colors.Yellow);
                     }
                 }
                 catch (System.Exception ex) { GD.PrintErr("Platform build failed at " + st.Name + ": " + ex.Message); }
