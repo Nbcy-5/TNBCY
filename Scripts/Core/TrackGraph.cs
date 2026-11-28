@@ -11,6 +11,15 @@ namespace TNBCY
         public int Sel;                       // which outgoing edge the switch is set to
         public float PassedOdo = -1e9f;
         public bool IsSwitch { get { return Outs.Count > 1; } }
+
+        // Name of position i of this switch: MAIN, CROSS (a crossover to the other main), LOOP or ROUTE n.
+        public string PosLabel(int i)
+        {
+            if (i == 0) return "MAIN";
+            if (i >= 0 && i < Outs.Count && Outs[i].Crossover) return "CROSS";
+            return Outs.Count == 2 ? "LOOP" : "ROUTE " + (i + 1);
+        }
+        public string SelLabel { get { return PosLabel(Sel); } }
     }
 
     public class TEdge
@@ -23,6 +32,13 @@ namespace TNBCY
         public float Length, Gradient, CurveR, LimitKmh;   // Gradient in permil
         public bool Turnout;                                 // loop line that diverges from / merges into a main line
         public float SkipStart, SkipEnd;                     // metres where the loop's inner rail would cross the main line (frog)
+        public int InnerStart = 1, InnerEnd = 1;             // which rail of a turnout track is the inner one at the points / at the frog: +1 right, -1 left (+1 = loop on the left)
+        // v5.28 (limits)
+        public bool Virtual;                                 // hidden reverse-direction twin: same rails as Twin, opposite direction, never drawn, no masts
+        public bool Crossover;                               // crossover between the Down and Up mains
+        public TEdge Twin;                                   // the edge that shares these rails in the other direction
+        public string BaseId = ""; public float BaseStart;   // the route-file edge this piece was cut from, and where on it this piece starts
+        public char Dir = 'D';                               // direction of travel: 'D' = Down, 'U' = Up
 
         public void Finish()
         {
@@ -60,6 +76,9 @@ namespace TNBCY
     {
         public string Id = ""; public TEdge Edge; public float Offset, HoldSeconds, Timer;
         public bool Held, Red, Started, Passed;
+        public bool Guard, Blocked;           // Guard = limit / crossover signal; Blocked = held red by the interlocking (opposing train on the track ahead)
+        public char Dir = 'D';                // direction of travel this signal faces
+        public bool Stop { get { return Red || Blocked; } }
         public int Aspect;                    // 0 green, 1 yellow, 2 red
     }
     public class TStation { public string Name = ""; public TEdge Edge; public float Offset, Dwell = 15f; public bool Done, Served, Stop = true; public string Side = "R"; }
@@ -67,7 +86,10 @@ namespace TNBCY
     public class TrackGraph
     {
         public Dictionary<string, TNode> Nodes = new Dictionary<string, TNode>();
-        public Dictionary<string, TEdge> Edges = new Dictionary<string, TEdge>();
+        public Dictionary<string, TEdge> Edges = new Dictionary<string, TEdge>();       // the drawn tracks (no hidden twins)
+        public List<TEdge> AllEdges = new List<TEdge>();                                 // every edge, hidden twins included
+        public Dictionary<string, TEdge> ById = new Dictionary<string, TEdge>();         // every edge by id
+        public TEdge EdgeById(string id) { TEdge e; return id != null && ById.TryGetValue(id, out e) ? e : null; }
         public List<TNode> Switches = new List<TNode>();
         public List<TSignal> Signals = new List<TSignal>();
         public List<TStation> Stations = new List<TStation>();
@@ -91,9 +113,9 @@ namespace TNBCY
         {
             foreach (var s in Signals)
             {
-                if (s.Red) { s.Aspect = 2; continue; }
+                if (s.Stop) { s.Aspect = 2; continue; }
                 var nx = NextSignal(s.Edge, s.Offset);
-                s.Aspect = (nx != null && nx.Red) ? 1 : 0;
+                s.Aspect = (nx != null && nx.Stop) ? 1 : 0;
             }
         }
 
@@ -115,6 +137,18 @@ namespace TNBCY
             o.Add(p[p.Count - 1]); return o;
         }
 
+        static float SideOf(Vector3 mainDir, Vector3 offset) { return new Vector3(-mainDir.Z, 0f, mainDir.X).Dot(offset); }
+
+        // Direction of travel of an edge: given in the data (generated edges), else from its name (d... = Down, u... = Up), else from the way it runs.
+        static char DirOf(EdgeSpec es, TEdge e)
+        {
+            if (!string.IsNullOrEmpty(es.dir)) return es.dir[0] == 'U' || es.dir[0] == 'u' ? 'U' : 'D';
+            char c = es.id.Length > 0 ? es.id[0] : ' ';
+            if (c == 'd' || c == 'D') return 'D';
+            if (c == 'u' || c == 'U') return 'U';
+            return e.To.Pos.Z < e.From.Pos.Z ? 'D' : 'U';
+        }
+
         public static TrackGraph Build(NetworkSpec n)
         {
             var g = new TrackGraph();
@@ -123,14 +157,22 @@ namespace TNBCY
             foreach (var es in n.edges)
             {
                 if (!g.Nodes.ContainsKey(es.fromNode) || !g.Nodes.ContainsKey(es.toNode)) { GD.PrintErr("Edge " + es.id + " uses unknown node"); continue; }
-                var e = new TEdge { Turnout = !string.IsNullOrEmpty(es.turnout), Id = es.id, From = g.Nodes[es.fromNode], To = g.Nodes[es.toNode], Gradient = es.gradientPermil, CurveR = es.curveRadiusM, LimitKmh = es.speedLimitKmh };
+                var e = new TEdge { Turnout = !string.IsNullOrEmpty(es.turnout), Id = es.id, From = g.Nodes[es.fromNode], To = g.Nodes[es.toNode], Gradient = es.gradientPermil, CurveR = es.curveRadiusM, LimitKmh = es.speedLimitKmh,
+                    Virtual = es.virt, Crossover = es.crossover, BaseId = string.IsNullOrEmpty(es.baseId) ? es.id : es.baseId, BaseStart = es.baseStart };
                 var pts = new List<Vector3> { e.From.Pos };
                 if (es.via != null) foreach (var v in es.via) pts.Add(new Vector3(v[0], 0f, v[1]));
                 pts.Add(e.To.Pos);
                 e.Pts = Smooth(pts); e.Finish();
-                e.From.Outs.Add(e); g.Edges[es.id] = e;
+                e.Dir = DirOf(es, e);
+                e.From.Outs.Add(e); g.AllEdges.Add(e); g.ById[es.id] = e;
+                if (!e.Virtual) g.Edges[es.id] = e;
             }
-            foreach (var e in g.Edges.Values)
+            foreach (var es in n.edges)                          // pair every hidden twin with the real piece it shares its rails with
+            {
+                TEdge v, r;
+                if (es.virt && !string.IsNullOrEmpty(es.twinOf) && g.ById.TryGetValue(es.id, out v) && g.ById.TryGetValue(es.twinOf, out r)) { v.Twin = r; r.Twin = v; }
+            }
+            foreach (var e in g.AllEdges)
             {
                 if (!e.Turnout) continue;
                 if (e.From.Outs.Count > 1)                       // diverging end: find where it clears the main line by one gauge
@@ -138,11 +180,18 @@ namespace TNBCY
                     var m = e.From.Outs[0];
                     for (float t = 2f; t < System.Math.Min(80f, System.Math.Min(e.Length, m.Length)); t += .5f)
                         if (e.PosAt(t).DistanceTo(m.PosAt(t)) >= 1.75f) { e.SkipStart = t; break; }
+                    float ts = e.SkipStart > 0f ? e.SkipStart : System.Math.Min(10f, System.Math.Min(e.Length, m.Length));
+                    e.InnerStart = SideOf(m.DirAt(ts), e.PosAt(ts) - m.PosAt(ts)) > 0f ? -1 : 1;     // loop on the right of its main = inner rail is the left one
                 }
-                foreach (var m in g.Edges.Values)                // merging end
+                foreach (var m in g.AllEdges)                    // merging end
                     if (!m.Turnout && m.To == e.To && m != e)
                         for (float t = 2f; t < System.Math.Min(80f, System.Math.Min(e.Length, m.Length)); t += .5f)
-                            if (e.PosAt(e.Length - t).DistanceTo(m.PosAt(m.Length - t)) >= 1.75f) { e.SkipEnd = t; break; }
+                            if (e.PosAt(e.Length - t).DistanceTo(m.PosAt(m.Length - t)) >= 1.75f)
+                            {
+                                e.SkipEnd = t;
+                                e.InnerEnd = SideOf(m.DirAt(m.Length - t), e.PosAt(e.Length - t) - m.PosAt(m.Length - t)) > 0f ? -1 : 1;
+                                break;
+                            }
             }
             int k = 1;
             foreach (var ns in n.nodes)
@@ -152,8 +201,10 @@ namespace TNBCY
             }
             foreach (var s in n.signals)
             {
-                if (!g.Edges.ContainsKey(s.edge)) continue;
-                g.Signals.Add(new TSignal { Id = s.id, Edge = g.Edges[s.edge], Offset = s.offsetM, Held = s.held, HoldSeconds = s.holdSeconds, Red = s.held });
+                TEdge se;
+                if (!g.ById.TryGetValue(s.edge, out se)) continue;
+                g.Signals.Add(new TSignal { Id = s.id, Edge = se, Offset = s.offsetM, Held = s.held, HoldSeconds = s.holdSeconds, Red = s.held, Guard = s.guard,
+                    Dir = string.IsNullOrEmpty(s.dir) ? se.Dir : (s.dir[0] == 'U' || s.dir[0] == 'u' ? 'U' : 'D') });
             }
             foreach (var s in n.stations)
             {
