@@ -10,10 +10,7 @@ namespace TNBCY
         public override string Title { get { return "SWITCHES"; } }
         public override string Hint { get { return "The controller sets the points ahead of each train for its platform, and never moves a switch that a train is on or about to reach."; } }
 
-        static string PosName(TNode n, int i)
-        {
-            return i == 0 ? "MAIN" : (n.Outs.Count == 2 ? "LOOP" : "ROUTE " + (i + 1));
-        }
+        static string PosName(TNode n, int i) { return n.PosLabel(i); }      // v5.29: MAIN, LOOP, CROSS (crossover) or ROUTE n
 
         public override void Build(VBoxContainer host, ControllerContext ctx)
         {

@@ -14,8 +14,7 @@ namespace TNBCY
         static Color AspectColor(int a) { return a == 2 ? CcUi.Bad : (a == 1 ? CcUi.Warn : CcUi.Good); }
         static string LineName(TSignal s)
         {
-            char c = s.Id.Length > 0 ? s.Id[0] : ' ';
-            return c == 'D' ? "Down line" : (c == 'U' ? "Up line" : "Line");
+            return s.Dir == 'D' ? "Down direction" : "Up direction";      // v5.29: the direction the signal faces (a signal for the wrong-road direction faces the other way to its line)
         }
 
         public override void Build(VBoxContainer host, ControllerContext ctx)
@@ -32,6 +31,7 @@ namespace TNBCY
                 string hold = d != null ? d.HoldReason(sg) : "";
                 string where = LineName(sg) + "  ·  " + sg.Edge.Id + " at " + Mathf.RoundToInt(sg.Offset) + " m" + (hold != "" ? "  ·  held by the controller: " + hold : "");
                 info.AddChild(CcUi.Text(where, 15, hold != "" ? CcUi.Warn : Ui.Dim));
+                if (sg.Blocked) info.AddChild(CcUi.Text("HELD RED by the interlocking: an opposing train is on the track ahead", 15, CcUi.Warn, true));
                 var aspect = Ui.MakeLabel(AspectText(sg.Aspect), 22, AspectColor(sg.Aspect), true, HorizontalAlignment.Right);
                 aspect.CustomMinimumSize = new Vector2(120, 0); aspect.VerticalAlignment = VerticalAlignment.Center; h.AddChild(aspect);
             }

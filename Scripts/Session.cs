@@ -86,7 +86,7 @@ namespace TNBCY
         static bool TrainFits(Scenario sc, SessTrain s)
         {
             if (s == null || s.edges.Count == 0 || s.edges.Count != s.starts.Count) return false;
-            foreach (var id in s.edges) if (!sc.Graph.Edges.ContainsKey(id)) return false;
+            foreach (var id in s.edges) if (sc.Graph.EdgeById(id) == null) return false;      // v5.29: includes the hidden reverse-direction edges of a limit
             return true;
         }
 
@@ -96,7 +96,7 @@ namespace TNBCY
             var trail = new List<PathSeg>();
             for (int i = 0; i < s.edges.Count; i++)
             {
-                TEdge e; if (!sc.Graph.Edges.TryGetValue(s.edges[i], out e)) return false;
+                TEdge e = sc.Graph.EdgeById(s.edges[i]); if (e == null) return false;
                 trail.Add(new PathSeg { Edge = e, StartOdo = s.starts[i] });
             }
             for (int i = 0; i + 1 < trail.Count; i++) trail[i].Edge.To.PassedOdo = trail[i + 1].StartOdo;
