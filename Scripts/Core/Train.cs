@@ -13,6 +13,7 @@ namespace TNBCY
         public List<Car> Cars = new List<Car>();
         public List<PathSeg> Trail = new List<PathSeg>();
         public bool Finished; public int EndKind; public float EndSpeed;   // EndKind 1 = end of line, 2 = buffer stop
+        public bool NoCrossover;                                            // v5.29: the computer-driven train never takes a crossover, whatever the switch is set to
 
         public float Length { get { return Phys.LengthM; } }
         public float Speed { get { return Phys.Speed; } }
@@ -28,6 +29,29 @@ namespace TNBCY
                 { Cars.Add(new Car { Spec = v, Offset = off, Length = v.lengthM }); off += v.lengthM; }
             Trail.Add(new PathSeg { Edge = startEdge, StartOdo = 0f });
             Odo = Mathf.Max(startOffset, Length + 2f);
+        }
+
+        // The edge this train takes out of node n: the switch setting, except that a computer-driven train skips crossovers.
+        public TEdge PickNext(TNode n)
+        {
+            if (n.Outs.Count == 0) return null;
+            var e = n.Outs[n.Sel < n.Outs.Count ? n.Sel : 0];
+            if (NoCrossover && e.Crossover)
+                foreach (var o in n.Outs) if (!o.Crossover) return o;
+            return e;
+        }
+
+        // True while any part of this train (front to rear) is on edge e.
+        public bool OnEdge(TEdge e)
+        {
+            if (e == null) return false;
+            float front = Odo, rear = Odo - Length;
+            foreach (var seg in Trail)
+            {
+                if (seg.Edge != e) continue;
+                if (front > seg.StartOdo - 0.01f && rear < seg.StartOdo + e.Length) return true;
+            }
+            return false;
         }
 
         // Puts the train back where a saved session left it.
@@ -66,7 +90,7 @@ namespace TNBCY
                     EndSpeed = Phys.Speed; Odo = nodeOdo; Phys.Speed = 0f;
                     Finished = true; EndKind = n.Type == "buffer" ? 2 : 1; return;
                 }
-                Trail.Add(new PathSeg { Edge = n.Outs[n.Sel], StartOdo = nodeOdo });
+                Trail.Add(new PathSeg { Edge = PickNext(n), StartOdo = nodeOdo });
             }
         }
     }
