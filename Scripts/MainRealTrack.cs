@@ -279,7 +279,7 @@ void fragment() {
                     }
                     for (int side = -1; side <= 1; side += 2)
                     {
-                        if (e.Turnout && side > 0 && ((e.SkipStart > 0f && sb <= TongueLen) || (e.SkipEnd > 0f && sa >= e.Length - TongueLen))) continue;
+                        if (e.Turnout && ((e.SkipStart > 0f && sb <= TongueLen && side == e.InnerStart) || (e.SkipEnd > 0f && sa >= e.Length - TongueLen && side == e.InnerEnd))) continue;   // v5.29: the inner rail can be either side (crossovers lead right)
                         RailExtrude(rail, p0, p1, r0, r1, side * RailG, -side);
                         float fx = side * RailG;      // v26: flat dark-iron strips for the distance; wider the further away, so a rail never shrinks below a pixel
                         RTFarStrip(far1, p0, p1, r0, r1, fx, .10f); RTFarStrip(far2, p0, p1, r0, r1, fx, .30f); RTFarStrip(far3, p0, p1, r0, r1, fx, .60f);
@@ -353,10 +353,12 @@ void fragment() {
             foreach (var n in sc.Graph.Switches)
             {
                 var main = n.Outs[0]; var lp = n.Outs[1]; Vector3 d = main.DirAt(0f), r = Right(d);
-                Box(this, n.Pos + r * 3.0f + Vector3.Up * .45f, Basis.LookingAt(d, Vector3.Up), new Vector3(.5f, .9f, .7f), green);       // point machine
-                Box(this, n.Pos + r * 2.2f + Vector3.Up * .3f, Basis.LookingAt(d, Vector3.Up), new Vector3(1.8f, .08f, .15f), dark);      // drive rod
+                if (main.Virtual && !lp.Crossover) continue;                // v5.29: the points of a hidden twin are the frog of the real track: nothing to draw
+                float ms = lp.InnerStart;                                    // the machine stands on the side away from the diverging track
+                Box(this, n.Pos + r * (3.0f * ms) + Vector3.Up * .45f, Basis.LookingAt(d, Vector3.Up), new Vector3(.5f, .9f, .7f), green);       // point machine
+                Box(this, n.Pos + r * (2.2f * ms) + Vector3.Up * .3f, Basis.LookingAt(d, Vector3.Up), new Vector3(1.8f, .08f, .15f), dark);      // drive rod
                 Vector3 ra = Right(lp.DirAt(0f));
-                RailPiece(lp.PosAt(0f) + ra * RailG, lp.PosAt(TongueLen) + Right(lp.DirAt(TongueLen)) * RailG);   // switch rail of the loop line
+                RailPiece(lp.PosAt(0f) + ra * (RailG * lp.InnerStart), lp.PosAt(TongueLen) + Right(lp.DirAt(TongueLen)) * (RailG * lp.InnerStart));   // switch rail of the diverging line
                 Box(this, lp.PosAt(2.5f) + Vector3.Up * .42f, Basis.LookingAt(lp.DirAt(2.5f), Vector3.Up), new Vector3(2.0f, .05f, .12f), dark);   // stretcher bar
                 if (lp.Turnout && lp.SkipStart > 0f) RTAddFrog(lp, lp.SkipStart, main, Mathf.Min(lp.SkipStart, main.Length));
             }
@@ -383,6 +385,7 @@ void fragment() {
 
         float MastPlace(TEdge e, float s)
         {
+            if (e.Virtual || e.Crossover) return -1f;                    // v5.29: no masts on a crossover (it lies between the mains) or on a hidden twin
             if (e.Turnout && NearMainLine(e.PosAt(s), e, 5.5f)) return -1f;
             for (int k = 0; k <= 20; k++)
             {
@@ -461,10 +464,12 @@ void fragment() {
         {
             foreach (var z in zones)
             {
-                if (edge != z.Turnout && edge != z.Main) continue;
+                bool viaTwin = z.Main != null && z.Main.Virtual && edge == z.Main.Twin;      // v5.29: the main is a hidden twin: its real rails are the twin's, run the other way
+                if (edge != z.Turnout && edge != z.Main && !viaTwin) continue;
                 float edgeLength = edge.Length;
-                if (z.AtStart && s <= z.Length + RTSleeperSpacing * .5f) return true;
-                if (!z.AtStart && s >= edgeLength - z.Length - RTSleeperSpacing * .5f) return true;
+                bool atStart = viaTwin ? !z.AtStart : z.AtStart;
+                if (atStart && s <= z.Length + RTSleeperSpacing * .5f) return true;
+                if (!atStart && s >= edgeLength - z.Length - RTSleeperSpacing * .5f) return true;
             }
             return false;
         }
