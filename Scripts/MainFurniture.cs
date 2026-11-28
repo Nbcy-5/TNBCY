@@ -136,7 +136,7 @@ namespace TNBCY
             foreach (var s in sc.Graph.Signals)
             {
                 var p = s.Edge.PosAt(s.Offset); var d = s.Edge.DirAt(s.Offset); var q = Basis.LookingAt(d, Vector3.Up);
-                float side = FxSide(s.Edge, s.Offset, 3.4f);
+                float side = s.Edge.Virtual ? -3.4f : FxSide(s.Edge, s.Offset, 3.4f);    // v5.29: a signal for the wrong-road direction stands on the outer (driver's right) side, never between the two mains
                 var root = FxRoot(q, p - Right(d) * side);
                 root.AddChild(new MeshInstance3D { Mesh = fxSigMesh, MaterialOverride = fxVert });
                 var mats = new StandardMaterial3D[3];
@@ -178,7 +178,7 @@ namespace TNBCY
             string tel = "", hin = "";
             switch (nm)
             {
-                case "Secunderabad Jn": tel = "సికింద్రాబాద్ జంక్షన్"; hin = "सिकंदराबाद जंक्शन"; break;
+                case "Secunderabad Jn": tel = "సిక్ంద్రాబాద్ జంక్షన్"; hin = "सिकंदराबाद जंक्शन"; break;
                 case "Moula Ali": tel = "మౌలాలి"; hin = "मौलाली"; break;
                 case "Charlapalli": tel = "చర్లపల్లి"; hin = "चर्लापल्ली"; break;
                 case "Ghatkesar": tel = "ఘట్కేసర్"; hin = "घाटकेसर"; break;
