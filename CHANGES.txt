@@ -1,3 +1,9 @@
+TNBCY v5.28 / APK 73
+- Controller Centre now runs the AI train automatically: times, stops, tracks, signals.
+- Platform choice 2 km before a station; no free platform means a red signal.
+- New train: Cherlapalli Intercity Passenger 45617, Secunderabad Jn to Charlapalli.
+- Loop lines are platforms too; a trip ends when you stop at your destination.
+
 TNBCY v5.27 / APK 72
 - Secunderabad platform sheds: closed and strengthened long edge fascia to remove visible side gaps.
 - Added continuous ridge caps, top edge trims and transverse cover strips at canopy module joints.
