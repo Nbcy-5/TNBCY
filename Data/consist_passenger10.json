@@ -1,0 +1,35 @@
+{
+ "name": "Intercity Passenger 10 coaches (WAP-4)",
+ "brakeApplyRate": 0.1,
+ "brakeReleaseRate": 0.035,
+ "vehicles": [
+  {
+   "name": "WAP-4 electric loco",
+   "count": 1,
+   "massTonnes": 113,
+   "lengthM": 18.8,
+   "brakeForceKn": 135,
+   "davisA": 25,
+   "davisB": 0.5,
+   "davisC": 6,
+   "maxSpeedKmh": 110,
+   "colorRgb": 2051471,
+   "powered": true,
+   "maxPowerKw": 3800,
+   "maxTractiveEffortKn": 270
+  },
+  {
+   "name": "Coach",
+   "count": 10,
+   "massTonnes": 46,
+   "lengthM": 23.5,
+   "brakeForceKn": 53,
+   "davisA": 25,
+   "davisB": 0.5,
+   "davisC": 5.0,
+   "maxSpeedKmh": 110,
+   "colorRgb": 8018492
+  }
+ ],
+ "randomElectricLoco": true
+}
