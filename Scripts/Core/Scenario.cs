@@ -14,7 +14,10 @@ namespace TNBCY
 
         public Scenario(NetworkSpec net, ConsistSpec consist, ConsistSpec aiConsist = null)
         {
-            Net = net; Graph = TrackGraph.Build(net);
+            Net = net;
+            // v5.28: expand the route's "limits" (stations, loops, halts) into reverse-direction track, crossovers and signals. A fault here must never stop the game.
+            try { LimitBuilder.Expand(net); } catch (System.Exception ex) { GD.PrintErr("Limits not applied: " + ex.Message); }
+            Graph = TrackGraph.Build(net);
             // v64: a train always starts ON its platform. If the route's start point is not at the platform of the non-stopping start station
             // on that edge (e.g. the platform was moved), the start is snapped to that platform's stop mark.
             float startOff = PlatformStart(net.start.edge, net.start.offsetM);
@@ -23,6 +26,7 @@ namespace TNBCY
             TimeScale = Mathf.Max(0.1f, net.timeScale);
             if (net.ai != null && net.ai.enabled && Graph.Edges.ContainsKey(net.ai.edge))
                 Ai = new AiDriver(new Train(aiConsist ?? consist, Graph.Edges[net.ai.edge], aiOff), Graph, net.ai.departAfterS, net.defaultLimitKmh);
+            if (Ai != null) Ai.T.NoCrossover = true;
             // Long trains start further along the platform: move the start platforms to where the fronts really are.
             foreach (var st in Graph.Stations)
             {
@@ -88,6 +92,7 @@ namespace TNBCY
             float off = Train.FrontOffset;
             foreach (var s in Graph.Signals)
             {
+                if (s.Guard) { try { s.Blocked = GuardBlocked(s); } catch (System.Exception) { s.Blocked = false; } }
                 if (s.Held && s.Red && !s.Started && (Near(Train, s) || Near(AiTrain, s))) s.Started = true;
                 if (s.Started && s.Red)
                 {
@@ -97,7 +102,7 @@ namespace TNBCY
                 if (!s.Passed && Train.FrontSeg.Edge == s.Edge && off >= s.Offset)
                 {
                     s.Passed = true;
-                    if (s.Red) Emit("SIGNAL PASSED AT DANGER (" + s.Id + ")", false);
+                    if (s.Stop) Emit("SIGNAL PASSED AT DANGER (" + s.Id + ")", false);
                 }
             }
             Graph.UpdateAspects();
@@ -157,20 +162,77 @@ namespace TNBCY
             }
             return null;
         }
-        public bool SwitchLocked(TNode n)
+        // ---- track occupancy (v5.28): an edge and its hidden twin are the same rails, so a train on either one occupies both ----
+        IEnumerable<Train> AllTrains() { yield return Train; if (Ai != null) yield return Ai.T; }
+
+        public bool EdgeOccupied(TEdge e)
         {
-            if (Train.Odo - Train.Length < n.PassedOdo) return true;      // train is still on it
-            var cur = Train.FrontSeg;
-            return cur.Edge.To == n && cur.Edge.Length - Train.FrontOffset < 40f;   // too close
+            foreach (var t in AllTrains()) if (t.OnEdge(e) || (e.Twin != null && t.OnEdge(e.Twin))) return true;
+            return false;
         }
+
+        // True when a train is on the rails of e running the OTHER way (on its twin).
+        bool OpposingOn(TEdge e)
+        {
+            if (e.Twin == null) return false;
+            foreach (var t in AllTrains()) if (t.OnEdge(e.Twin)) return true;
+            return false;
+        }
+
+        // Any train on the track from o onwards (about 900 m, along the way the switches are set)?
+        bool TrackAheadBusy(TEdge o)
+        {
+            var e = o; float acc = 0f;
+            for (int hop = 0; hop < 6 && e != null && acc < 900f; hop++)
+            {
+                if (EdgeOccupied(e)) return true;
+                acc += e.Length; var n = e.To; e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
+            }
+            return false;
+        }
+
+        // A guard (limit / crossover) signal is held red while a train runs towards it on the rails ahead: opposing trains never meet head-on inside a limit.
+        bool GuardBlocked(TSignal s)
+        {
+            var e = s.Edge; float acc = -s.Offset;
+            for (int hop = 0; hop < 5 && e != null && acc < 700f; hop++)
+            {
+                if (OpposingOn(e)) return true;
+                acc += e.Length; var n = e.To; e = n.Outs.Count > 0 ? n.Outs[n.Sel] : null;
+            }
+            return false;
+        }
+
+        // Why switch n cannot be set to position 'to' right now (null = it can). Covers both trains, and the head-on rule for crossovers.
+        public string SwitchBlockReason(TNode n, int to)
+        {
+            try
+            {
+                foreach (var t in AllTrains())
+                {
+                    string who = t == Train ? "your train" : "the opposing train";
+                    foreach (var o in n.Outs) if (t.OnEdge(o)) return who + " is on it";
+                    var f = t.FrontSeg; float lead = t == Train ? 40f : 60f;
+                    if (f.Edge.To == n && f.Edge.Length - t.FrontOffset < lead) return who + " is too close";
+                    foreach (var seg in t.Trail) if (seg.Edge.To == n && t.OnEdge(seg.Edge)) return who + " is still passing it";
+                }
+                if (to >= 0 && to < n.Outs.Count && n.Outs[to].Crossover && TrackAheadBusy(n.Outs[to])) return "the track ahead is occupied";
+            }
+            catch (System.Exception) { }
+            return null;
+        }
+        public bool SwitchLocked(TNode n) { return SwitchBlockReason(n, -1) != null; }
+
         public void ToggleSwitch()
         {
             var n = NextSwitch(out float d);
             if (n == null) { Emit("No switch ahead", false); return; }
-            if (SwitchLocked(n)) { Emit(n.Name + " is locked (too close)", false); return; }
-            n.Sel = (n.Sel + 1) % n.Outs.Count;
+            int to = (n.Sel + 1) % n.Outs.Count;
+            string why = SwitchBlockReason(n, to);
+            if (why != null) { Emit(n.Name + " is locked (" + why + ")", false); return; }
+            n.Sel = to;
             Graph.UpdateAspects();
-            Emit(n.Name + " set " + (n.Sel == 0 ? "MAIN" : "LOOP"), true);
+            Emit(n.Name + " set " + n.SelLabel, true);
         }
     }
 }
