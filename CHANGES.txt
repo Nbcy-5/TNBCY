@@ -1,3 +1,9 @@
+TNBCY v5.29 / APK 74
+- Activated the existing two-way running limit system at Secunderabad only.
+- Added reverse-direction virtual tracks for the station yard and all four platform roads, with crossover pairs at both ends linking the Up and Down main lines.
+- Added bidirectional guard signals and retained occupancy / switch-lock protection; controller route search ignores crossovers so AI does not select them automatically.
+- Moula Ali, Charlapalli and Ghatkesar remain unchanged for a later rollout.
+
 TNBCY v5.28 / APK 73
 - Controller Centre now runs the AI train automatically: times, stops, tracks, signals.
 - Platform choice 2 km before a station; no free platform means a red signal.

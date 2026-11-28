@@ -5,6 +5,38 @@
   "targetTimeS": 0,
   "routeLengthM": 20000,
   "clockStart": "09:00",
+  "limits": [
+    {
+      "id": "SC",
+      "name": "Secunderabad Jn",
+      "type": "station",
+      "downEdge": "d0",
+      "downFromM": 0,
+      "downToM": -1,
+      "upEdge": "u17",
+      "upFromM": 0,
+      "upToM": -1,
+      "extraEdges": [
+        "sc_yard_entry",
+        "sc_yard_a",
+        "sc_yard_b_entry",
+        "sc_yard_b",
+        "sc_yard_c_entry",
+        "sc_yard_c",
+        "sc_yard_d_entry",
+        "sc_yard_d",
+        "sc_yard_d_merge",
+        "sc_yard_c_merge",
+        "sc_yard_b_merge",
+        "sc_yard_exit"
+      ],
+      "crossoverLengthM": 100,
+      "crossoverGapM": 30,
+      "endMarginM": 120,
+      "crossoverLimitKmh": 25,
+      "signalSetbackM": 40
+    }
+  ],
   "start": {"edge": "d0", "offsetM": 765},
   "ai": {"enabled": true, "edge": "u0", "offsetM": 670, "departAfterS": 60},
   "nodes": [
