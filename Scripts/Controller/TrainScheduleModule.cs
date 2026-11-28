@@ -10,7 +10,7 @@ namespace TNBCY
         public override string Title { get { return "TRAIN SCHEDULES"; } }
         public override string Hint
         {
-            get { return "Retime, delay or cancel a service. Changes are saved on this phone. Cancelled trains are hidden from SELECT TRAIN, and the game clock starts at the departure time shown here."; }
+            get { return "Retime, delay or cancel a service. Changes are saved on this phone. Cancelled trains are hidden from SELECT TRAIN. The game clock starts at the departure time shown here, and the controller sends the other train off at its own time and stops it only at the stations of its timetable."; }
         }
 
         public override void Build(VBoxContainer host, ControllerContext ctx)

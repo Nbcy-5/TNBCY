@@ -28,7 +28,9 @@
       "trainNumber": 87623,
       "routeStartEdge": "u0",
       "routeStartOffsetM": 670,
-      "routeSection": "Ghatkesar → Secunderabad Jn (Kakinada section not built yet)"
+      "routeSection": "Ghatkesar → Secunderabad Jn (Kakinada section not built yet)",
+      "finalStop": "Secunderabad Jn (SC)",
+      "aiPartner": 87625
     },
     {
       "name": "Hyderabad Intercity Passenger",
@@ -48,9 +50,35 @@
       "distanceKm": 6,
       "departure": "09:30",
       "arrival": "09:42",
+      "finalStop": "Secunderabad Jn (SC)",
       "stops": [
         { "station": "Moula Ali (MLY)", "arr": "", "dep": "09:30" },
         { "station": "Secunderabad Jn (SC)", "arr": "09:42", "dep": "" }
+      ]
+    },
+    {
+      "name": "Cherlapalli Intercity Passenger",
+      "file": "consist_passenger10",
+      "desc": "Daily intercity passenger service from Secunderabad Jn to Charlapalli",
+      "kind": "Passenger",
+      "coaches": 10,
+      "origin": "Secunderabad Jn",
+      "destination": "Charlapalli",
+      "locomotive": "Random WAP electric locomotive",
+      "platform": 1,
+      "trainNumber": 45617,
+      "routeStartEdge": "d0",
+      "routeStartOffsetM": 765,
+      "routeSection": "Secunderabad Jn → Charlapalli (playable section)",
+      "days": "Daily",
+      "distanceKm": 12,
+      "departure": "09:15",
+      "arrival": "09:34",
+      "finalStop": "Charlapalli (CHZ)",
+      "stops": [
+        { "station": "Secunderabad Jn (SC)", "arr": "", "dep": "09:15" },
+        { "station": "Moula Ali (MLY)", "arr": "09:23", "dep": "09:24" },
+        { "station": "Charlapalli (CHZ)", "arr": "09:34", "dep": "" }
       ]
     }
   ]
