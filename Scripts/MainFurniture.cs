@@ -178,7 +178,7 @@ namespace TNBCY
             string tel = "", hin = "";
             switch (nm)
             {
-                case "Secunderabad Jn": tel = "సిక్ంద్రాబాద్ జంక్షన్"; hin = "सिकंदराबाद जंक्शन"; break;
+                case "Secunderabad Jn": tel = "సికింద్రాబాద్ జంక్షన్"; hin = "सिकंदराबाद जंक्शन"; break;
                 case "Moula Ali": tel = "మౌలాలి"; hin = "मौलाली"; break;
                 case "Charlapalli": tel = "చర్లపల్లి"; hin = "चर्लापल्ली"; break;
                 case "Ghatkesar": tel = "ఘట్కేసర్"; hin = "घाटकेसर"; break;
