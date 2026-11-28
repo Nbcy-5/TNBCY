@@ -7,7 +7,8 @@ namespace TNBCY
     // It is opened from the home screen and from the pause screen. Modules are registered with AddModule.
     public partial class ControllerCentre : Control
     {
-        public System.Action OnClosed, Tick;      // Tick runs every frame, even while the centre is closed
+        public System.Action OnClosed;
+        public System.Action<float> Tick;         // runs every frame (with the frame time), even while the centre is closed
         readonly List<ControllerModule> modules = new List<ControllerModule>();
         ControllerContext ctx; int current; bool built;
         VBoxContainer tabs, host; ScrollContainer scroll; Label statusL, modeL;
@@ -31,7 +32,7 @@ namespace TNBCY
             var close = Ui.MakeButton("<  CLOSE", 22, false, new Vector2(150, 52));
             Ui.Place(close, 0, 0, 0, 0, 30, 26, 180, 78); AddChild(close); close.Pressed += Close;
 
-            tabs = new VBoxContainer(); tabs.AddThemeConstantOverride("separation", 12);
+            tabs = new VBoxContainer(); tabs.AddThemeConstantOverride("separation", 10);
             Ui.Place(tabs, 0, 0, 0, 1, 30, 124, 300, -70); AddChild(tabs);
 
             scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
@@ -67,14 +68,14 @@ namespace TNBCY
 
         public override void _Process(double delta)
         {
-            if (Tick != null) Tick();
+            if (Tick != null) Tick((float)delta);
         }
 
         void UpdateMode()
         {
             var sc = ctx.Sc;
             modeL.Text = sc == null
-                ? "OFFLINE  -  start a drive to control its signals and switches"
+                ? "OFFLINE  -  the controller starts working when a drive starts"
                 : "LIVE DRIVE  -  clock " + sc.ClockText() + (sc.Ended ? "  -  finished" : "");
         }
 
@@ -84,11 +85,11 @@ namespace TNBCY
             for (int i = 0; i < modules.Count; i++)
             {
                 int idx = i;
-                var b = Ui.MakeButton(modules[i].Title, 20, i == current, new Vector2(270, 72));
+                var b = Ui.MakeButton(modules[i].Title, 20, i == current, new Vector2(270, 64));
                 tabs.AddChild(b);
                 b.Pressed += () => { current = idx; RebuildTabs(); BuildModule(); scroll.ScrollVertical = 0; };
             }
-            var more = Ui.MakeButton("MORE COMING SOON", 16, false, new Vector2(270, 56));
+            var more = Ui.MakeButton("MORE COMING SOON", 16, false, new Vector2(270, 50));
             more.Disabled = true; tabs.AddChild(more);
         }
 
