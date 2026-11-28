@@ -44,8 +44,12 @@ namespace TNBCY
 
             foreach (var station in graph.Stations)
             {
-                if (!station.Stop || station.Edge == null || station.Edge.Id.Length == 0) continue;
-                if (station.Edge.Id[0] != start.Id[0]) continue;
+                if (!station.Stop || station.Edge == null) continue;
+                // A stop already behind the train on its own track cannot be a destination.
+                if (station.Edge == start && station.Offset < train.FrontOffset) continue;
+                // No edge-name prefix test here: the track graph is directed, so BuildRoute only succeeds for
+                // stations that can really be reached ahead. (The old first-letter test excluded every stop
+                // for trains starting on s0, whose id begins with 's'.)
                 List<TEdge> candidate;
                 if (!BuildRoute(start, station.Edge, trainId, out candidate)) continue;
                 float distance = 0f;

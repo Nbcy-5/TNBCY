@@ -60,9 +60,12 @@ namespace TNBCY
                     target = Mathf.Min(target, StopSpeed(d - 4f - v * 1.5f));
                     if (arriving == null || d < arriveD) { arriving = st; arriveD = d; }
                 }
-                var n = e.To; acc += e.Length;
-                if (n.Outs.Count == 0) { target = Mathf.Min(target, StopSpeed(acc - 8f - v * 1.5f)); break; }
-                e = T.NextEdge(e);
+                acc += e.Length;
+                TEdge next = T.NextEdge(e);
+                // End of this train's assigned route: a dead end, or a through point where its service terminates.
+                // Either way the driver must brake to stop short of it (the old test only caught dead ends).
+                if (next == null) { target = Mathf.Min(target, StopSpeed(acc - 8f - v * 1.5f)); break; }
+                e = next;
             }
 
             // Movement authority: stop short of track that another train holds.

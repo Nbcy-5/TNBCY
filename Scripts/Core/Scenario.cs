@@ -22,6 +22,7 @@ namespace TNBCY
             if (edgeIds != null && edgeIds.Count > 0) return new List<string>(edgeIds);
             var result = new List<string>();
             string direction = string.IsNullOrEmpty(startEdgeId) ? "" : startEdgeId.Substring(0, 1);
+            if (direction == "s") direction = "d";   // s0 (platform 3) is a down-line track that merges into d1
             if (stationNames == null) return result;
             foreach (string stationName in stationNames)
             {
@@ -142,10 +143,18 @@ namespace TNBCY
             if (!Ended && Train.Finished) End();
         }
 
+        // True when the signal is 0-400 m ahead of the train's front along the train's own assigned route.
+        // The signal may sit on a later track section (e.g. after a split edge), so the route is followed, not just the current edge.
         bool Near(Train t, TSignal s)
         {
-            if (t == null || t.FrontSeg.Edge != s.Edge) return false;
-            float ahead = s.Offset - t.FrontOffset; return ahead < 400f && ahead > 0f;
+            if (t == null || t.FrontSeg == null) return false;
+            TEdge e = t.FrontSeg.Edge; float acc = -t.FrontOffset;
+            for (int hop = 0; hop < 4 && e != null && acc < 400f; hop++)
+            {
+                if (e == s.Edge) { float ahead = acc + s.Offset; return ahead < 400f && ahead > 0f; }
+                acc += e.Length; e = t.NextEdge(e);
+            }
+            return false;
         }
 
         void UpdateSignals(float dt)
@@ -189,7 +198,9 @@ namespace TNBCY
                     float ad = Mathf.Abs(d);
                     MarkServed(st.Name); st.Done = true;
                     Emit("Stopped at " + st.Name + (ad <= 6f ? "" : " (" + Mathf.RoundToInt(ad) + " m from the mark)"), true);
-                    if (st.Edge.To.Outs.Count == 0 && st.Edge.To.Type != "buffer") { Complete("Route complete"); return; }
+                    // Terminal stop = the last track section of THIS train's assigned route (not just a dead-end node),
+                    // so a service that ends at a through station such as Moula Ali completes when it stops there.
+                    if (Train.NextEdge(st.Edge) == null && st.Edge.To.Type != "buffer") { Complete("Route complete"); return; }
                 }
                 else if (d < -40f)
                 {
