@@ -117,9 +117,14 @@ namespace TNBCY
             }
             var n = e.To; float next = acc + e.Length;
             if (n.Outs.Count == 0) return;
-            if (n.Outs.Count == 1) { Walk(slots, n.Outs[0], next, maxDist, nodes, sels, nd, found, depth + 1); return; }
+            // v5.29: crossovers between the Down and Up mains are only ever set by hand. The controller's route search ignores them,
+            // and a switch whose only other way out is a crossover is never touched (so a crossover thrown by the player stays thrown).
+            int plain = 0; TEdge only = null;
+            foreach (var o in n.Outs) if (!o.Crossover) { plain++; only = o; }
+            if (plain == 1) { Walk(slots, only, next, maxDist, nodes, sels, nd, found, depth + 1); return; }
             for (int i = 0; i < n.Outs.Count; i++)
             {
+                if (n.Outs[i].Crossover) continue;
                 nodes.Add(n); sels.Add(i); nd.Add(next);
                 Walk(slots, n.Outs[i], next, maxDist, nodes, sels, nd, found, depth + 1);
                 nodes.RemoveAt(nodes.Count - 1); sels.RemoveAt(sels.Count - 1); nd.RemoveAt(nd.Count - 1);
